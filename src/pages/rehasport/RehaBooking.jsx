@@ -7,9 +7,9 @@ import { base44 } from '@/api/base44Client';
 
 const SERVICE_LABELS = { geraete: 'Gerätetraining', five: 'FIVE Training', milon: 'Milon Training' };
 const SERVICE_COLORS = {
-  geraete: { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/30' },
-  five: { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/30' },
-  milon: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/30' }
+  geraete: { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/30', slotBg: 'hover:bg-primary/20 hover:border-primary' },
+  five: { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/30', slotBg: 'hover:bg-orange-500/20 hover:border-orange-400' },
+  milon: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/30', slotBg: 'hover:bg-blue-500/20 hover:border-blue-400' }
 };
 const SERVICE_IDS = { geraete: 24, five: 26, milon: 25 };
 const UNIT_IDS = { geraete: 9, five: 11, milon: 10 };
@@ -40,35 +40,32 @@ export default function RehaBooking({ profile, onBack, onDone }) {
 
   const currentService = services[currentServiceIdx];
 
-  // Load slots for current service
+  // Load slots for current service (only Five and Milon, only current week)
   useEffect(() => {
-    if (!currentService) return;
+    if (!currentService || currentService === 'geraete') {
+      setSlots({});
+      return;
+    }
     const loadSlots = async () => {
       setLoading(true);
       setSelectedDate(null);
       setSelectedTime(null);
       try {
-        const response = await base44.functions.invoke('simplybookApi', {
-          action: 'getWorkDays',
-          serviceId: SERVICE_IDS[currentService],
-        });
-        const schedule = response.data.schedule || {};
         const today = new Date();
         const daysWithSlots = {};
         
-        for (let i = 0; i < 60; i++) {
+        // Only load for current week (7 days)
+        for (let i = 0; i < 7; i++) {
           const d = addDays(today, i);
           const key = format(d, 'yyyy-MM-dd');
-          if (schedule[key] && schedule[key].is_day_off === '0') {
-            const slotResponse = await base44.functions.invoke('simplybookApi', {
-              action: 'getSlots',
-              serviceId: SERVICE_IDS[currentService],
-              date: key,
-            });
-            const daySlots = slotResponse.data.slots ? Object.values(slotResponse.data.slots).flat() : [];
-            if (daySlots.length > 0) {
-              daysWithSlots[key] = daySlots;
-            }
+          const slotResponse = await base44.functions.invoke('simplybookApi', {
+            action: 'getSlots',
+            serviceId: SERVICE_IDS[currentService],
+            date: key,
+          });
+          const daySlots = slotResponse.data.slots ? Object.values(slotResponse.data.slots).flat() : [];
+          if (daySlots.length > 0) {
+            daysWithSlots[key] = daySlots;
           }
         }
         setSlots(daysWithSlots);
@@ -142,33 +139,47 @@ export default function RehaBooking({ profile, onBack, onDone }) {
       </div>
 
       {/* Slots Grid */}
-      <div className="flex-1 px-4 md:px-8 overflow-y-auto">
-        {loading ? (
+      <div className="flex-1 px-4 md:px-8 overflow-y-auto pb-32">
+        {currentService === 'geraete' ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <p className="text-muted-foreground text-center mb-6">Gerätetraining ist jederzeit verfügbar.</p>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                setBooked(prev => ({ ...prev, [currentService]: true }));
+                setCurrentServiceIdx(prev => prev + 1);
+              }}
+              className="px-8 h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide hover:bg-primary/90 transition-all">
+              Überspringen →
+            </motion.button>
+          </div>
+        ) : loading ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Loader2 className="w-7 h-7 animate-spin text-primary" />
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Termine werden geladen…</p>
           </div>
         ) : daysArray.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">Keine freien Termine gefunden.</p>
+          <p className="text-muted-foreground text-center py-8">Keine freien Termine diese Woche gefunden.</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-32">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
             {daysArray.map(({ date, times }) => {
               const d = new Date(date + 'T12:00:00');
-              const dayName = format(d, 'EEE', { locale: de });
-              const monthName = format(d, 'MMM', { locale: de });
-              return times.map(time => (
+              const dayName = format(d, 'EEEE', { locale: de });
+              const monthName = format(d, 'MMMM', { locale: de });
+              return times.slice(0, 2).map((time, idx) => (
                 <motion.button
                   key={`${date}-${time}`}
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => { setSelectedDate(date); setSelectedTime(time); }}
-                  className={`p-3 rounded-xl text-center transition-all duration-300 ${
+                  className={`p-6 rounded-2xl text-center transition-all duration-300 border-2 h-32 flex flex-col justify-center ${
                     selectedDate === date && selectedTime === time
-                      ? `ring-2 ring-offset-2 ring-offset-background ${SERVICE_COLORS[currentService].text.replace('text-', 'ring-')} shadow-lg`
-                      : 'border border-border hover:border-primary/50 bg-card'
+                      ? `ring-2 ring-offset-2 ring-offset-background shadow-lg ${SERVICE_COLORS[currentService].border.replace('border-', 'ring-')}`
+                      : `border-border bg-card ${SERVICE_COLORS[currentService].slotBg}`
                   }`}>
-                  <p className="text-xs text-muted-foreground uppercase font-bold mb-1">{dayName}</p>
-                  <p className="text-xs text-muted-foreground mb-1.5">{d.getDate()}. {monthName}</p>
-                  <p className="text-lg font-black text-primary">{time.slice(0, 5)}</p>
+                  <p className="text-sm text-muted-foreground uppercase font-bold">{dayName}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{d.getDate()}. {monthName}</p>
+                  <p className={`text-4xl font-black ${SERVICE_COLORS[currentService].text}`}>{time.slice(0, 5)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Uhr</p>
                 </motion.button>
               ));
             })}
