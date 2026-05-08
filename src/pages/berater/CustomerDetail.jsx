@@ -257,6 +257,32 @@ export default function CustomerDetail({ consultation, onBack }) {
       yPos += 4;
     }
 
+    if (yPos > pageHeight - 40) {
+      doc.addPage();
+      yPos = 15;
+    }
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 150, 100);
+    doc.text('5. UNTERSCHRIFT', 15, yPos);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    yPos += 8;
+
+    if (consultation.signature) {
+      try {
+        doc.addImage(consultation.signature, 'PNG', 15, yPos, 50, 20);
+      } catch (e) {
+        doc.text('[Unterschrift]', 15, yPos);
+      }
+      yPos += 25;
+    }
+
+    doc.text(`${consultation.customer_name || '_______________'}, ${new Date().toLocaleDateString('de-DE')}`, 15, yPos);
+
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(`${COMPANY_ADDRESS.website} | ${COMPANY_ADDRESS.phone}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
@@ -287,6 +313,7 @@ export default function CustomerDetail({ consultation, onBack }) {
         iban: consultation.iban,
         _startDate: startDate,
         _endDate: endDate,
+        signature: consultation.signature,
       });
       doc.save(`Teilnahmebescheinigung-${num}-${consultation.customer_name?.replace(/\s/g, '-')}.pdf`);
     } finally {

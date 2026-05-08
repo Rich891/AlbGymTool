@@ -150,9 +150,22 @@ export function generateTeilnahmebescheinigung(profile) {
   line(15, y + 1, 60, y + 1);
   text(todayStr, 70, y);
   line(70, y + 1, 110, y + 1);
-  // Signature placeholder
+  y += 2;
+
+  // Unterschrift von Profil einfügen
+  if (profile.signature) {
+    try {
+      doc.addImage(profile.signature, 'PNG', 120, y - 8, 50, 18);
+    } catch (e) {
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
+      text('[Unterschrift]', 120, y);
+    }
+  }
+
   doc.setFontSize(7); gray();
-  text('AlbGym GmbH (Stempel & Unterschrift)', 120, y);
+  y += 15;
+  text('AlbGym GmbH (Stempel)', 120, y);
   y += 4;
   doc.setFontSize(7); gray();
   text('Ort', 15, y); text('Datum', 70, y);
