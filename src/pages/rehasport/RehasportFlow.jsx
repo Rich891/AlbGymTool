@@ -95,7 +95,7 @@ export default function RehasportFlow() {
         </button>
         {testMode && (
           <button
-            onClick={() => { update({ bookingDone: true }); setStep(11); }}
+            onClick={() => { update({ bookingDone: true, signature: 'test' }); setStep(12); }}
             className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all border bg-orange-500/20 border-orange-500/60 text-orange-400 hover:bg-orange-500/30">
             Termin dummy →
           </button>
