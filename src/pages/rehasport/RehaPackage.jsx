@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ArrowLeft, Check, Info, X, Loader2, Dumbbell, Bike, ShowerHead, Coffee, ClipboardList, Clock, Accessibility, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -62,6 +62,21 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
   const SUBSIDY_AMOUNT = 159; // voraussichtlicher Zuschuss
   const section20Fee = 199;
   const netFee = section20Fee - SUBSIDY_AMOUNT; // 40€ Eigenanteil
+
+  // Datum-Berechnung für die 2 Zahlungen & Zuschuss-Anspruch
+  const dates = useMemo(() => {
+    const fmt = (d) => d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const today = new Date();
+    const payment2 = new Date(today); payment2.setMonth(payment2.getMonth() + 6);
+    const subsidy1 = new Date(today); subsidy1.setMonth(subsidy1.getMonth() + 2);
+    const subsidy2 = new Date(payment2); subsidy2.setMonth(subsidy2.getMonth() + 2);
+    return {
+      payment1: fmt(today),
+      payment2: fmt(payment2),
+      subsidy1: fmt(subsidy1),
+      subsidy2: fmt(subsidy2),
+    };
+  }, []);
 
   const allInclusive = [
     { icon: Dumbbell, label: 'Krafttraining' },
@@ -337,35 +352,65 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 <div className="px-6 py-6 space-y-5">
                   {/* Intro */}
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Viele gesetzliche Krankenkassen bezuschussen zertifizierte Präventionsangebote nach §20 SGB V – auch im AlbGym.
+                    Viele gesetzliche Krankenkassen bezuschussen zertifizierte Präventionsangebote nach §20 SGB V. Das Modell läuft über <strong className="text-foreground">2 Zahlungen</strong> – mit je einem Erstattungsanspruch danach.
                   </p>
 
-                  {/* Step-by-step */}
+                  {/* Zahlungsplan */}
                   <div className="space-y-3">
-                    <p className="text-xs font-black uppercase tracking-widest text-primary">So läuft es ab</p>
-                    {[
-                      { step: '1', label: 'Rehasport+ starten', text: `Basispreis ${weeklyPrice.toFixed(2).replace('.', ',')}€ / Woche – läuft normal weiter` },
-                      { step: '2', label: '§20-Pauschale einmalig', text: 'Einmalig 199,00€ für den zertifizierten Präventionskurs' },
-                      { step: '3', label: 'Krankenkasse erstattet', text: `Deine Krankenkasse überweist dir voraussichtlich bis zu ${SUBSIDY_AMOUNT}€ zurück` },
-                      { step: '4', label: 'Dein Eigenanteil', text: `Unterm Strich bleiben nur ${netFee}€ bei dir` },
-                    ].map(({ step, label, text }) => (
-                      <div key={step} className="flex gap-4 items-start p-4 rounded-2xl bg-secondary/50 border border-border">
-                        <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-black text-primary-foreground">{step}</span>
+                    <p className="text-xs font-black uppercase tracking-widest text-primary">Deine 2 Zahlungen</p>
+
+                    <div className="rounded-2xl border border-border bg-secondary/40 p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-black text-primary-foreground">1</span>
                         </div>
-                        <div>
-                          <p className="font-black text-foreground text-sm">{label}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{text}</p>
+                        <p className="font-black text-foreground text-sm">1. §20-Zahlung – beim Start</p>
+                      </div>
+                      <div className="ml-10 space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Fällig am</span>
+                          <span className="font-bold text-foreground">{dates.payment1}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Betrag</span>
+                          <span className="font-bold text-foreground">99,00€</span>
+                        </div>
+                        <div className="flex justify-between text-primary">
+                          <span>Zuschuss beantragen ab</span>
+                          <span className="font-bold">{dates.subsidy1}</span>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="rounded-2xl border border-border bg-secondary/40 p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-black text-primary-foreground">2</span>
+                        </div>
+                        <p className="font-black text-foreground text-sm">2. §20-Zahlung – nach 6 Monaten</p>
+                      </div>
+                      <div className="ml-10 space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Fällig am</span>
+                          <span className="font-bold text-foreground">{dates.payment2}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Betrag</span>
+                          <span className="font-bold text-foreground">100,00€</span>
+                        </div>
+                        <div className="flex justify-between text-primary">
+                          <span>Zuschuss beantragen ab</span>
+                          <span className="font-bold">{dates.subsidy2}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Zusammenfassung */}
                   <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-2 text-sm">
-                    <p className="text-xs font-black uppercase tracking-widest text-primary mb-3">Zusammenfassung</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-primary mb-3">Gesamtrechnung</p>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>§20-Pauschale</span>
+                      <span>2 × §20-Pauschale gesamt</span>
                       <span className="font-bold">199,00€</span>
                     </div>
                     <div className="flex justify-between text-primary">
@@ -380,7 +425,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
 
                   {/* Hinweis */}
                   <p className="text-xs text-muted-foreground bg-secondary/60 border border-border rounded-2xl p-4 leading-relaxed">
-                    ⚠️ Der Zuschuss ist ein Richtwert. Die tatsächliche Erstattung hängt von deiner Krankenkasse, deinem persönlichen Anspruch und regelmäßiger Teilnahme ab. Keine Garantie.
+                    ⚠️ Zuschuss und Eigenanteil sind Richtwerte. Die tatsächliche Erstattung hängt von deiner Krankenkasse, deinem persönlichen Anspruch und regelmäßiger Teilnahme ab. Keine Garantie.
                   </p>
                 </div>
 
