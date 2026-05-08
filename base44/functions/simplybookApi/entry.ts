@@ -1,29 +1,23 @@
 const COMPANY_LOGIN = Deno.env.get('SIMPLYBOOK_COMPANY_LOGIN');
-const API_KEY = Deno.env.get('SIMPLYBOOK_API_KEY');
-const API_SECRET = Deno.env.get('SIMPLYBOOK_API_SECRET');
-const LOGIN_URL = 'https://user-api.simplybook.it/login/';
-const API_URL = 'https://user-api.simplybook.it/';
+const API_USER_KEY = Deno.env.get('SIMPLYBOOK_API_USER_KEY');
+const BASE_URL = `https://user-api-v2.simplybook.it/admin`;
 
-async function rpc(url, method, params = [], headers = {}) {
-  const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
-  console.log(`[RPC] ${url} -> ${method}`, JSON.stringify(params).slice(0, 100));
+async function apiFetch(path, options = {}) {
+  const url = `${BASE_URL}${path}`;
+  console.log(`[API] ${options.method || 'GET'} ${url}`);
   const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body,
+    ...options,
+    headers: {
+      'X-Company-Login': COMPANY_LOGIN,
+      'X-Token': API_USER_KEY,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
   });
   const text = await res.text();
-  console.log(`[RPC] response:`, text.slice(0, 300));
-  let data;
-  try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON: ' + text.slice(0, 200)); }
-  if (data.error) throw new Error(JSON.stringify(data.error));
-  return data.result;
-}
-
-async function getToken() {
-  // Try with public API key first, then secret
-  console.log('[AUTH] company:', COMPANY_LOGIN, 'key length:', API_KEY?.length, 'secret length:', API_SECRET?.length);
-  return await rpc(LOGIN_URL, 'getToken', [COMPANY_LOGIN, API_KEY]);
+  console.log(`[API] status: ${res.status}, body: ${text.slice(0, 300)}`);
+  if (!res.ok) throw new Error(`API error ${res.status}: ${text.slice(0, 200)}`);
+  return JSON.parse(text);
 }
 
 Deno.serve(async (req) => {
@@ -31,38 +25,41 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, serviceId, date, unitId, time, clientData } = body;
 
-    const token = await getToken();
-    const headers = { 'X-Company-Login': COMPANY_LOGIN, 'X-Token': token };
-
     if (action === 'getWorkDays') {
       const now = new Date();
       const year = now.getFullYear();
-      const month = now.getMonth() + 1;
-      const schedule = await rpc(API_URL, 'getWorkCalendar', [year, month, serviceId], headers);
-      return Response.json({ schedule });
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const data = await apiFetch(`/schedule?service_id=${serviceId}&year=${year}&month=${month}`);
+      return Response.json({ schedule: data });
     }
 
     if (action === 'getSlots') {
-      const slots = await rpc(API_URL, 'getStartTimeMatrix', [date, date, serviceId, unitId || null, 1], headers);
-      const daySlots = (slots && slots[date]) ? slots[date] : [];
-      return Response.json({ slots: daySlots });
+      const data = await apiFetch(`/schedule/available-slots?service_id=${serviceId}&date=${date}&count=1`);
+      return Response.json({ slots: data });
     }
 
     if (action === 'book') {
-      const result = await rpc(API_URL, 'book', [
-        serviceId,
-        unitId || null,
-        date,
-        time,
-        clientData,
-        [],
-        1,
-      ], headers);
-      return Response.json({ booking: result });
+      const data = await apiFetch('/bookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          service_id: serviceId,
+          unit_id: unitId || null,
+          start_datetime: `${date} ${time}`,
+          client: clientData,
+          count: 1,
+        }),
+      });
+      return Response.json({ booking: data });
+    }
+
+    if (action === 'getServices') {
+      const data = await apiFetch('/services');
+      return Response.json({ services: data });
     }
 
     return Response.json({ error: 'Unknown action' }, { status: 400 });
   } catch (error) {
+    console.error('[ERROR]', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
