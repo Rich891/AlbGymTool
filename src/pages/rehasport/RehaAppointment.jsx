@@ -18,64 +18,99 @@ const SERVICE_IMAGES = {
   milon: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=700&q=80',
 };
 
-// Woche startet Montag
-const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
 function fmt(d) {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
-// Montag-basierter Offset: So=0 → 6, Mo=1 → 0, Di=2 → 1, ...
-function mondayOffset(date) {
-  const day = date.getDay(); // 0=So, 1=Mo, ...
-  return (day + 6) % 7;
+// Get Monday of the week containing `date`
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=So
+  const diff = (day === 0 ? -6 : 1 - day);
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
 }
 
 function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, onBack }) {
-  const [step, setStep] = useState('calendar');
-  const [calMonth, setCalMonth] = useState(new Date());
+  const [step, setStep] = useState('week'); // week | confirm | done
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [weekStart, setWeekStart] = useState(() => getMonday(today));
   const [workDays, setWorkDays] = useState({});
   const [loadingDays, setLoadingDays] = useState(false);
+  // slots per date: { '2026-05-15': ['10:00:00', ...] }
+  const [slotsByDate, setSlotsByDate] = useState({});
+  const [loadingSlots, setLoadingSlots] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
-  const [slots, setSlots] = useState([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedTime, setSelectedTime] = useState(null);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState(null);
 
-  const loadWorkDays = async () => {
-    setLoadingDays(true);
-    setError(null);
-    try {
-      const res = await base44.functions.invoke('simplybookApi', { action: 'getWorkDays', serviceId });
-      setWorkDays(res.data.schedule || {});
-    } catch (e) {
-      setError('Kalender konnte nicht geladen werden.');
-    }
-    setLoadingDays(false);
+  // Load work calendar once
+  useEffect(() => {
+    const load = async () => {
+      setLoadingDays(true);
+      try {
+        const res = await base44.functions.invoke('simplybookApi', { action: 'getWorkDays', serviceId });
+        setWorkDays(res.data.schedule || {});
+      } catch (e) {
+        setError('Kalender konnte nicht geladen werden.');
+      }
+      setLoadingDays(false);
+    };
+    load();
+  }, [serviceId]);
+
+  // The 7 days of the current week
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  const isWorkDay = (d) => {
+    const key = fmt(d);
+    const info = workDays[key];
+    if (!info) return false;
+    if (info === '0') return false;
+    if (info.is_day_off === '1') return false;
+    return true;
   };
 
-  useEffect(() => { loadWorkDays(); }, [serviceId]);
+  const isPast = (d) => d < today;
 
-  const loadSlots = async (date) => {
-    setLoadingSlots(true);
-    setSlots([]);
-    setError(null);
-    try {
-      const res = await base44.functions.invoke('simplybookApi', { action: 'getSlots', serviceId, date });
-      setSlots(res.data.slots || []);
-    } catch (e) {
-      setError('Zeiten konnten nicht geladen werden.');
-    }
-    setLoadingSlots(false);
-  };
+  // Load slots for all available days of the week
+  useEffect(() => {
+    if (loadingDays) return;
+    const availDays = weekDays.filter(d => !isPast(d) && isWorkDay(d));
+    availDays.forEach(async (d) => {
+      const key = fmt(d);
+      if (slotsByDate[key] !== undefined || loadingSlots[key]) return;
+      setLoadingSlots(prev => ({ ...prev, [key]: true }));
+      try {
+        const res = await base44.functions.invoke('simplybookApi', { action: 'getSlots', serviceId, date: key });
+        setSlotsByDate(prev => ({ ...prev, [key]: res.data.slots || [] }));
+      } catch {
+        setSlotsByDate(prev => ({ ...prev, [key]: [] }));
+      }
+      setLoadingSlots(prev => ({ ...prev, [key]: false }));
+    });
+  }, [weekStart, workDays, loadingDays]);
 
-  const handleDayClick = (dateStr) => {
+  const handleSelectSlot = (dateStr, time) => {
     setSelectedDate(dateStr);
-    setSelectedTime(null);
-    setStep('time');
-    loadSlots(dateStr);
+    setSelectedTime(time);
+    setStep('confirm');
   };
 
   const handleBook = async () => {
@@ -101,30 +136,14 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
     setBooking(false);
   };
 
-  // Calendar grid (Montag-basiert)
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const firstDay = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
-  const lastDay = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0);
-  const startOffset = mondayOffset(firstDay);
+  const weekEnd = addDays(weekStart, 6);
+  const fmtShort = (d) => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;
 
-  const calDays = [];
-  for (let i = 0; i < startOffset; i++) calDays.push(null);
-  for (let d = 1; d <= lastDay.getDate(); d++) {
-    calDays.push(new Date(calMonth.getFullYear(), calMonth.getMonth(), d));
-  }
-
-  const isAvailable = (d) => {
-    if (!d) return false;
-    const normalized = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    if (normalized < today) return false;
+  // Days that have at least one slot
+  const daysWithSlots = weekDays.filter(d => {
     const key = fmt(d);
-    const info = workDays[key];
-    return info && info.is_day_off !== '1' && info !== '0';
-  };
-
-  // Collect all available dates for the current month view
-  const availableDates = calDays.filter(d => d && isAvailable(d)).map(d => fmt(d));
+    return !isPast(d) && isWorkDay(d) && slotsByDate[key] && slotsByDate[key].length > 0;
+  });
 
   if (step === 'done') {
     return (
@@ -135,7 +154,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
         <h3 className="text-2xl font-black text-foreground uppercase mb-2">Termin gebucht!</h3>
         <p className="text-muted-foreground text-sm mb-1">{SERVICE_LABELS[serviceType]}</p>
         <p className="text-muted-foreground text-sm">
-          {selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })} · {selectedTime}
+          {selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })} · {selectedTime && selectedTime.slice(0,5)} Uhr
         </p>
         <button onClick={onConfirmed} className="mt-8 px-8 h-12 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide text-sm hover:bg-primary/90 transition-all">
           Weiter →
@@ -149,7 +168,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <button
-          onClick={step === 'calendar' ? onBack : () => setStep('calendar')}
+          onClick={step === 'week' ? onBack : () => setStep('week')}
           className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -157,146 +176,123 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
         <div>
           <p className="text-xs text-primary uppercase tracking-widest font-bold">{SERVICE_LABELS[serviceType]}</p>
           <p className="text-sm text-foreground font-semibold">
-            {step === 'calendar' ? 'Datum wählen' : step === 'time' ? 'Uhrzeit wählen' : 'Bestätigen'}
+            {step === 'week' ? 'Termin wählen' : 'Bestätigen'}
           </p>
         </div>
       </div>
 
       {error && <p className="text-destructive text-sm mb-4 px-1">{error}</p>}
 
-      {/* CALENDAR */}
-      {step === 'calendar' && (
+      {/* WEEK VIEW */}
+      {step === 'week' && (
         <div>
-          {/* Month nav */}
-          <div className="flex items-center justify-between mb-5">
+          {/* Week navigation */}
+          <div className="flex items-center justify-between mb-5 px-1">
             <button
-              onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              onClick={() => setWeekStart(addDays(weekStart, -7))}
+              disabled={addDays(weekStart, -1) < today}
+              className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" /> Vorige Woche
             </button>
-            <span className="font-black text-foreground text-base uppercase tracking-widest">
-              {MONTHS[calMonth.getMonth()]} {calMonth.getFullYear()}
+            <span className="text-xs font-black text-foreground tracking-wider">
+              {fmtShort(weekStart)} – {fmtShort(weekEnd)}.{weekEnd.getFullYear()}
             </span>
             <button
-              onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              onClick={() => setWeekStart(addDays(weekStart, 7))}
+              className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
             >
-              <ChevronRight className="w-4 h-4" />
+              Nächste Woche <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
           {loadingDays ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="w-7 h-7 animate-spin text-primary" />
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Verfügbarkeit wird geladen…</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Lädt…</p>
             </div>
-          ) : (
-            <>
-              {/* Availability summary */}
-              {availableDates.length > 0 && (
-                <div className="flex items-center gap-2 mb-4 px-1">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <p className="text-xs text-primary font-bold uppercase tracking-wide">
-                    {availableDates.length} freie Tag{availableDates.length !== 1 ? 'e' : ''} diesen Monat
-                  </p>
-                </div>
-              )}
-
-              {/* Day headers */}
-              <div className="grid grid-cols-7 mb-2">
-                {DAYS.map(d => (
-                  <div key={d} className="text-center text-xs text-muted-foreground/60 font-bold py-1 uppercase tracking-wider">{d}</div>
-                ))}
-              </div>
-
-              {/* Day cells */}
-              <div className="grid grid-cols-7 gap-1.5">
-                {calDays.map((d, i) => {
-                  const avail = isAvailable(d);
-                  const isToday = d && fmt(d) === fmt(today);
-                  const isPast = d && new Date(d.getFullYear(), d.getMonth(), d.getDate()) < today;
-
-                  if (!d) return <div key={i} />;
-
-                  return (
-                    <motion.button
-                      key={i}
-                      whileTap={avail ? { scale: 0.9 } : {}}
-                      disabled={!avail}
-                      onClick={() => avail && handleDayClick(fmt(d))}
-                      className={`
-                        relative h-11 rounded-2xl text-sm font-bold transition-all duration-200 flex flex-col items-center justify-center gap-0.5
-                        ${avail
-                          ? 'bg-primary/15 border border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-[0_0_16px_rgba(0,230,80,0.4)] cursor-pointer'
-                          : isPast
-                            ? 'text-muted-foreground/20 cursor-not-allowed'
-                            : 'text-muted-foreground/25 cursor-not-allowed'
-                        }
-                        ${isToday ? 'ring-2 ring-primary ring-offset-1 ring-offset-card' : ''}
-                      `}
-                    >
-                      <span>{d.getDate()}</span>
-                      {avail && <span className="w-1 h-1 rounded-full bg-primary absolute bottom-1.5" />}
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {/* Legend */}
-              <div className="flex items-center gap-4 mt-4 px-1">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-4 h-4 rounded-lg bg-primary/15 border border-primary/40" />
-                  <span className="text-xs text-muted-foreground">Verfügbar</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-4 h-4 rounded-lg bg-transparent" />
-                  <span className="text-xs text-muted-foreground/40">Nicht verfügbar</span>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* TIME SLOTS */}
-      {step === 'time' && (
-        <div>
-          <div className="flex items-center gap-2 mb-5">
-            <Calendar className="w-4 h-4 text-primary" />
-            <p className="text-sm font-bold text-foreground">
-              {selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-          </div>
-          {loadingSlots ? (
-            <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Zeiten werden geladen…</p>
-            </div>
-          ) : slots.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground text-sm">Keine freien Zeiten an diesem Tag.</p>
-              <button onClick={() => setStep('calendar')} className="mt-4 text-xs text-primary font-bold uppercase tracking-wide hover:underline">
-                Anderen Tag wählen →
+          ) : daysWithSlots.length === 0 && !Object.values(loadingSlots).some(Boolean) ? (
+            <div className="text-center py-10">
+              <p className="text-muted-foreground text-sm mb-4">Keine freien Termine diese Woche.</p>
+              <button
+                onClick={() => setWeekStart(addDays(weekStart, 7))}
+                className="text-xs text-primary font-black uppercase tracking-wide hover:underline flex items-center gap-1 mx-auto"
+              >
+                Nächste Woche <ChevronRight className="w-3 h-3" />
               </button>
             </div>
           ) : (
-            <>
-              <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold mb-3">{slots.length} freie Zeiten</p>
-              <div className="grid grid-cols-3 gap-2">
-                {slots.map(slot => (
-                  <motion.button
-                    key={slot}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => { setSelectedTime(slot); setStep('confirm'); }}
-                    className="h-13 py-3 rounded-2xl text-sm font-black transition-all border bg-primary/10 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-[0_0_12px_rgba(0,230,80,0.3)] cursor-pointer"
-                  >
-                    {slot.slice(0, 5)}
-                  </motion.button>
-                ))}
-              </div>
-            </>
+            <div className="space-y-3">
+              {weekDays.map((d) => {
+                const key = fmt(d);
+                const past = isPast(d);
+                const workday = isWorkDay(d);
+                const loading = loadingSlots[key];
+                const daySlots = slotsByDate[key] || [];
+
+                if (past || !workday) return null;
+
+                return (
+                  <div key={key} className="rounded-2xl border border-border bg-card overflow-hidden">
+                    {/* Day header */}
+                    <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-secondary/50">
+                      <div className="text-center min-w-[2.5rem]">
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
+                          {MONTHS[d.getMonth()]} {d.getDate()}
+                        </p>
+                        <p className="text-lg font-black text-foreground leading-none">
+                          {WEEKDAYS[(d.getDay() + 6) % 7]}
+                        </p>
+                      </div>
+                      {daySlots.length > 0 && (
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          <span className="text-xs text-primary font-bold">{daySlots.length} frei</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Slots */}
+                    <div className="p-3">
+                      {loading ? (
+                        <div className="flex justify-center py-3">
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : daySlots.length === 0 ? (
+                        <p className="text-xs text-muted-foreground/40 text-center py-2">Keine freien Zeiten</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {daySlots.map(slot => (
+                            <motion.button
+                              key={slot}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleSelectSlot(key, slot)}
+                              className="px-4 py-2 rounded-xl text-sm font-black border border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-[0_0_12px_rgba(0,230,80,0.3)] transition-all cursor-pointer"
+                            >
+                              {slot.slice(0, 5)}
+                            </motion.button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Show loading days that are workdays */}
+              {Object.values(loadingSlots).some(Boolean) && daysWithSlots.length === 0 && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                </div>
+              )}
+            </div>
           )}
+
+          {/* Legend */}
+          <div className="flex items-center gap-1.5 mt-5 px-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+            <span className="text-xs text-muted-foreground">Verfügbar</span>
+          </div>
         </div>
       )}
 
