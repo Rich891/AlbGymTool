@@ -167,26 +167,26 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Floating Back Button */}
-      {step !== 'done' && (
-        <button
-          onClick={step === 'week' ? onBack : () => setStep('week')}
-          className="fixed top-6 left-6 z-40 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+      {step !== 'done' &&
+      <button
+        onClick={step === 'week' ? onBack : () => setStep('week')}
+        className="fixed top-6 left-6 z-40 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
           <ChevronLeft className="w-6 h-6" />
         </button>
-      )}
+      }
 
       {/* WEEK VIEW */}
-      {step === 'week' && (
-        <div className="flex flex-col flex-1">
+      {step === 'week' &&
+      <div className="flex flex-col flex-1 rounded-md">
           {/* Hero Header */}
           <div className="relative h-64 md:h-80 overflow-hidden">
             <img src={SERVICE_IMAGES[serviceType]} alt={SERVICE_LABELS[serviceType]} className="w-full h-full object-cover" />
             <div className={`absolute inset-0 bg-gradient-to-t ${style.gradient} to-transparent`} />
-            {SERVICE_LOGOS[serviceType] && (
-              <div className="absolute top-6 right-6 z-10 h-12">
+            {SERVICE_LOGOS[serviceType] &&
+          <div className="absolute top-6 right-6 z-10 h-12">
                 <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-full object-contain" />
               </div>
-            )}
+          }
             {/* Title overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
               <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight mb-1">Termin wählen</h1>
@@ -211,31 +211,31 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
 
             {error && <p className="text-destructive text-sm mb-4">{error}</p>}
 
-            {loadingDays || (anyLoading && daysWithSlots.length === 0) ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
+            {loadingDays || anyLoading && daysWithSlots.length === 0 ?
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <Loader2 className="w-7 h-7 animate-spin text-primary" />
                 <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Termine werden geladen…</p>
-              </div>
-            ) : daysWithSlots.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
+              </div> :
+          daysWithSlots.length === 0 ?
+          <div className="flex flex-col items-center justify-center py-16">
                 <p className="text-muted-foreground text-sm mb-4">Keine freien Termine diese Woche.</p>
                 <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-1 text-xs text-primary font-black uppercase tracking-wide hover:underline">
                   Nächste Woche <ChevronRight className="w-3 h-3" />
                 </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              </div> :
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {daysWithSlots.map((d) => {
-                  const key = fmtDate(d);
-                  const daySlots = slotsByDate[key] || [];
-                  const dayName = WEEKDAYS_SHORT[d.getDay()];
-                  const monthName = MONTHS_SHORT[d.getMonth()];
-                  return daySlots.map((slot) => (
-                    <motion.button
-                      key={`${key}-${slot}`}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => { setSelectedDate(key); setSelectedTime(slot); setStep('confirm'); }}
-                      className="group relative overflow-hidden rounded-2xl p-6 text-left focus:outline-none transition-all duration-300 cursor-pointer border border-border bg-card hover:border-primary/50 hover:shadow-lg">
+              const key = fmtDate(d);
+              const daySlots = slotsByDate[key] || [];
+              const dayName = WEEKDAYS_SHORT[d.getDay()];
+              const monthName = MONTHS_SHORT[d.getMonth()];
+              return daySlots.map((slot) =>
+              <motion.button
+                key={`${key}-${slot}`}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {setSelectedDate(key);setSelectedTime(slot);setStep('confirm');}}
+                className="group relative overflow-hidden rounded-2xl p-6 text-left focus:outline-none transition-all duration-300 cursor-pointer border border-border bg-card hover:border-primary/50 hover:shadow-lg">
                       <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">{dayName}, {d.getDate()}. {monthName}</p>
                       <div className="flex items-baseline gap-2">
                         <p className="text-3xl font-black text-primary leading-none">{slot.slice(0, 5)}</p>
@@ -245,17 +245,17 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
                         <span className="text-primary-foreground text-sm font-black uppercase tracking-wide">Buchen</span>
                       </div>
                     </motion.button>
-                  ));
-                })}
+              );
+            })}
               </div>
-            )}
+          }
           </div>
         </div>
-      )}
+      }
 
       {/* CONFIRM */}
-      {step === 'confirm' && (
-        <div className="flex flex-col flex-1">
+      {step === 'confirm' &&
+      <div className="flex flex-col flex-1">
           <div className="relative h-48 overflow-hidden">
             <img src={SERVICE_IMAGES[serviceType]} alt={SERVICE_LABELS[serviceType]} className="w-full h-full object-cover" />
             <div className={`absolute inset-0 bg-gradient-to-t ${style.gradient} to-transparent`} />
@@ -300,9 +300,9 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
             </motion.button>
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
 
 export default function RehaAppointment({ profile, onDone }) {
@@ -414,6 +414,6 @@ export default function RehaAppointment({ profile, onDone }) {
           </>
         }
       </div>
-    </div>
-  );
+    </div>);
+
 }
