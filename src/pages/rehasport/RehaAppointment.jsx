@@ -184,58 +184,58 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
 
       {/* WEEK VIEW */}
       {step === 'week' && (
-        <div>
-          {/* Week nav */}
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => setWeekStart(addDays(weekStart, -7))}
-              disabled={addDays(weekStart, -1) < today}
-              className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" /> Vorige Woche
-            </button>
-            <span className="text-xs font-black text-foreground tracking-wider">
-              {fmtShort(weekStart)} – {fmtShort(weekEnd)}.{weekEnd.getFullYear()}
-            </span>
-            <button
-              onClick={() => setWeekStart(addDays(weekStart, 7))}
-              className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Nächste Woche <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+        <div className="flex gap-6 -mx-6 -my-6 h-[calc(100vh-200px)]">
+          {/* LEFT: Hero image */}
+          <div className="hidden md:flex w-1/2 relative overflow-hidden rounded-r-3xl border-r border-border flex-shrink-0">
+            <img
+              src={SERVICE_IMAGES[serviceType]}
+              alt={SERVICE_LABELS[serviceType]}
+              className="w-full h-full object-cover"
+            />
+            <div className={`absolute inset-0 bg-gradient-to-b ${style.gradient} to-transparent`} />
+            {SERVICE_LOGOS[serviceType] && (
+              <div className="absolute top-6 left-6 z-10 h-12">
+                <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-full object-contain" />
+              </div>
+            )}
           </div>
 
-          {loadingDays || (anyLoading && daysWithSlots.length === 0) ? (
-            <div className="flex flex-col items-center justify-center py-14 gap-3">
-              <Loader2 className="w-7 h-7 animate-spin text-primary" />
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Termine werden geladen…</p>
-            </div>
-          ) : daysWithSlots.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-muted-foreground text-sm mb-4">Keine freien Termine diese Woche.</p>
-              <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-1 text-xs text-primary font-black uppercase tracking-wide hover:underline mx-auto">
-                Nächste Woche <ChevronRight className="w-3 h-3" />
+          {/* RIGHT: Week nav + slots */}
+          <div className="flex-1 flex flex-col px-6 py-6 overflow-y-auto">
+            {/* Week navigation */}
+            <div className="flex items-center justify-between mb-8 gap-4">
+              <button
+                onClick={() => setWeekStart(addDays(weekStart, -7))}
+                disabled={addDays(weekStart, -1) < today}
+                className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" /> Vorige
+              </button>
+              <span className="text-sm font-black text-foreground tracking-wider whitespace-nowrap">
+                {fmtShort(weekStart)} – {fmtShort(weekEnd)}
+              </span>
+              <button
+                onClick={() => setWeekStart(addDays(weekStart, 7))}
+                className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Nächste <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-          ) : (
-            <>
-              {/* Hero banner with image */}
-              <div className="relative h-56 rounded-3xl overflow-hidden mb-8 border border-border">
-                <img
-                  src={SERVICE_IMAGES[serviceType]}
-                  alt={SERVICE_LABELS[serviceType]}
-                  className="w-full h-full object-cover"
-                />
-                <div className={`absolute inset-0 bg-gradient-to-b ${style.gradient} to-transparent`} />
-                {SERVICE_LOGOS[serviceType] && (
-                  <div className="absolute top-5 left-6 z-10 h-10">
-                    <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-full object-contain" />
-                  </div>
-                )}
-              </div>
 
-              {/* Slots grid */}
-              <div className="space-y-3">
+            {loadingDays || (anyLoading && daysWithSlots.length === 0) ? (
+              <div className="flex flex-col items-center justify-center flex-1 gap-3">
+                <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Termine werden geladen…</p>
+              </div>
+            ) : daysWithSlots.length === 0 ? (
+              <div className="flex flex-col items-center justify-center flex-1">
+                <p className="text-muted-foreground text-sm mb-4">Keine freien Termine diese Woche.</p>
+                <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-1 text-xs text-primary font-black uppercase tracking-wide hover:underline">
+                  Nächste Woche <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
                 {daysWithSlots.map((d) => {
                   const key = fmtDate(d);
                   const daySlots = slotsByDate[key] || [];
@@ -243,35 +243,30 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
                   const monthName = MONTHS_SHORT[d.getMonth()];
 
                   return (
-                    <div key={key} className="space-y-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">{dayName}, {d.getDate()}. {monthName}</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div key={key}>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3">{dayName}, {d.getDate()}. {monthName}</p>
+                      <div className="grid grid-cols-2 gap-4">
                         {daySlots.map(slot => (
                           <motion.button
                             key={slot}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => { setSelectedDate(key); setSelectedTime(slot); setStep('confirm'); }}
-                            className="group relative overflow-hidden rounded-2xl h-40 text-left focus:outline-none transition-all duration-200 cursor-pointer border border-border"
+                            className="group relative overflow-hidden rounded-3xl p-5 text-left focus:outline-none transition-all duration-300 cursor-pointer border border-border bg-card hover:border-primary/50 hover:bg-orange-500/10"
                           >
-                            {/* Background image */}
-                            <img
-                              src={SERVICE_IMAGES[serviceType]}
-                              alt=""
-                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                            />
-                            <div className={`absolute inset-0 bg-gradient-to-br ${style.gradient} to-black/60`} />
+                            {/* Datum oben */}
+                            <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3">{d.getDate()}. {monthName.slice(0, 3)}</p>
 
-                            {/* Content */}
-                            <div className="relative h-full flex flex-col justify-between p-3 z-10">
-                              {/* Uhrzeit groß unten */}
-                              <div className="mt-auto">
-                                <p className="text-3xl font-black leading-none">{slot.slice(0, 5)}</p>
-                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mt-0.5">Uhr</p>
-                              </div>
+                            {/* Tag + Uhrzeit groß */}
+                            <div>
+                              <p className="text-lg font-black text-foreground uppercase leading-tight">{dayName}</p>
+                              <p className="text-4xl font-black text-primary group-hover:text-orange-500 transition-colors duration-300 leading-none">
+                                {slot.slice(0, 5)}
+                              </p>
+                              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Uhr</p>
                             </div>
 
-                            {/* Hover overlay */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                            {/* Hover "Jetzt buchen" */}
+                            <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-gradient-to-r from-orange-600 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                               <span className="text-white text-sm font-black uppercase tracking-wide">Jetzt buchen</span>
                             </div>
                           </motion.button>
@@ -281,13 +276,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
                   );
                 })}
               </div>
-            </>
-          )}
-
-          {/* Legend */}
-          <div className="flex items-center gap-1.5 mt-4 px-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-            <span className="text-xs text-muted-foreground">Verfügbar</span>
+            )}
           </div>
         </div>
       )}
