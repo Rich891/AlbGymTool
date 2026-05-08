@@ -49,7 +49,8 @@ export default function RehaProfile({ profile, onConfirm, onChange, testMode }) 
       setShowConsent(true);
       return;
     }
-    onConfirm();
+    // Even without extended data, pass back whatever is in formData
+    onConfirm(formData);
   };
 
   const handleConsentConfirm = async () => {
@@ -82,7 +83,7 @@ export default function RehaProfile({ profile, onConfirm, onChange, testMode }) 
       });
 
       setShowConsent(false);
-      onConfirm();
+      onConfirm(formData);
     } catch (err) {
       console.error('Fehler beim Speichern:', err);
     } finally {

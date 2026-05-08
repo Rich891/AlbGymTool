@@ -34,11 +34,18 @@ export default function RehasportFlow() {
     <RehaCustomer key="customer" profile={profile} update={update} onNext={() => setStep(2)} onBack={() => setStep(0)} testMode={testMode} />,
     <RehaReason key="reason" profile={profile} update={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />,
     <RehaComplaints key="complaints" profile={profile} update={update} onNext={() => setStep(4)} onBack={() => setStep(2)} />,
-    <RehaProfile key="profile" profile={profile} onConfirm={() => setStep(5)} onChange={() => setStep(1)} testMode={testMode} />,
+    <RehaProfile key="profile" profile={profile} update={update} onConfirm={(data) => {
+      update(data);
+      setStep(5);
+    }} onChange={() => setStep(1)} testMode={testMode} />,
     <RehaRules key="rules" profile={profile} update={update} onNext={() => setStep(6)} onBack={() => setStep(4)} />,
     <RehaUpsellBridge key="bridge" profile={profile} update={update} onNext={() => setStep(7)} onBack={() => setStep(5)} />,
     <RehaUpsell key="upsell" profile={profile} update={update} onNext={() => setStep(8)} onBack={() => setStep(6)} />,
-    <RehaPackage key="package" profile={profile} update={update} onNext={() => setStep(9)} onBack={() => setStep(7)} />,
+    <RehaPackage key="package" profile={profile} update={update} onNext={() => {
+      const required = ['address', 'email', 'phone', 'health_insurance', 'insurance_number', 'account_holder', 'iban'];
+      const allFilled = required.every(f => profile[f]?.trim?.());
+      setStep(allFilled ? 10 : 9);
+    }} onBack={() => setStep(7)} />,
     <RehaBeforeClosing key="before-closing" profile={profile} update={update} onNext={() => setStep(10)} onBack={() => setStep(8)} testMode={testMode} />,
     <RehaBooking key="booking" profile={profile} onBack={() => setStep(9)} onDone={() => { update({ bookingDone: true }); setStep(11); }} />,
     <RehaContract key="contract" profile={profile} onDone={() => navigate('/')} />,
