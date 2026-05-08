@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, FlaskConical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 
-export default function RehaProfile({ profile, onConfirm, onChange }) {
+const TEST_PROFILE = {
+  address: 'Musterstraße 12, 72525 Münsingen',
+  email: 'max.mustermann@example.com',
+  phone: '+49 7381 123456',
+  health_insurance: 'AOK Baden-Württemberg',
+  insurance_number: 'A123456789',
+  account_holder: 'Max Mustermann',
+  iban: 'DE89370400440532013000',
+  bic: 'COBADEFFXXX',
+};
+
+export default function RehaProfile({ profile, onConfirm, onChange, testMode }) {
   const [expanded, setExpanded] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [consents, setConsents] = useState({
@@ -24,6 +35,11 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
   });
 
   const hasExtendedData = formData.address || formData.email || formData.phone;
+
+  const fillTestData = () => {
+    setFormData({ ...formData, ...TEST_PROFILE });
+    setExpanded(true);
+  };
   const hasBankData = formData.iban;
   const canProceedWithMore = expanded && hasExtendedData;
 
@@ -76,6 +92,23 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
       <div className="w-full max-w-xl">
+        {testMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 flex items-center justify-between bg-orange-500/10 border border-orange-500/30 rounded-2xl px-5 py-3">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="w-4 h-4 text-orange-400" />
+              <p className="text-sm font-bold text-orange-400">Test-Modus aktiv</p>
+            </div>
+            <button
+              onClick={fillTestData}
+              className="px-4 py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-xs font-black text-orange-300 hover:bg-orange-500/30 transition-all uppercase tracking-widest">
+              Felder befüllen
+            </button>
+          </motion.div>
+        )}
+
         <button
           onClick={onChange}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
