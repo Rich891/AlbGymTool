@@ -17,7 +17,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
   const hasBankData = profile.iban;
   const canProceedWithoutMore = !expanded && !hasExtendedData;
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (expanded && hasExtendedData) {
       setShowConsent(true);
       return;
@@ -100,6 +100,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
 
           {/* Expandable More Section */}
           <motion.button
+            type="button"
             onClick={() => setExpanded(!expanded)}
             className="w-full py-4 px-4 rounded-2xl border border-border bg-secondary/50 hover:bg-secondary transition-all flex items-center justify-between">
             <span className="text-sm font-bold text-foreground">Mehr Angaben hinzufügen</span>

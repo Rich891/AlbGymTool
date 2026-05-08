@@ -1,188 +1,380 @@
 import React, { useState } from 'react';
-import { Check, Download, FileText } from 'lucide-react';
+import { Download, Check, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 
-function fmt(n) {
-  return typeof n === 'number' ? n.toFixed(2).replace('.', ',') + ' €' : '–';
-}
+const LOGO_URL = 'https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/0137b7bb4_AlbGymLogo.png';
+const COMPANY_ADDRESS = {
+  name: 'AlbGym GmbH',
+  street: 'Wilhelmstraße 123',
+  city: '73230 Kirchheim unter Teck',
+  phone: '+49 (0) 7381 9386-510',
+  email: 'info@alb-gym.de',
+  website: 'www.alb-gym.de',
+};
 
-function generatePDF(profile) {
-  const doc = new jsPDF();
-  const today = new Date().toLocaleDateString('de-DE');
+function generateContract(profile) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'A4' });
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let yPos = 15;
 
-  // Header
-  doc.setFontSize(20);
+  // Header mit Logo
+  try {
+    doc.addImage(LOGO_URL, 'PNG', pageWidth - 50, 10, 35, 12);
+  } catch (e) {
+    console.log('Logo konnte nicht geladen werden');
+  }
+
+  // Company info
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text(COMPANY_ADDRESS.name, 15, yPos);
+  doc.text(COMPANY_ADDRESS.street, 15, yPos + 4);
+  doc.text(COMPANY_ADDRESS.city, 15, yPos + 8);
+  doc.text(`Tel: ${COMPANY_ADDRESS.phone}`, 15, yPos + 12);
+  doc.text(`Mail: ${COMPANY_ADDRESS.email}`, 15, yPos + 16);
+
+  yPos = 50;
+
+  // Titel
+  doc.setFontSize(18);
+  doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'bold');
-  doc.text('AlbGym – Rehasport Vertrag', 20, 25);
-
-  doc.setFontSize(10);
+  doc.text('MITGLIEDSCHAFTSVERTRAG REHASPORT+', 15, yPos);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Datum: ${today}`, 20, 34);
+  doc.text(`Ausgestellt: ${new Date().toLocaleDateString('de-DE')}`, 15, yPos + 8);
 
-  // Divider
-  doc.setDrawColor(200, 200, 200);
-  doc.line(20, 38, 190, 38);
+  yPos += 20;
 
   // Kundendaten
-  doc.setFontSize(13);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Kundendaten', 20, 48);
+  doc.setTextColor(0, 150, 100);
+  doc.text('1. KUNDENDATEN', 15, yPos);
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  let y = 56;
-  const add = (label, value) => {
-    doc.setFont('helvetica', 'bold');
-    doc.text(label + ':', 20, y);
-    doc.setFont('helvetica', 'normal');
-    doc.text(String(value || '–'), 70, y);
-    y += 8;
-  };
+  doc.setTextColor(0, 0, 0);
+  yPos += 7;
 
-  add('Name', profile.name);
-  add('Geburtsdatum', profile.birthdate);
-  add('Geschlecht', profile.gender);
+  const customerData = [
+    `Name: ${profile.name || 'N/A'}`,
+    `Geburtsdatum: ${profile.birthdate || 'N/A'}`,
+    `Geschlecht: ${profile.gender || 'N/A'}`,
+    `Adresse: ${profile.address || 'N/A'}`,
+    `E-Mail: ${profile.email || 'N/A'}`,
+    `Telefon: ${profile.phone || 'N/A'}`,
+  ];
 
-  y += 4;
-  doc.line(20, y, 190, y);
-  y += 8;
+  customerData.forEach(line => {
+    if (yPos > pageHeight - 20) {
+      doc.addPage();
+      yPos = 15;
+    }
+    doc.text(line, 15, yPos);
+    yPos += 6;
+  });
+
+  yPos += 4;
 
   // Leistungen
-  doc.setFontSize(13);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Gebuchte Leistungen', 20, y);
-  y += 10;
+  doc.setTextColor(0, 150, 100);
+  doc.text('2. LEISTUNGEN', 15, yPos);
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  yPos += 7;
 
-  const offers = profile.selectedOffers || [];
-  const labelMap = { rehasport_plus: 'Rehasport+', five: 'FIVE Training', milon: 'Milon Training' };
-  if (offers.length === 0) {
-    doc.text('Rehasport Kurs (ärztlich verordnet)', 20, y);
-    y += 8;
-  } else {
-    offers.forEach(o => {
-      doc.text('• ' + (labelMap[o] || o), 20, y);
-      y += 7;
+  const services = [
+    { name: 'Rehasport+', included: true },
+    { name: 'FIVE Training', included: profile.selectedOffers?.includes('five') },
+    { name: 'Milon Training', included: profile.selectedOffers?.includes('milon') },
+  ];
+
+  services.forEach(service => {
+    if (yPos > pageHeight - 20) {
+      doc.addPage();
+      yPos = 15;
+    }
+    const status = service.included ? '✓' : '–';
+    doc.text(`${status} ${service.name}`, 15, yPos);
+    yPos += 6;
+  });
+
+  yPos += 4;
+
+  // Finanzielles
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 150, 100);
+  doc.text('3. FINANZIELLE BEDINGUNGEN', 15, yPos);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  yPos += 7;
+
+  const pricing = [
+    `Wochenpreis: ${profile.weekly_price?.toFixed(2) || '6,98'}€`,
+    `Monatspreis (ca.): ${((profile.weekly_price || 6.98) * 4.33).toFixed(2)}€`,
+  ];
+
+  if (profile.subsidyActive) {
+    pricing.push(`Zuschusspaket: ${profile.subsidy_variant === '1_course' ? '1 Kurs (99€)' : '2 Kurse (198€)'}`);
+    pricing.push(`Geschätzter Zuschuss: bis ${profile.estimated_subsidy || '0'}€`);
+  }
+
+  pricing.forEach(line => {
+    if (yPos > pageHeight - 20) {
+      doc.addPage();
+      yPos = 15;
+    }
+    doc.text(line, 15, yPos);
+    yPos += 6;
+  });
+
+  yPos += 4;
+
+  // Krankenkasse
+  if (profile.health_insurance) {
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 150, 100);
+    doc.text('4. KRANKENKASSENDATEN', 15, yPos);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    yPos += 7;
+
+    const insuranceData = [
+      `Krankenkasse: ${profile.health_insurance}`,
+      `Versichertennummer: ${profile.insurance_number || 'N/A'}`,
+      `Kontoinhaber: ${profile.account_holder || 'N/A'}`,
+      `IBAN: ${profile.iban || 'N/A'}`,
+    ];
+
+    insuranceData.forEach(line => {
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = 15;
+      }
+      doc.text(line, 15, yPos);
+      yPos += 6;
     });
+
+    yPos += 4;
   }
 
-  y += 4;
-  doc.line(20, y, 190, y);
-  y += 8;
-
-  // Preise
-  doc.setFontSize(13);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Preisübersicht', 20, y);
-  y += 10;
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Wöchentlicher Beitrag:', 20, y);
-  doc.text(profile.subsidyMode ? '6,98 €' : '13,99 €', 120, y);
-  y += 8;
-
-  if (profile.subsidyMode) {
-    doc.text('Krankenkassen-Paket (einmalig):', 20, y);
-    doc.text('199,00 €', 120, y);
-    y += 8;
-    if (profile.kasseName) {
-      doc.text('Krankenkasse:', 20, y);
-      doc.text(profile.kasseName, 120, y);
-      y += 8;
-    }
-    if (profile.kasseZuschuss) {
-      doc.text('KK-Zuschuss:', 20, y);
-      doc.text(profile.kasseZuschuss, 120, y);
-      y += 8;
-    }
+  // AGB / Bestimmungen
+  if (yPos > pageHeight - 40) {
+    doc.addPage();
+    yPos = 15;
   }
 
-  y += 4;
-  doc.line(20, y, 190, y);
-  y += 10;
-
-  // Unterschrift
-  doc.setFontSize(13);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Unterschrift', 20, y);
-  y += 12;
+  doc.setTextColor(0, 150, 100);
+  doc.text('5. VEREINBARTE BEDINGUNGEN', 15, yPos);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  yPos += 7;
+
+  const terms = [
+    '✓ Der Mitglied akzeptiert die Haus- und Trainingsregeln des AlbGym.',
+    '✓ Die Mitgliedschaft ist monatlich kündbar mit 4 Wochen Kündigungsfrist.',
+    '✓ Mindestvertragslaufzeit: 1 Monat.',
+    '✓ Zahlungsweise: Lastschrift',
+    '✓ Datenschutz: Alle Daten werden DSGVO-konform verarbeitet.',
+    profile.subsidyActive
+      ? '✓ §20-Zuschuss: Nicht garantiert, abhängig von Teilnahme und KK-Genehmigung.'
+      : '',
+  ].filter(t => t);
+
+  terms.forEach(term => {
+    if (yPos > pageHeight - 20) {
+      doc.addPage();
+      yPos = 15;
+    }
+    const wrapped = doc.splitTextToSize(term, pageWidth - 30);
+    doc.text(wrapped, 15, yPos);
+    yPos += wrapped.length * 4 + 2;
+  });
+
+  // Unterschriften
+  yPos += 8;
+  if (yPos > pageHeight - 30) {
+    doc.addPage();
+    yPos = 15;
+  }
 
   doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('UNTERSCHRIFT', 15, yPos);
+  yPos += 10;
+
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Ich bestätige die oben genannten Leistungen und stimme den AGB zu.', 20, y);
-  y += 16;
+  doc.text(`Mitglied: ________________________  Datum: ${new Date().toLocaleDateString('de-DE')}`, 15, yPos);
+  yPos += 8;
+  doc.text(`AlbGym: ________________________  Datum: ${new Date().toLocaleDateString('de-DE')}`, 15, yPos);
 
-  doc.line(20, y, 100, y);
-  doc.text('Datum, Unterschrift Kunde', 20, y + 5);
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text(`${COMPANY_ADDRESS.website} | ${COMPANY_ADDRESS.phone}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
 
-  doc.line(120, y, 190, y);
-  doc.text('AlbGym', 120, y + 5);
-
-  doc.save(`AlbGym_Rehasport_${(profile.name || 'Vertrag').replace(/\s/g, '_')}_${today.replace(/\./g, '-')}.pdf`);
+  return doc;
 }
 
 export default function RehaContract({ profile, onDone }) {
-  const [downloaded, setDownloaded] = useState(false);
-  const firstName = (profile.name || 'du').split(' ')[0];
+  const [downloading, setDownloading] = useState(false);
 
-  const handleDownload = () => {
-    generatePDF(profile);
-    setDownloaded(true);
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const doc = generateContract(profile);
+      doc.save(`AlbGym-Vertrag-${profile.name?.replace(/\s/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) {
+      console.error('Fehler beim Download:', err);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 md:px-8 py-10">
-      <div className="w-full max-w-lg">
-
-        {/* Success icon */}
-        <div className="flex flex-col items-center text-center mb-10">
-          <div className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center mb-5">
-            <FileText className="w-9 h-9 text-primary" />
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-12 pb-10">
+      <div className="w-full max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12">
+          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <Check className="w-10 h-10 text-primary" />
           </div>
-          <p className="text-xs text-primary uppercase tracking-widest font-bold mb-2">Fast geschafft</p>
-          <h1 className="text-4xl font-black text-foreground uppercase leading-tight">Vertrag<br />herunterladen</h1>
-          <p className="text-muted-foreground mt-3 leading-relaxed">
-            {firstName}, alles ist bereit. Lade jetzt den Vertrag herunter und unterschreibe ihn vor Ort.
+          <h1 className="text-4xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-none mb-3">
+            GLÜCKWUNSCH!
+          </h1>
+          <p className="text-lg text-muted-foreground mb-2">
+            Deine Anmeldung ist abgeschlossen.
           </p>
+          <p className="text-muted-foreground">
+            Lade deinen Mitgliedschaftsvertrag herunter und starte sofort.
+          </p>
+        </motion.div>
+
+        {/* Contract Preview */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="rounded-3xl border-2 border-primary/40 bg-card p-8 mb-10 shadow-xl">
+          
+          <div className="text-center mb-6">
+            <img
+              src={LOGO_URL}
+              alt="AlbGym"
+              className="h-12 object-contain mx-auto mb-6"
+            />
+            <h2 className="text-2xl font-black text-foreground uppercase">Mitgliedschaftsvertrag Rehasport+</h2>
+            <p className="text-sm text-muted-foreground mt-2">{new Date().toLocaleDateString('de-DE')}</p>
+          </div>
+
+          <div className="space-y-6 text-sm">
+            {/* Kundendaten */}
+            <div>
+              <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">Kundendaten</p>
+              <div className="space-y-1 bg-secondary/50 rounded-xl p-4 text-foreground">
+                <p><span className="font-bold">Name:</span> {profile.name}</p>
+                <p><span className="font-bold">Geb.:</span> {profile.birthdate}</p>
+                <p><span className="font-bold">Adresse:</span> {profile.address}</p>
+                <p><span className="font-bold">E-Mail:</span> {profile.email}</p>
+                <p><span className="font-bold">Telefon:</span> {profile.phone}</p>
+              </div>
+            </div>
+
+            {/* Leistungen */}
+            <div>
+              <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">Leistungen</p>
+              <div className="space-y-2">
+                {[
+                  { name: 'Rehasport+', included: true },
+                  { name: 'FIVE Training', included: profile.selectedOffers?.includes('five') },
+                  { name: 'Milon Training', included: profile.selectedOffers?.includes('milon') },
+                ].map(s => (
+                  <p key={s.name} className="text-foreground">
+                    {s.included ? '✓' : '–'} {s.name}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            {/* Preise */}
+            <div>
+              <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">Finanzielles</p>
+              <div className="space-y-1 bg-secondary/50 rounded-xl p-4 text-foreground">
+                <p><span className="font-bold">Wochenpreis:</span> {(profile.weekly_price || 6.98).toFixed(2)}€</p>
+                <p><span className="font-bold">Monatspreis (ca.):</span> {((profile.weekly_price || 6.98) * 4.33).toFixed(2)}€</p>
+                {profile.subsidyActive && (
+                  <>
+                    <p><span className="font-bold">Zuschusspaket:</span> {profile.subsidy_variant === '1_course' ? '1 Kurs (99€)' : '2 Kurse (198€)'}</p>
+                    <p className="text-primary font-bold"><span className="font-bold">Geschätzter Zuschuss:</span> bis {profile.estimated_subsidy || '0'}€</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Company Footer */}
+            <div className="border-t border-border pt-4 text-center text-xs text-muted-foreground">
+              <p className="font-bold mb-1">{COMPANY_ADDRESS.name}</p>
+              <p>{COMPANY_ADDRESS.street}</p>
+              <p>{COMPANY_ADDRESS.city}</p>
+              <p>{COMPANY_ADDRESS.phone} | {COMPANY_ADDRESS.email}</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleDownload}
+            disabled={downloading}
+            className="w-full h-16 rounded-2xl bg-primary text-primary-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg">
+            {downloading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Wird vorbereitet...
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5" />
+                Vertrag herunterladen (PDF)
+              </>
+            )}
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onDone}
+            className="w-full h-16 rounded-2xl border-2 border-primary text-primary font-black text-lg uppercase tracking-wide hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-3">
+            <Home className="w-5 h-5" />
+            Zur Startseite
+          </motion.button>
         </div>
 
-        {/* Download button */}
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={handleDownload}
-          className={`w-full h-16 rounded-2xl font-black text-lg uppercase tracking-wide transition-all flex items-center justify-center gap-3
-            ${downloaded
-              ? 'bg-primary/10 border border-primary text-primary'
-              : 'bg-primary text-primary-foreground hover:bg-primary/90'
-            }`}
-        >
-          <Download className="w-5 h-5" />
-          {downloaded ? 'Erneut herunterladen' : 'Vertrag als PDF herunterladen'}
-        </motion.button>
-
-        {downloaded && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 flex items-center gap-2 text-primary text-sm font-semibold justify-center"
-          >
-            <Check className="w-4 h-4" /> PDF wurde heruntergeladen
-          </motion.div>
-        )}
-
-        {/* Finish */}
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={onDone}
-          disabled={!downloaded}
-          className="mt-6 w-full h-14 rounded-2xl border border-border text-muted-foreground hover:text-foreground hover:bg-secondary font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          Abschließen →
-        </motion.button>
+        {/* Info */}
+        <p className="text-center text-xs text-muted-foreground mt-8">
+          Behalte deinen heruntergeladenen Vertrag sicher. <br />
+          Unser Team wird dich in Kürze kontaktieren, um die Einweisung zu planen.
+        </p>
       </div>
     </div>
   );

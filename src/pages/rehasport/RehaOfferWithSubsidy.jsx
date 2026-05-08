@@ -27,6 +27,10 @@ export default function RehaOfferWithSubsidy({ profile, update, onNext, onBack }
   };
 
   const SECTION20_COURSE_FEE = 99;
+  const ADDONS = [
+    { id: 'five', label: 'FIVE Training', price: '+5,00€', color: 'from-orange-500/20 border-orange-400/40' },
+    { id: 'milon', label: 'Milon Training', price: '+5,00€', color: 'from-blue-500/20 border-blue-400/40' },
+  ];
 
   // Load insurance data
   useEffect(() => {
@@ -92,141 +96,169 @@ export default function RehaOfferWithSubsidy({ profile, update, onNext, onBack }
     ? insurance.subsidy_per_year
     : 0;
 
-  const weeklyPrice = TARIFF_PRICES[selectedOffers.length === 2 ? 'plus_both' : selectedOffers.includes('five') ? 'plus_five' : selectedOffers.includes('milon') ? 'plus_milon' : 'rehasport_plus'] || 6.98;
+  const basePrice = TARIFF_PRICES['rehasport_plus'];
+  const addonPrice = selectedOffers.length > 1 ? selectedOffers.length * 5 : 0;
+  const weeklyPrice = basePrice + addonPrice;
   const totalCourseFee = subsidyVariant === '2_courses' ? SECTION20_COURSE_FEE * 2 : subsidyVariant === '1_course' ? SECTION20_COURSE_FEE : 0;
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="w-4 h-4" /> Zurück
         </button>
 
-        <h1 className="text-3xl md:text-4xl font-black text-foreground uppercase mb-4">
+        <h1 className="text-3xl md:text-4xl font-black text-foreground uppercase mb-8">
           {subsidyActive ? 'MIT KRANKENKASSEN-ZUSCHUSS' : 'DEIN REHASPORT+ PAKET'}
         </h1>
 
-        {/* Offer Selection */}
-        <div className="grid grid-cols-1 gap-4 mb-8">
-          {['rehasport_plus', 'five', 'milon'].map(offer => (
-            <motion.button
-              key={offer}
-              onClick={() => {
-                const label = { rehasport_plus: 'rehasport_plus', five: 'five', milon: 'milon' }[offer];
-                setSelectedOffers(selectedOffers.includes(label) ? selectedOffers.filter(o => o !== label) : [...selectedOffers, label]);
-              }}
-              className={`p-4 rounded-2xl border-2 text-left transition-all ${
-                selectedOffers.includes(offer) ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-              }`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-black text-foreground uppercase">{offer === 'rehasport_plus' ? 'Rehasport+' : offer === 'five' ? 'FIVE Training' : 'Milon Training'}</p>
-                  <p className="text-sm text-muted-foreground">{offer === 'rehasport_plus' ? 'Basis-Paket' : 'Zusatz'}</p>
-                </div>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedOffers.includes(offer) ? 'border-primary bg-primary' : 'border-border'}`}>
-                  {selectedOffers.includes(offer) && <Check className="w-4 h-4 text-primary-foreground" />}
-                </div>
-              </div>
-            </motion.button>
-          ))}
-        </div>
-
-        {/* Subsidy Button */}
-        {!subsidyActive && (
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleActivateSubsidy}
-            className="w-full h-14 rounded-2xl bg-secondary text-secondary-foreground font-black uppercase tracking-wide hover:bg-secondary/80 transition-all flex items-center justify-center gap-2 mb-8">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 0a10 10 0 1 1 0 20 10 10 0 0 1 0-20zM9 5h2v6H9V5zm0 8h2v2H9v-2z" />
-            </svg>
-            Krankenkassen-Zuschuss nutzen
-            <button onClick={() => setShowSubsidyInfo(true)} className="ml-2">
-              <Info className="w-4 h-4" />
-            </button>
-          </motion.button>
-        )}
-
-        {/* Info Modal */}
-        <AnimatePresence>
-          {showSubsidyInfo && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.9 }}
-                className="bg-card border border-border rounded-3xl p-8 max-w-lg w-full">
-                <h2 className="text-2xl font-black text-foreground uppercase mb-4">Was bedeutet Krankenkassen-Zuschuss?</h2>
-                <div className="space-y-4 text-sm text-muted-foreground leading-relaxed mb-8">
-                  <p>Viele gesetzliche Krankenkassen bezuschussen zertifizierte Präventionskurse nach §20 SGB V. Die genaue Höhe hängt von deiner Krankenkasse, deinem persönlichen Anspruch und deiner regelmäßigen Teilnahme ab.</p>
-                  <div>
-                    <p className="font-bold text-foreground mb-2">Wichtig:</p>
-                    <ul className="space-y-1 ml-4 list-disc">
-                      <li>Der Zuschuss ist nicht garantiert.</li>
-                      <li>Die Höhe unterscheidet sich je nach Krankenkasse.</li>
-                      <li>Meist werden bis zu zwei Kurse pro Jahr unterstützt.</li>
-                      <li>Die Erstattung erfolgt nach erfolgreicher Teilnahme.</li>
-                      <li>Dafür werden Teilnahmebescheinigung und Zahlungsnachweis benötigt.</li>
-                    </ul>
-                  </div>
-                  <p>Dieses Paket gilt nur in Verbindung mit aktiver Rehasport+ Teilnahme.</p>
-                </div>
-                <button
-                  onClick={() => setShowSubsidyInfo(false)}
-                  className="w-full h-12 rounded-2xl border border-border text-foreground hover:bg-secondary transition-all">
-                  Verstanden
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Subsidy Active View */}
-        {subsidyActive && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6 mb-8">
-            <div className="bg-primary/10 border border-primary/30 rounded-2xl p-6">
-              <p className="text-sm font-bold text-foreground mb-2">Krankenkasse: {insurance?.name}</p>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">Max. Zuschuss/Kurs</p>
-                  <p className="font-black text-primary">{insurance?.subsidy_per_course}€</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Max. Zuschuss/Jahr</p>
-                  <p className="font-black text-primary">{insurance?.subsidy_per_year}€</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-bold text-foreground">Wähle dein §20-Paket:</p>
+        {!subsidyActive ? (
+          <>
+            {/* Offer Selection */}
+            <div className="space-y-4 mb-8">
+              <p className="text-sm font-bold text-muted-foreground uppercase mb-4">Wähle dein Paket</p>
               
-              <motion.button
-                onClick={() => handleSelectSubsidyVariant('1_course')}
-                className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${
-                  subsidyVariant === '1_course' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                }`}>
-                <p className="font-black text-foreground mb-1">1 §20-Kurs</p>
-                <p className="text-sm text-muted-foreground">99€ | 6 Monate | Zuschuss bis {insurance?.subsidy_per_course}€</p>
-              </motion.button>
+              {/* Rehasport+ Base */}
+              <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-6 mb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-black text-foreground text-lg">Rehasport+</p>
+                    <p className="text-sm text-muted-foreground">Grundpaket – Freies Training + Kurs</p>
+                  </div>
+                  <p className="text-3xl font-black text-primary">6,98€<span className="text-lg text-muted-foreground">/Wo</span></p>
+                </div>
+              </div>
 
-              <motion.button
-                onClick={() => handleSelectSubsidyVariant('2_courses')}
-                className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${
-                  subsidyVariant === '2_courses' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                }`}>
-                <p className="font-black text-foreground mb-1">2 §20-Kurse</p>
-                <p className="text-sm text-muted-foreground">2 × 99€ | 12 Monate | Zuschuss bis {insurance?.subsidy_per_year}€</p>
-              </motion.button>
+              {/* Addons */}
+              <div className="space-y-3">
+                {ADDONS.map(addon => (
+                  <motion.button
+                    key={addon.id}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      const newOffers = selectedOffers.includes(addon.id)
+                        ? selectedOffers.filter(o => o !== addon.id)
+                        : [...selectedOffers, addon.id];
+                      setSelectedOffers(newOffers);
+                    }}
+                    className={`w-full rounded-2xl border-2 p-5 text-left transition-all ${
+                      selectedOffers.includes(addon.id)
+                        ? 'border-primary bg-primary/10'
+                        : `border-border ${addon.color} hover:border-primary/60`
+                    }`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-black text-foreground">{addon.label}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Spezialisiertes Training mit Betreuung</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="text-lg font-bold text-primary">{addon.price}</p>
+                        {selectedOffers.includes(addon.id) && (
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-4 h-4 text-primary-foreground" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
             </div>
-          </motion.div>
+
+            {/* Subsidy Button */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleActivateSubsidy}
+              className="w-full h-14 rounded-2xl bg-secondary text-secondary-foreground font-black uppercase tracking-wide hover:bg-secondary/80 transition-all flex items-center justify-center gap-2 mb-6">
+              💰 Krankenkassen-Zuschuss einrechnen
+            </motion.button>
+
+            {/* Price Summary */}
+            <div className="rounded-2xl border border-border bg-card p-6 mb-8">
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-4">Dein Preis</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-lg font-black text-foreground">{weeklyPrice.toFixed(2)}€</p>
+                  <p className="text-xs text-muted-foreground">pro Woche</p>
+                </div>
+                <p className="text-xs text-muted-foreground">ca. {(weeklyPrice * 4.33).toFixed(2)}€/Monat</p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Subsidy Active View */}
+            <div className="space-y-6 mb-8">
+              <div className="rounded-2xl bg-primary/10 border border-primary/30 p-6">
+                <p className="text-sm font-bold text-foreground mb-3">🏥 Krankenkasse: {insurance?.name}</p>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Max. Zuschuss/Kurs</p>
+                    <p className="font-black text-primary text-lg">{insurance?.subsidy_per_course}€</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Max. Zuschuss/Jahr</p>
+                    <p className="font-black text-primary text-lg">{insurance?.subsidy_per_year}€</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-bold text-foreground">Wähle dein §20-Paket:</p>
+                
+                <motion.button
+                  onClick={() => handleSelectSubsidyVariant('1_course')}
+                  className={`w-full p-6 rounded-2xl border-2 text-left transition-all ${
+                    subsidyVariant === '1_course' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-black text-foreground mb-1">1 §20-Kurs (6 Monate)</p>
+                      <p className="text-sm text-muted-foreground">Einmalig 99€ | Zuschuss bis {insurance?.subsidy_per_course}€</p>
+                    </div>
+                    {subsidyVariant === '1_course' && <Check className="w-5 h-5 text-primary" />}
+                  </div>
+                </motion.button>
+
+                <motion.button
+                  onClick={() => handleSelectSubsidyVariant('2_courses')}
+                  className={`w-full p-6 rounded-2xl border-2 text-left transition-all ${
+                    subsidyVariant === '2_courses' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-black text-foreground mb-1">2 §20-Kurse (12 Monate)</p>
+                      <p className="text-sm text-muted-foreground">2 × 99€ | Zuschuss bis {insurance?.subsidy_per_year}€</p>
+                    </div>
+                    {subsidyVariant === '2_courses' && <Check className="w-5 h-5 text-primary" />}
+                  </div>
+                </motion.button>
+              </div>
+
+              {/* Pricing */}
+              <div className="rounded-2xl border border-border bg-secondary p-6">
+                <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3">Zusammenfassung</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Wochenpreis Rehasport+</span>
+                    <span className="font-bold">{weeklyPrice.toFixed(2)}€</span>
+                  </div>
+                  {subsidyActive && totalCourseFee > 0 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>§20 Kursgebühren</span>
+                        <span className="font-bold">{totalCourseFee}€</span>
+                      </div>
+                      <div className="flex justify-between text-primary pt-2 border-t border-border/50">
+                        <span>Möglicher Zuschuss</span>
+                        <span className="font-black">bis {estimatedSubsidy}€</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Section 20 Conditions Modal */}
@@ -288,28 +320,43 @@ export default function RehaOfferWithSubsidy({ profile, update, onNext, onBack }
           )}
         </AnimatePresence>
 
-        {/* Price Summary */}
-        <div className="bg-secondary rounded-2xl p-6 mb-8">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-4">Zusammenfassung</p>
-          <div className="space-y-2 text-sm mb-4">
-            <div className="flex justify-between">
-              <span>Wochenpreis Rehasport+</span>
-              <span className="font-bold text-foreground">{weeklyPrice.toFixed(2)}€</span>
-            </div>
-            {subsidyActive && totalCourseFee > 0 && (
-              <>
-                <div className="flex justify-between">
-                  <span>§20 Kursgebühren</span>
-                  <span className="font-bold text-foreground">{totalCourseFee}€</span>
+        {/* Subsidy Info Modal */}
+        <AnimatePresence>
+          {showSubsidyInfo && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                className="bg-card border border-border rounded-3xl p-8 max-w-lg w-full">
+                <h2 className="text-2xl font-black text-foreground uppercase mb-4">Was bedeutet Krankenkassen-Zuschuss?</h2>
+                <div className="space-y-4 text-sm text-muted-foreground leading-relaxed mb-8">
+                  <p>Viele gesetzliche Krankenkassen bezuschussen zertifizierte Präventionskurse nach §20 SGB V. Die genaue Höhe hängt von deiner Krankenkasse, deinem persönlichen Anspruch und deiner regelmäßigen Teilnahme ab.</p>
+                  <div>
+                    <p className="font-bold text-foreground mb-2">Wichtig:</p>
+                    <ul className="space-y-1 ml-4 list-disc">
+                      <li>Der Zuschuss ist nicht garantiert.</li>
+                      <li>Die Höhe unterscheidet sich je nach Krankenkasse.</li>
+                      <li>Meist werden bis zu zwei Kurse pro Jahr unterstützt.</li>
+                      <li>Die Erstattung erfolgt nach erfolgreicher Teilnahme.</li>
+                      <li>Dafür werden Teilnahmebescheinigung und Zahlungsnachweis benötigt.</li>
+                    </ul>
+                  </div>
+                  <p>Dieses Paket gilt nur in Verbindung mit aktiver Rehasport+ Teilnahme.</p>
                 </div>
-                <div className="flex justify-between text-primary">
-                  <span>Möglicher Zuschuss</span>
-                  <span className="font-bold">bis {estimatedSubsidy}€</span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+                <button
+                  onClick={() => setShowSubsidyInfo(false)}
+                  className="w-full h-12 rounded-2xl border border-border text-foreground hover:bg-secondary transition-all">
+                  Verstanden
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.button
           whileTap={{ scale: 0.97 }}
