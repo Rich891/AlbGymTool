@@ -77,8 +77,8 @@ export default function SignaturePad({ label = 'Unterschrift', onSigned }) {
         style={{ touchAction: 'none' }}>
         <canvas
           ref={canvasRef}
-          width={600}
-          height={160}
+          width={300}
+          height={80}
           onMouseDown={startDraw}
           onMouseMove={draw}
           onMouseUp={endDraw}
