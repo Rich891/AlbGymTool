@@ -12,6 +12,7 @@ import RehaUpsellBridge from './RehaUpsellBridge';
 import RehaUpsell from './RehaUpsell';
 import RehaOffer from './RehaOffer';
 import RehaAppointment from './RehaAppointment';
+import RehaContract from './RehaContract';
 
 export default function RehasportFlow() {
   const navigate = useNavigate();
@@ -36,7 +37,8 @@ export default function RehasportFlow() {
     <RehaUpsellBridge key="bridge" profile={profile} update={update} onNext={() => setStep(7)} onBack={() => setStep(5)} />,
     <RehaUpsell key="upsell" profile={profile} update={update} onNext={() => setStep(8)} onBack={() => setStep(6)} />,
     <RehaOffer key="offer" profile={profile} update={update} onNext={() => setStep(9)} onBack={() => setStep(7)} />,
-    <RehaAppointment key="appointment" profile={profile} onDone={() => navigate('/')} />,
+    <RehaAppointment key="appointment" profile={profile} onDone={() => setStep(10)} />,
+    <RehaContract key="contract" profile={profile} onDone={() => navigate('/')} />,
   ];
 
   return (
