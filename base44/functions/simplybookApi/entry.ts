@@ -2,8 +2,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const COMPANY_LOGIN = Deno.env.get('SIMPLYBOOK_COMPANY_LOGIN');
 const API_KEY = Deno.env.get('SIMPLYBOOK_API_KEY');
-const LOGIN_URL = 'https://user-api.simplybook.it/login';
-const API_URL = 'https://user-api.simplybook.it';
+const LOGIN_URL = 'https://user-api.simplybook.it/login/';
+const API_URL = 'https://user-api.simplybook.it/';
 
 async function rpc(url, method, params = [], headers = {}) {
   const res = await fetch(url, {
@@ -11,8 +11,10 @@ async function rpc(url, method, params = [], headers = {}) {
     headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
   });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON from SimplyBook: ' + text.slice(0, 200)); }
+  if (data.error) throw new Error(JSON.stringify(data.error));
   return data.result;
 }
 
@@ -21,49 +23,42 @@ async function getToken() {
 }
 
 Deno.serve(async (req) => {
-  const base44 = createClientFromRequest(req);
+  try {
+    const body = await req.json();
+    const { action, serviceId, date, unitId, time, clientData } = body;
 
-  const body = await req.json();
-  const { action, serviceId, date, unitId, time, clientData } = body;
+    const token = await getToken();
+    const headers = { 'X-Company-Login': COMPANY_LOGIN, 'X-Token': token };
 
-  const token = await getToken();
-  const headers = { 'X-Company-Login': COMPANY_LOGIN, 'X-Token': token };
+    if (action === 'getWorkDays') {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const schedule = await rpc(API_URL, 'getWorkCalendar', [year, month, serviceId], headers);
+      return Response.json({ schedule });
+    }
 
-  if (action === 'getSlots') {
-    // Get available slots for a given service and date
-    const slots = await rpc(API_URL, 'getStartTimeMatrix', [date, date, serviceId, unitId || null, 1], headers);
-    const daySlots = slots[date] || [];
-    return Response.json({ slots: daySlots });
+    if (action === 'getSlots') {
+      const slots = await rpc(API_URL, 'getStartTimeMatrix', [date, date, serviceId, unitId || null, 1], headers);
+      const daySlots = (slots && slots[date]) ? slots[date] : [];
+      return Response.json({ slots: daySlots });
+    }
+
+    if (action === 'book') {
+      const result = await rpc(API_URL, 'book', [
+        serviceId,
+        unitId || null,
+        date,
+        time,
+        clientData,
+        [],
+        1,
+      ], headers);
+      return Response.json({ booking: result });
+    }
+
+    return Response.json({ error: 'Unknown action' }, { status: 400 });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
   }
-
-  if (action === 'getWorkDays') {
-    // Get days that have availability in the next 60 days
-    const today = new Date();
-    const end = new Date();
-    end.setDate(end.getDate() + 60);
-    const fmt = (d) => d.toISOString().slice(0, 10);
-    const schedule = await rpc(API_URL, 'getWorkCalendar', [today.getFullYear(), today.getMonth() + 1, serviceId], headers);
-    return Response.json({ schedule });
-  }
-
-  if (action === 'getUnits') {
-    const units = await rpc(API_URL, 'getUnitList', [true, true], headers);
-    return Response.json({ units });
-  }
-
-  if (action === 'book') {
-    // clientData: { name, email, phone }
-    const result = await rpc(API_URL, 'book', [
-      serviceId,
-      unitId || null,
-      date,
-      time,
-      clientData,
-      [],
-      1
-    ], headers);
-    return Response.json({ booking: result });
-  }
-
-  return Response.json({ error: 'Unknown action' }, { status: 400 });
 });
