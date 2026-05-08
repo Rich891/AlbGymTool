@@ -184,13 +184,13 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
 
       {/* WEEK VIEW */}
       {step === 'week' &&
-      <div className="flex gap-6 -mx-6 -my-6 h-64">
+      <div className="flex gap-6 -mx-6 -my-6 h-[calc(100vh-200px)]">
           {/* LEFT: Hero image */}
           <div className="hidden md:flex md:w-1/2 relative overflow-hidden rounded-r-3xl flex-shrink-0">
             <img
               src={SERVICE_IMAGES[serviceType]}
               alt={SERVICE_LABELS[serviceType]}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-right-bottom"
             />
             <div className={`absolute inset-0 bg-gradient-to-b ${style.gradient} to-transparent`} />
             {SERVICE_LOGOS[serviceType] &&
