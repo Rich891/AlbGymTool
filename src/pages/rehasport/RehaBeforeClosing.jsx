@@ -109,8 +109,9 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
             </label>
             <input
               type="text"
-              value={formData.address}
-              onChange={e => setFormData({ ...formData, address: e.target.value })}
+              value={formData.address || ''}
+              onChange={e => setFormData(prev => ({ ...prev, address: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               placeholder="z. B. Musterstr. 1, 70178 Stuttgart"
               className="w-full h-12 px-4 rounded-2xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
             />
@@ -122,8 +123,9 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
             </label>
             <input
               type="email"
-              value={formData.email}
-              onChange={e => setFormData({ ...formData, email: e.target.value })}
+              value={formData.email || ''}
+              onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               placeholder="deine.email@example.com"
               className="w-full h-12 px-4 rounded-2xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
             />
@@ -135,8 +137,9 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
             </label>
             <input
               type="tel"
-              value={formData.phone}
-              onChange={e => setFormData({ ...formData, phone: e.target.value })}
+              value={formData.phone || ''}
+              onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               placeholder="+49 ..."
               className="w-full h-12 px-4 rounded-2xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
             />
@@ -148,8 +151,9 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
             </label>
             <input
               type="text"
-              value={formData.health_insurance}
-              onChange={e => setFormData({ ...formData, health_insurance: e.target.value })}
+              value={formData.health_insurance || ''}
+              onChange={e => setFormData(prev => ({ ...prev, health_insurance: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               placeholder="z. B. AOK Bayern"
               className="w-full h-12 px-4 rounded-2xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
             />
@@ -161,8 +165,9 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
             </label>
             <input
               type="text"
-              value={formData.insurance_number}
-              onChange={e => setFormData({ ...formData, insurance_number: e.target.value })}
+              value={formData.insurance_number || ''}
+              onChange={e => setFormData(prev => ({ ...prev, insurance_number: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               placeholder="xxxxxxxxxxxxxx"
               className="w-full h-12 px-4 rounded-2xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
             />
@@ -174,8 +179,9 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
             </label>
             <input
               type="text"
-              value={formData.account_holder}
-              onChange={e => setFormData({ ...formData, account_holder: e.target.value })}
+              value={formData.account_holder || ''}
+              onChange={e => setFormData(prev => ({ ...prev, account_holder: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               placeholder="Name"
               className="w-full h-12 px-4 rounded-2xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
             />
@@ -187,8 +193,9 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
             </label>
             <input
               type="text"
-              value={formData.iban}
-              onChange={e => setFormData({ ...formData, iban: e.target.value })}
+              value={formData.iban || ''}
+              onChange={e => setFormData(prev => ({ ...prev, iban: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               placeholder="DE..."
               className="w-full h-12 px-4 rounded-2xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
             />
