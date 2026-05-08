@@ -220,6 +220,15 @@ function generateContract(profile) {
   doc.text('UNTERSCHRIFT', 15, yPos);
   yPos += 10;
 
+  if (profile.signature) {
+    try {
+      doc.addImage(profile.signature, 'PNG', 15, yPos, 50, 18);
+      yPos += 22;
+    } catch (e) {
+      console.error('Signature konnte nicht eingefügt werden:', e);
+    }
+  }
+
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(`Mitglied: ________________________  Datum: ${new Date().toLocaleDateString('de-DE')}`, 15, yPos);
