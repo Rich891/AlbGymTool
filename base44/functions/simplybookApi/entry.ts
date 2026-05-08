@@ -11,15 +11,9 @@ async function rpc(url, method, params = [], headers = {}) {
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
   });
   const text = await res.text();
-  console.log(`[RPC] ${method} -> ${text.slice(0, 400)}`);
   const data = JSON.parse(text);
   if (data.error) throw new Error(JSON.stringify(data.error));
   return data.result;
-}
-
-async function getToken() {
-  console.log('[AUTH] company:', COMPANY_LOGIN, '| key:', API_KEY?.slice(0, 8) + '...');
-  return await rpc(LOGIN_URL, 'getToken', [COMPANY_LOGIN, API_KEY]);
 }
 
 Deno.serve(async (req) => {
@@ -27,7 +21,16 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, serviceId, date, unitId, time, clientData } = body;
 
-    const token = await getToken();
+    // Debug: return env values directly
+    if (action === 'debug') {
+      return Response.json({
+        company_login: COMPANY_LOGIN,
+        api_key_length: API_KEY?.length,
+        api_key_prefix: API_KEY?.slice(0, 6),
+      });
+    }
+
+    const token = await rpc(LOGIN_URL, 'getToken', [COMPANY_LOGIN, API_KEY]);
     const headers = { 'X-Company-Login': COMPANY_LOGIN, 'X-Token': token };
 
     if (action === 'getServices') {
@@ -51,20 +54,13 @@ Deno.serve(async (req) => {
 
     if (action === 'book') {
       const result = await rpc(API_URL, 'book', [
-        serviceId,
-        unitId || null,
-        date,
-        time,
-        clientData,
-        [],
-        1,
+        serviceId, unitId || null, date, time, clientData, [], 1,
       ], headers);
       return Response.json({ booking: result });
     }
 
     return Response.json({ error: 'Unknown action' }, { status: 400 });
   } catch (error) {
-    console.error('[ERROR]', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
