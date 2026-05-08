@@ -178,16 +178,26 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
       {/* WEEK VIEW */}
       {step === 'week' &&
       <div className="flex-1 px-4 md:px-8 py-8 max-w-6xl mx-auto w-full flex flex-col">
+            {/* Header */}
+            <div className="mb-10">
+              <h1 className="text-4xl md:text-5xl font-black text-foreground uppercase tracking-tight mb-2">
+                Termin buchen
+              </h1>
+              <p className={`text-2xl md:text-3xl font-black uppercase tracking-tight ${style.accentColor}`}>
+                {SERVICE_LABELS[serviceType]}
+              </p>
+            </div>
+
             {/* Week navigation */}
-            <div className="flex items-center justify-between mb-8 gap-4">
-              <button onClick={() => setWeekStart(addDays(weekStart, -7))} disabled={addDays(weekStart, -1) < today} className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                <ChevronLeft className="w-4 h-4" /> Vorige
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+              <button onClick={() => setWeekStart(addDays(weekStart, -7))} disabled={addDays(weekStart, -1) < today} className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border hover:border-primary/50 text-sm font-bold text-foreground hover:bg-secondary transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                <ChevronLeft className="w-5 h-5" /> Vorherige Woche
               </button>
-              <span className="text-sm font-black text-foreground tracking-wider whitespace-nowrap">
+              <span className="text-xl md:text-2xl font-black text-foreground tracking-wider whitespace-nowrap">
                 {fmtShort(weekStart)} – {fmtShort(weekEnd)}
               </span>
-              <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
-                Nächste <ChevronRight className="w-4 h-4" />
+              <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border hover:border-primary/50 text-sm font-bold text-foreground hover:bg-secondary transition-all">
+                Nächste Woche <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 
@@ -206,8 +216,8 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
                 </button>
               </div> :
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {daysWithSlots.map((d) => {
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {daysWithSlots.map((d) => {
             const key = fmtDate(d);
             const daySlots = slotsByDate[key] || [];
             const dayName = WEEKDAYS_SHORT[d.getDay()];
@@ -217,19 +227,17 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
               key={`${key}-${slot}`}
               whileTap={{ scale: 0.95 }}
               onClick={() => {setSelectedDate(key);setSelectedTime(slot);setStep('confirm');}}
-              className="group relative overflow-hidden rounded-2xl p-6 text-left focus:outline-none transition-all duration-300 cursor-pointer bg-card hover:shadow-xl hover:shadow-primary/20">
-                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">{dayName}, {d.getDate()}. {monthName}</p>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-3xl font-black text-primary leading-none">{slot.slice(0, 5)}</p>
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Uhr</p>
-                      </div>
-                      <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <span className="text-primary-foreground text-sm font-black uppercase tracking-wide">Buchen</span>
-                      </div>
-                    </motion.button>
+              className="group relative overflow-hidden rounded-xl p-4 text-center focus:outline-none transition-all duration-300 cursor-pointer bg-card hover:shadow-lg hover:shadow-primary/20">
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-1">{dayName}</p>
+                    <p className="text-xs text-muted-foreground mb-2">{d.getDate()}. {monthName.slice(0, 3)}</p>
+                    <p className="text-2xl font-black text-primary leading-none">{slot.slice(0, 5)}</p>
+                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <span className="text-primary-foreground text-xs font-black uppercase tracking-wide">Buchen</span>
+                    </div>
+                  </motion.button>
             );
           })}
-              </div>
+            </div>
         }
         </div>
       }
