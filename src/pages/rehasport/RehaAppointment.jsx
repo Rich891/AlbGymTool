@@ -194,30 +194,30 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
             {error && <p className="text-destructive text-sm mb-4">{error}</p>}
 
             {loadingDays || anyLoading && daysWithSlots.length === 0 ?
-          <div className="flex flex-col items-center justify-center flex-1 gap-3">
+        <div className="flex flex-col items-center justify-center flex-1 gap-3">
                 <Loader2 className="w-7 h-7 animate-spin text-primary" />
                 <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Termine werden geladen…</p>
               </div> :
-          daysWithSlots.length === 0 ?
-          <div className="flex flex-col items-center justify-center flex-1">
+        daysWithSlots.length === 0 ?
+        <div className="flex flex-col items-center justify-center flex-1">
                 <p className="text-muted-foreground text-sm mb-4">Keine freien Termine diese Woche.</p>
                 <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-1 text-xs text-primary font-black uppercase tracking-wide hover:underline">
                   Nächste Woche <ChevronRight className="w-3 h-3" />
                 </button>
               </div> :
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {daysWithSlots.map((d) => {
-              const key = fmtDate(d);
-              const daySlots = slotsByDate[key] || [];
-              const dayName = WEEKDAYS_SHORT[d.getDay()];
-              const monthName = MONTHS_SHORT[d.getMonth()];
-              return daySlots.map((slot) =>
-              <motion.button
-                key={`${key}-${slot}`}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {setSelectedDate(key);setSelectedTime(slot);setStep('confirm');}}
-                className="group relative overflow-hidden rounded-2xl p-6 text-left focus:outline-none transition-all duration-300 cursor-pointer bg-card hover:shadow-xl hover:shadow-primary/20">
+            const key = fmtDate(d);
+            const daySlots = slotsByDate[key] || [];
+            const dayName = WEEKDAYS_SHORT[d.getDay()];
+            const monthName = MONTHS_SHORT[d.getMonth()];
+            return daySlots.map((slot) =>
+            <motion.button
+              key={`${key}-${slot}`}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {setSelectedDate(key);setSelectedTime(slot);setStep('confirm');}}
+              className="group relative overflow-hidden rounded-2xl p-6 text-left focus:outline-none transition-all duration-300 cursor-pointer bg-card hover:shadow-xl hover:shadow-primary/20">
                       <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">{dayName}, {d.getDate()}. {monthName}</p>
                       <div className="flex items-baseline gap-2">
                         <p className="text-3xl font-black text-primary leading-none">{slot.slice(0, 5)}</p>
@@ -227,10 +227,10 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
                         <span className="text-primary-foreground text-sm font-black uppercase tracking-wide">Buchen</span>
                       </div>
                     </motion.button>
-              );
-            })}
+            );
+          })}
               </div>
-          }
+        }
         </div>
       }
 
@@ -315,7 +315,7 @@ export default function RehaAppointment({ profile, onDone }) {
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
       <div className="w-full">
         {activeService ?
-        <div className="bg-card border border-border rounded-3xl p-6">
+        <div className="border border-border rounded-3xl p-6 bg-[hsl(var(--background))]">
             <BookingFlow
             serviceType={activeService}
             serviceId={SERVICE_IDS[activeService]}
