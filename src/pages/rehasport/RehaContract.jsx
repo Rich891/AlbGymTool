@@ -250,6 +250,8 @@ export default function RehaContract({ profile, onDone }) {
   const handleDownload = async () => {
     setDownloading(true);
     try {
+      console.log('Download gestartet, Profil:', profile);
+      console.log('Signature vorhanden?', !!profile.signature);
       const doc = generateContract(profile);
       doc.save(`AlbGym-Vertrag-${profile.name?.replace(/\s/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) {
