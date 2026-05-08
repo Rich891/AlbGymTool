@@ -1,11 +1,22 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FlaskConical } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function RehaCustomer({ profile, update, onNext, onBack }) {
+const TEST_CUSTOMER = {
+  first_name: 'Max',
+  last_name: 'Mustermann',
+  birthdate: '1980-06-15',
+  gender: 'männlich',
+};
+
+export default function RehaCustomer({ profile, update, onNext, onBack, testMode }) {
   const firstName = profile.first_name || '';
   const lastName = profile.last_name || '';
   const canProceed = firstName.trim().length > 0 && lastName.trim().length > 0 && profile.birthdate && profile.gender;
+
+  const fillTestData = () => {
+    update({ ...TEST_CUSTOMER, name: `${TEST_CUSTOMER.first_name} ${TEST_CUSTOMER.last_name}` });
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
@@ -13,6 +24,23 @@ export default function RehaCustomer({ profile, update, onNext, onBack }) {
       <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
         <ArrowLeft className="w-4 h-4" /> Zurück
       </button>
+
+      {testMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 flex items-center justify-between bg-orange-500/10 border border-orange-500/30 rounded-2xl px-5 py-3">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="w-4 h-4 text-orange-400" />
+            <p className="text-sm font-bold text-orange-400">Test-Modus aktiv</p>
+          </div>
+          <button
+            onClick={fillTestData}
+            className="px-4 py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-xs font-black text-orange-300 hover:bg-orange-500/30 transition-all uppercase tracking-widest">
+            Felder befüllen
+          </button>
+        </motion.div>
+      )}
 
       <div className="text-center mb-10">
       <h1 className="text-4xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-none mb-2">

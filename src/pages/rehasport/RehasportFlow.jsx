@@ -31,7 +31,7 @@ export default function RehasportFlow() {
 
   const steps = [
     <RehaStart key="start" onNew={() => setStep(1)} onBack={() => navigate('/')} />,
-    <RehaCustomer key="customer" profile={profile} update={update} onNext={() => setStep(2)} onBack={() => setStep(0)} />,
+    <RehaCustomer key="customer" profile={profile} update={update} onNext={() => setStep(2)} onBack={() => setStep(0)} testMode={testMode} />,
     <RehaReason key="reason" profile={profile} update={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />,
     <RehaComplaints key="complaints" profile={profile} update={update} onNext={() => setStep(4)} onBack={() => setStep(2)} />,
     <RehaProfile key="profile" profile={profile} onConfirm={() => setStep(5)} onChange={() => setStep(1)} />,
