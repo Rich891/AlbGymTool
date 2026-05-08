@@ -184,9 +184,9 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
 
       {/* WEEK VIEW */}
       {step === 'week' && (
-        <div className="flex gap-6 -mx-6 -my-6 h-[calc(100vh-200px)]">
+        <div className="flex gap-0 h-[calc(100vh-280px)] -mx-4 md:-mx-8">
           {/* LEFT: Hero image */}
-          <div className="hidden md:flex w-1/2 relative overflow-hidden rounded-r-3xl border-r border-border flex-shrink-0">
+          <div className="hidden md:flex md:w-1/2 relative overflow-hidden flex-shrink-0">
             <img
               src={SERVICE_IMAGES[serviceType]}
               alt={SERVICE_LABELS[serviceType]}
@@ -194,14 +194,14 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
             />
             <div className={`absolute inset-0 bg-gradient-to-b ${style.gradient} to-transparent`} />
             {SERVICE_LOGOS[serviceType] && (
-              <div className="absolute top-6 left-6 z-10 h-12">
+              <div className="absolute top-8 left-8 z-10 h-14">
                 <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-full object-contain" />
               </div>
             )}
           </div>
 
           {/* RIGHT: Week nav + slots */}
-          <div className="flex-1 flex flex-col px-6 py-6 overflow-y-auto">
+          <div className="flex-1 md:w-1/2 flex flex-col px-4 md:px-8 py-6 overflow-y-auto">
             {/* Week navigation */}
             <div className="flex items-center justify-between mb-8 gap-4">
               <button
