@@ -222,59 +222,59 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
               </button>
             </div>
 
-            {loadingDays || anyLoading && daysWithSlots.length === 0 ?
-          <div className="flex flex-col items-center justify-center flex-1 gap-3">
+            {loadingDays || (anyLoading && daysWithSlots.length === 0) ?
+              <div className="flex flex-col items-center justify-center flex-1 gap-3">
                 <Loader2 className="w-7 h-7 animate-spin text-primary" />
                 <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Termine werden geladen…</p>
               </div> :
-          daysWithSlots.length === 0 ?
-          <div className="flex flex-col items-center justify-center flex-1">
+              daysWithSlots.length === 0 ?
+              <div className="flex flex-col items-center justify-center flex-1">
                 <p className="text-muted-foreground text-sm mb-4">Keine freien Termine diese Woche.</p>
                 <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-1 text-xs text-primary font-black uppercase tracking-wide hover:underline">
                   Nächste Woche <ChevronRight className="w-3 h-3" />
                 </button>
               </div> :
 
-          <div className="space-y-6">
+              <div className="space-y-8">
                 {daysWithSlots.map((d) => {
-              const key = fmtDate(d);
-              const daySlots = slotsByDate[key] || [];
-              const dayName = WEEKDAYS_SHORT[d.getDay()];
-              const monthName = MONTHS_SHORT[d.getMonth()];
+                  const key = fmtDate(d);
+                  const daySlots = slotsByDate[key] || [];
+                  const dayName = WEEKDAYS_SHORT[d.getDay()];
+                  const monthName = MONTHS_SHORT[d.getMonth()];
 
-              return (
-                <div key={key}>
-                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3">{dayName}, {d.getDate()}. {monthName}</p>
-                      <div className="grid grid-cols-2 gap-4">
-                        {daySlots.map((slot) =>
+                  return (
+                    <div key={key}>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-4">{dayName}, {d.getDate()}. {monthName}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {daySlots.map((slot) => (
                     <motion.button
                       key={slot}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {setSelectedDate(key);setSelectedTime(slot);setStep('confirm');}}
-                      className="group relative overflow-hidden rounded-3xl p-5 text-left focus:outline-none transition-all duration-300 cursor-pointer border border-border bg-card hover:border-primary/50 hover:bg-orange-500/10">
-                      
-                            {/* Datum oben */}
-                            <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3">{d.getDate()}. {monthName.slice(0, 3)}</p>
+                      className="group relative overflow-hidden rounded-3xl p-5 text-left focus:outline-none transition-all duration-300 cursor-pointer border border-border bg-card hover:border-primary/50">
 
-                            {/* Tag + Uhrzeit groß */}
-                            <div>
-                              <p className="text-lg font-black text-foreground uppercase leading-tight">{dayName}</p>
-                              <p className="text-4xl font-black text-primary group-hover:text-orange-500 transition-colors duration-300 leading-none">
-                                {slot.slice(0, 5)}
-                              </p>
-                              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Uhr</p>
-                            </div>
+                          {/* Datum oben */}
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3">{d.getDate()}. {monthName.slice(0, 3)}</p>
 
-                            {/* Hover "Jetzt buchen" */}
-                            <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-gradient-to-r from-orange-600 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <span className="text-white text-sm font-black uppercase tracking-wide">Jetzt buchen</span>
+                          {/* Tag + Uhrzeit groß */}
+                          <div>
+                            <p className="text-lg font-black text-foreground uppercase leading-tight">{dayName}</p>
+                            <p className="text-4xl font-black text-primary leading-none">
+                              {slot.slice(0, 5)}
+                            </p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Uhr</p>
+                          </div>
+
+                                            {/* Hover "Jetzt buchen" */}
+                            <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <span className="text-primary-foreground text-sm font-black uppercase tracking-wide">Jetzt buchen</span>
                             </div>
                           </motion.button>
-                    )}
+                        ))}
                       </div>
-                    </div>);
-
-            })}
+                    </div>
+                  );
+                })}
               </div>
           }
           </div>
