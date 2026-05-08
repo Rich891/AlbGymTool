@@ -40,8 +40,15 @@ export default function RehaBooking({ profile, onBack, onDone }) {
     if (selected.includes('five')) needed.push('five');
     if (selected.includes('milon')) needed.push('milon');
     if (!selected.includes('five') || !selected.includes('milon')) needed.push('geraete');
+    
+    if (needed.length === 0) {
+      onDone();
+      return;
+    }
+    
     setServices(needed);
-  }, []);
+    setCurrentServiceIdx(0);
+  }, [profile.selectedOffers, onDone]);
 
   // Auto-done when all services booked
   useEffect(() => {
@@ -136,7 +143,13 @@ export default function RehaBooking({ profile, onBack, onDone }) {
     bookingRef.current = false;
   };
 
-  if (!currentService) return null;
+  if (!currentService) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Keine Services zum Buchen vorhanden.</p>
+      </div>
+    );
+  }
 
   const daysArray = Object.entries(slots)
     .map(([date, times]) => ({ date, times }))

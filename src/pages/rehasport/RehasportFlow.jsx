@@ -37,7 +37,7 @@ export default function RehasportFlow() {
     <RehaUpsellBridge key="bridge" profile={profile} update={update} onNext={() => setStep(7)} onBack={() => setStep(5)} />,
     <RehaUpsell key="upsell" profile={profile} update={update} onNext={() => setStep(8)} onBack={() => setStep(6)} />,
     <RehaOffer key="offer" profile={profile} update={update} onNext={() => setStep(9)} onBack={() => setStep(7)} />,
-    <RehaBooking key="booking" profile={profile} onBack={() => setStep(8)} onDone={() => setStep(10)} />,
+    <RehaBooking key="booking" profile={profile} onBack={() => setStep(8)} onDone={() => { update({ bookingDone: true }); setStep(10); }} />,
     <RehaContract key="contract" profile={profile} onDone={() => navigate('/')} />,
   ];
 
