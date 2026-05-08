@@ -14,6 +14,7 @@ const COMPANY_ADDRESS = {
 };
 
 function generateContract(profile) {
+  console.log('generateContract profile.signature:', profile.signature ? 'vorhanden' : 'FEHLT');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'A4' });
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
