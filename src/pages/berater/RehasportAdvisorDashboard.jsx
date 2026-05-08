@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TeilnahmebescheinigungDownload from './TeilnahmebescheinigungDownload';
+import CustomerDetail from './CustomerDetail';
 
 const NAV_ITEMS = [
   { id: 'customers', label: 'Kundenkatalog', icon: Users },
@@ -17,6 +18,7 @@ export default function RehasportAdvisorDashboard() {
   const [activeTab, setActiveTab] = useState('customers');
   const [searchTerm, setSearchTerm] = useState('');
   const [bescheinigungFor, setBescheinigungFor] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const { data: consultations = [] } = useQuery({
     queryKey: ['rehasport-consultations'],
@@ -71,7 +73,9 @@ export default function RehasportAdvisorDashboard() {
 
       {/* Main Content */}
       <div className="flex-1 p-8">
-        {activeTab === 'customers' && (
+        {activeTab === 'customers' && selectedCustomer ? (
+          <CustomerDetail consultation={selectedCustomer} onBack={() => setSelectedCustomer(null)} />
+        ) : activeTab === 'customers' && (
           <div>
             <h1 className="text-3xl font-black text-foreground uppercase mb-6">Kundenkatalog</h1>
             
@@ -98,7 +102,7 @@ export default function RehasportAdvisorDashboard() {
                     </thead>
                     <tbody>
                     {filteredConsultations.map(consultation => (
-                    <tr key={consultation.id} className="border-b border-border hover:bg-secondary/50 transition-all">
+                    <tr key={consultation.id} onClick={() => setSelectedCustomer(consultation)} className="border-b border-border hover:bg-secondary/50 transition-all cursor-pointer">
                       <td className="p-3 font-medium text-foreground">{consultation.customer_name}</td>
                       <td className="p-3 text-muted-foreground">{consultation.email || '–'}</td>
                       <td className="p-3 text-muted-foreground">{consultation.phone || '–'}</td>
@@ -113,7 +117,7 @@ export default function RehasportAdvisorDashboard() {
                           {consultation.status}
                         </span>
                       </td>
-                      <td className="p-3">
+                      <td className="p-3" onClick={e => e.stopPropagation()}>
                         {consultation.subsidy_active && (
                           <button
                             onClick={() => setBescheinigungFor(consultation)}
