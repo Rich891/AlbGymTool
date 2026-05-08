@@ -306,7 +306,7 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     onClick={handleConsentConfirm}
-                    disabled={saving || !consents.counseling || !consents.health || !consents.bank}
+                    disabled={saving || !consents.counseling || !consents.health || (hasBankData && !consents.bank)}
                     className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Bestätigen →'}
                   </motion.button>

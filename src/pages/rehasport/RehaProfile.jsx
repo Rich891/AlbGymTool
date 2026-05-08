@@ -123,7 +123,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <input
                     type="text"
                     value={profile.address || ''}
-                    onChange={e => onChange({ ...profile, address: e.target.value })}
+                    onChange={e => onConfirm({ ...profile, address: e.target.value })}
                     placeholder="z. B. Musterstr. 1, 70178 Stuttgart"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -134,7 +134,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <input
                     type="email"
                     value={profile.email || ''}
-                    onChange={e => onChange({ ...profile, email: e.target.value })}
+                    onChange={e => onConfirm({ ...profile, email: e.target.value })}
                     placeholder="deine.email@example.com"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -145,7 +145,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <input
                     type="tel"
                     value={profile.phone || ''}
-                    onChange={e => onChange({ ...profile, phone: e.target.value })}
+                    onChange={e => onConfirm({ ...profile, phone: e.target.value })}
                     placeholder="+49 ..."
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -156,7 +156,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <input
                     type="text"
                     value={profile.health_insurance || ''}
-                    onChange={e => onChange({ ...profile, health_insurance: e.target.value })}
+                    onChange={e => onConfirm({ ...profile, health_insurance: e.target.value })}
                     placeholder="z. B. AOK Bayern"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -167,7 +167,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <input
                     type="text"
                     value={profile.insurance_number || ''}
-                    onChange={e => onChange({ ...profile, insurance_number: e.target.value })}
+                    onChange={e => onConfirm({ ...profile, insurance_number: e.target.value })}
                     placeholder="xxxxxxxxxxxxxx"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -178,7 +178,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <input
                     type="text"
                     value={profile.account_holder || ''}
-                    onChange={e => onChange({ ...profile, account_holder: e.target.value })}
+                    onChange={e => onConfirm({ ...profile, account_holder: e.target.value })}
                     placeholder="Name"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -189,7 +189,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <input
                     type="text"
                     value={profile.iban || ''}
-                    onChange={e => onChange({ ...profile, iban: e.target.value })}
+                    onChange={e => onConfirm({ ...profile, iban: e.target.value })}
                     placeholder="DE..."
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -200,7 +200,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <input
                     type="text"
                     value={profile.bic || ''}
-                    onChange={e => onChange({ ...profile, bic: e.target.value })}
+                    onChange={e => onConfirm({ ...profile, bic: e.target.value })}
                     placeholder="XXXXYY"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
