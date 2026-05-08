@@ -54,11 +54,11 @@ function fmt(n) {
 }
 
 // Visual card for each included module
-function OfferCard({ id }) {
+function OfferCard({ id, tall }) {
   const d = CARD_DATA[id];
   if (!d) return null;
   return (
-    <div className={`group relative overflow-hidden rounded-3xl h-56 w-full`}>
+    <div className={`group relative overflow-hidden rounded-3xl w-full ${tall ? 'h-52' : 'h-56'}`}>
       <img src={d.image} alt={d.label} className="absolute inset-0 w-full h-full object-cover" />
       <div className={`absolute inset-0 bg-gradient-to-t ${d.gradient} to-black/30`} />
 
@@ -125,10 +125,23 @@ export default function RehaOffer({ profile, update, onNext, onBack }) {
         {hasOffers ? (
           <>
             {/* Visual cards */}
-            <div className="flex flex-col gap-4 mb-6">
-              {orderedOffers.map((id) => (
-                <OfferCard key={id} id={id} />
-              ))}
+            <div className={`mb-6 ${orderedOffers.length === 1 ? 'flex flex-col gap-4' : orderedOffers.length === 2 ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}`}>
+              {orderedOffers.length === 3 ? (
+                <>
+                  {/* Rehasport+ full width on top */}
+                  <OfferCard key="rehasport_plus" id="rehasport_plus" tall />
+                  {/* FIVE + Milon side by side */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {orderedOffers.filter(id => id !== 'rehasport_plus').map(id => (
+                      <OfferCard key={id} id={id} />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                orderedOffers.map((id) => (
+                  <OfferCard key={id} id={id} />
+                ))
+              )}
             </div>
 
             {/* Price block */}
