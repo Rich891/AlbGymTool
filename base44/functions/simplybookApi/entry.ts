@@ -35,7 +35,9 @@ Deno.serve(async (req) => {
 
     if (action === 'getServices') {
       const result = await rpc(API_URL, 'getEventList', [], headers);
-      return Response.json({ services: result });
+      // Return slim version with just id and name
+      const slim = Object.values(result).map(s => ({ id: s.id, name: s.name, duration: s.duration }));
+      return Response.json({ services: slim });
     }
 
     if (action === 'getWorkDays') {
