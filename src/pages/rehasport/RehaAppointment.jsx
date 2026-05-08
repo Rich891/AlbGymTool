@@ -357,7 +357,7 @@ export default function RehaAppointment({ profile, onDone }) {
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
-      <div className="w-full max-w-2xl">
+      <div className="w-full">
         {activeService ? (
           <div className="bg-card border border-border rounded-3xl p-6">
             <BookingFlow
