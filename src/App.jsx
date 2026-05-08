@@ -6,9 +6,13 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
-import AppLayout from '@/components/layout/AppLayout';
-import Dashboard from '@/pages/Dashboard';
+// Customer-facing pages
+import HeroPage from '@/pages/HeroPage';
 import ConsultationFlow from '@/pages/ConsultationFlow';
+
+// Advisor area (protected)
+import AdvisorArea from '@/pages/AdvisorArea';
+import AdvisorLayout from '@/components/layout/AdvisorLayout';
 import CustomerList from '@/pages/CustomerList';
 import ServiceCatalog from '@/pages/ServiceCatalog';
 import TariffList from '@/pages/TariffList';
@@ -24,11 +28,11 @@ const AuthenticatedApp = () => {
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-6">
           <img 
             src="https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/96b390eb9_AlbGymLogomark.png" 
             alt="AlbGym" 
-            className="w-16 h-16 object-contain animate-pulse"
+            className="w-20 h-20 object-contain animate-pulse"
           />
           <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
         </div>
@@ -37,28 +41,29 @@ const AuthenticatedApp = () => {
   }
 
   if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
+    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
+    else if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
 
   return (
     <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/beratung/:type" element={<ConsultationFlow />} />
-        <Route path="/kunden" element={<CustomerList />} />
-        <Route path="/leistungskatalog" element={<ServiceCatalog />} />
-        <Route path="/tarife" element={<TariffList />} />
-        <Route path="/tarif-baukasten" element={<TariffBuilder />} />
-        <Route path="/beratungsverlauf" element={<ConsultationHistory />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/regeln" element={<RulesAdmin />} />
+      {/* Customer-facing – no sidebar */}
+      <Route path="/" element={<HeroPage />} />
+      <Route path="/beratung/:type" element={<ConsultationFlow />} />
+
+      {/* Advisor area */}
+      <Route path="/berater" element={<AdvisorArea />} />
+      <Route element={<AdvisorLayout />}>
+        <Route path="/berater/kunden" element={<CustomerList />} />
+        <Route path="/berater/leistungen" element={<ServiceCatalog />} />
+        <Route path="/berater/tarife" element={<TariffList />} />
+        <Route path="/berater/baukasten" element={<TariffBuilder />} />
+        <Route path="/berater/verlauf" element={<ConsultationHistory />} />
+        <Route path="/berater/analytics" element={<Analytics />} />
+        <Route path="/berater/admin" element={<Admin />} />
+        <Route path="/berater/regeln" element={<RulesAdmin />} />
       </Route>
+
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
@@ -74,7 +79,7 @@ function App() {
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;

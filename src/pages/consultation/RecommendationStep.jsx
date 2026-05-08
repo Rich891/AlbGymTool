@@ -1,208 +1,216 @@
 import React, { useMemo, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Check, Plus, Star, Sparkles, ArrowRight } from 'lucide-react';
-import { GOALS } from '@/lib/goalConfig';
-import GoalIcon from '@/components/shared/GoalIcon';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Check, Plus, X } from 'lucide-react';
 import { calculateScores, findBestTariff } from '@/lib/scoringEngine';
 
-export default function RecommendationStep({ 
+const GOAL_IMAGES = {
+  abnehmen: 'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=800&q=80',
+  muskelaufbau: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80',
+  ruecken: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=80',
+  gesundheit: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80',
+  reha: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&q=80',
+  performance: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=80',
+  stress: 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=800&q=80',
+  einfach: 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=800&q=80',
+  community: 'https://images.unsplash.com/photo-1571731956672-f2b94d7dd0cb?w=800&q=80',
+};
+
+const ADDON_IMAGES = {
+  'Ernährungsberatung': 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&q=80',
+  'InBody Analyse': 'https://images.unsplash.com/photo-1559757175-5700dde675bc?w=600&q=80',
+  'Sauna & Dampfbad': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80',
+  'EMS Training': 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&q=80',
+  'RedWave': 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+  'Avacura': 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=600&q=80',
+  'FFS FitnessführerSchein': 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&q=80',
+  'Trainingsberatung': 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
+  'Rehasport+': 'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=600&q=80',
+  'PelviPower': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80',
+};
+
+export default function RecommendationStep({
   customer, anamnesis, selectedGoals, services, tariffs, rules,
-  selectedServices, setSelectedServices, selectedAddons, setSelectedAddons,
-  selectedTariff, setSelectedTariff, onNext, onBack 
+  selectedAddons, setSelectedAddons, selectedTariff, setSelectedTariff,
+  onNext, onBack
 }) {
-  const scoredServices = useMemo(() => 
+  const scoredServices = useMemo(() =>
     calculateScores(services, customer, anamnesis, selectedGoals, rules),
     [services, customer, anamnesis, selectedGoals, rules]
   );
 
-  const rankedTariffs = useMemo(() => 
+  const rankedTariffs = useMemo(() =>
     findBestTariff(tariffs, selectedGoals, scoredServices),
     [tariffs, selectedGoals, scoredServices]
   );
 
   const bestTariff = rankedTariffs[0];
-  const topServices = scoredServices.filter(s => s.score >= 50 && !s.isAddon).slice(0, 8);
-  const topUpsells = scoredServices.filter(s => s.isAddon && s.score >= 40).slice(0, 3);
 
-  const goalLabels = GOALS.filter(g => selectedGoals.includes(g.id));
-
-  // Auto-select best tariff
-  React.useEffect(() => {
-    if (bestTariff && !selectedTariff) {
-      setSelectedTariff(bestTariff);
-    }
+  useEffect(() => {
+    if (bestTariff && !selectedTariff) setSelectedTariff(bestTariff);
   }, [bestTariff]);
 
+  const topUpsells = scoredServices.filter(s => s.isAddon && s.score >= 30).slice(0, 3);
+
   const toggleAddon = (service) => {
-    setSelectedAddons(prev => 
+    setSelectedAddons(prev =>
       prev.find(a => a.id === service.id)
         ? prev.filter(a => a.id !== service.id)
         : [...prev, service]
     );
   };
 
-  const totalMonthly = (selectedTariff?.monthly_price || 0) + 
+  const totalMonthly = (selectedTariff?.monthly_price || 0) +
     selectedAddons.reduce((sum, a) => sum + (a.price_monthly || 0), 0);
 
+  const heroGoal = selectedGoals[0] || 'gesundheit';
+  const heroImage = GOAL_IMAGES[heroGoal] || GOAL_IMAGES.gesundheit;
+
+  const tariffColor = bestTariff?.monthly_price > 60
+    ? 'from-yellow-500/20'
+    : bestTariff?.monthly_price > 40
+    ? 'from-primary/20'
+    : 'from-blue-500/20';
+
   return (
-    <div className="space-y-6">
-      {/* Goals Summary */}
-      <div className="flex flex-wrap gap-2">
-        {goalLabels.map(goal => (
-          <Badge key={goal.id} variant="outline" className={`${goal.bg} ${goal.color} ${goal.border} px-3 py-1.5 text-sm`}>
-            <GoalIcon iconName={goal.icon} className="w-3.5 h-3.5 mr-1.5" />
-            {goal.label}
-          </Badge>
-        ))}
+    <div className="min-h-screen flex flex-col">
+      {/* Hero Banner */}
+      <div className="relative h-44 md:h-56 overflow-hidden flex-shrink-0">
+        <img src={heroImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+          <p className="text-primary text-xs font-bold uppercase tracking-widest mb-2">Dein empfohlener Start</p>
+          <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tight leading-none">
+            {bestTariff?.name || 'Dein Tarif'}
+          </h2>
+          <p className="text-white/80 mt-2 text-sm md:text-base">{bestTariff?.ideal_for || ''}</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Recommendation - Center/Left, Large */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Tariff Card */}
-          {bestTariff && (
-            <Card className="relative overflow-hidden p-8 bg-gradient-to-br from-primary/5 via-card to-card border-2 border-primary/30">
-              <div className="absolute top-4 right-4">
-                <Badge className="bg-primary text-primary-foreground gap-1 px-3 py-1">
-                  <Sparkles className="w-3.5 h-3.5" /> Empfehlung
-                </Badge>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <h2 className="text-3xl font-bold text-foreground">{bestTariff.name}</h2>
-                  <p className="text-muted-foreground mt-1">{bestTariff.description || bestTariff.ideal_for}</p>
-                </div>
-
-                <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-black text-primary">{bestTariff.monthly_price}€</span>
-                  <span className="text-lg text-muted-foreground">/Monat</span>
-                </div>
-
-                {bestTariff.included_service_names?.length > 0 && (
-                  <div className="space-y-2 pt-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Enthaltene Leistungen</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {bestTariff.included_service_names.map((name, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm text-foreground">
-                          <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                          {name}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {bestTariff.start_fee > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    Startgebühr: {bestTariff.start_fee}€ · Mindestlaufzeit: {bestTariff.duration_months || 12} Monate
-                  </p>
-                )}
-              </div>
-            </Card>
-          )}
-
-          {/* Top Services */}
-          {topServices.length > 0 && (
+      <div className="flex-1 px-4 md:px-6 pb-6 overflow-y-auto">
+        {/* Price + Tariff card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`relative rounded-3xl border-2 border-primary/30 bg-gradient-to-br ${tariffColor} via-card to-card p-6 mb-5 mt-4`}
+        >
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-3">Passende Leistungen</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {topServices.map((service) => (
-                  <Card key={service.id} className="p-4 bg-card border border-border hover:border-primary/30 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-foreground">{service.name}</h4>
-                          <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                            {service.score}%
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{service.benefit_argument || service.short_description}</p>
-                        {service.reasons.length > 0 && (
-                          <p className="text-xs text-primary mt-1">{service.reasons[0]}</p>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
+              <div className="text-5xl font-black text-primary leading-none">
+                {bestTariff?.monthly_price}<span className="text-2xl">€</span>
+              </div>
+              <div className="text-muted-foreground text-sm mt-1">pro Monat</div>
+            </div>
+            <div className="text-right">
+              {bestTariff?.start_fee > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  Startgebühr: <span className="text-foreground font-semibold">{bestTariff.start_fee}€</span>
+                </div>
+              )}
+              <div className="text-sm text-muted-foreground">
+                Laufzeit: <span className="text-foreground font-semibold">{bestTariff?.duration_months || 12} Monate</span>
+              </div>
+            </div>
+          </div>
+
+          {bestTariff?.included_service_names?.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Im Tarif enthalten</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {bestTariff.included_service_names.map((name, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span className="text-foreground">{name}</span>
+                  </div>
                 ))}
               </div>
             </div>
           )}
-        </div>
 
-        {/* Upsells - Right Side */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">Sinnvolle Ergänzungen</h3>
-          
-          {topUpsells.length === 0 && (
-            <p className="text-sm text-muted-foreground">Keine passenden Zusatzleistungen gefunden.</p>
-          )}
+          <p className="mt-4 text-sm text-muted-foreground italic">{bestTariff?.description}</p>
+        </motion.div>
 
-          {topUpsells.map((upsell) => {
-            const isSelected = selectedAddons.find(a => a.id === upsell.id);
-            return (
-              <Card 
-                key={upsell.id} 
-                className={`p-5 border-2 transition-all cursor-pointer hover:scale-[1.01]
-                  ${isSelected ? 'border-primary bg-primary/5' : 'border-border bg-card'}`}
-                onClick={() => toggleAddon(upsell)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-semibold text-foreground">{upsell.name}</h4>
-                  <Button 
-                    size="sm" 
-                    variant={isSelected ? 'default' : 'outline'}
-                    className="h-8 text-xs gap-1"
+        {/* Upsells */}
+        {topUpsells.length > 0 && (
+          <div className="mb-5">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Sinnvolle Ergänzungen</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {topUpsells.map((upsell, i) => {
+                const isChosen = selectedAddons.find(a => a.id === upsell.id);
+                const img = ADDON_IMAGES[upsell.name] || ADDON_IMAGES['Trainingsberatung'];
+                return (
+                  <motion.button
+                    key={upsell.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    onClick={() => toggleAddon(upsell)}
+                    className={`group relative overflow-hidden rounded-2xl h-44 text-left transition-all duration-200 focus:outline-none ${isChosen ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
                   >
-                    {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                    {isSelected ? 'Gewählt' : 'Hinzufügen'}
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground mb-2">{upsell.benefit_argument || upsell.short_description}</p>
-                {upsell.reasons.length > 0 && (
-                  <p className="text-xs text-primary mb-2">{upsell.reasons[0]}</p>
-                )}
-                {upsell.price_monthly > 0 && (
-                  <p className="text-sm font-semibold text-foreground">+{upsell.price_monthly}€/Monat</p>
-                )}
-              </Card>
-            );
-          })}
+                    <img src={img} alt={upsell.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
+                    
+                    {/* Chosen badge */}
+                    <div className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${isChosen ? 'bg-primary' : 'bg-white/20 backdrop-blur-sm'}`}>
+                      {isChosen ? <Check className="w-4 h-4 text-primary-foreground" /> : <Plus className="w-4 h-4 text-white" />}
+                    </div>
 
-          {/* Price Summary */}
-          <Card className="p-5 bg-secondary/50 border border-border">
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tarif</span>
-                <span className="text-foreground font-medium">{selectedTariff?.monthly_price || 0}€/mtl.</span>
-              </div>
-              {selectedAddons.map(addon => (
-                <div key={addon.id} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{addon.name}</span>
-                  <span className="text-foreground font-medium">+{addon.price_monthly || 0}€</span>
-                </div>
-              ))}
-              <div className="border-t border-border pt-3">
-                <div className="flex justify-between">
-                  <span className="font-semibold text-foreground">Gesamt</span>
-                  <span className="text-2xl font-black text-primary">{totalMonthly}€<span className="text-sm font-normal text-muted-foreground">/mtl.</span></span>
-                </div>
-              </div>
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h4 className={`text-base font-black uppercase leading-tight transition-colors ${isChosen ? 'text-primary' : 'text-white'}`}>
+                        {upsell.name}
+                      </h4>
+                      <p className="text-xs text-white/70 mt-0.5 line-clamp-2">{upsell.benefit_argument || upsell.short_description}</p>
+                      {upsell.price_monthly > 0 && (
+                        <p className="text-sm font-bold text-primary mt-1">+{upsell.price_monthly}€/mtl.</p>
+                      )}
+                      {upsell.price_once > 0 && (
+                        <p className="text-sm font-bold text-primary mt-1">{upsell.price_once}€ einmalig</p>
+                      )}
+                    </div>
+                  </motion.button>
+                );
+              })}
             </div>
-          </Card>
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 pt-2">
-        <Button variant="outline" onClick={onBack} className="h-14 px-6 text-base gap-2">
-          <ArrowLeft className="w-5 h-5" /> Zurück
-        </Button>
-        <Button onClick={onNext} className="flex-1 h-14 text-base font-semibold gap-2">
-          Weiter zum Abschluss <ArrowRight className="w-5 h-5" />
-        </Button>
+        {/* Price summary */}
+        <div className="bg-secondary/50 rounded-2xl p-5 mb-5 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Tarif {selectedTariff?.name}</span>
+            <span className="text-foreground font-semibold">{selectedTariff?.monthly_price || 0}€/mtl.</span>
+          </div>
+          {selectedAddons.map(a => (
+            <div key={a.id} className="flex justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-2">
+                {a.name}
+                <button onClick={() => toggleAddon(a)} className="text-muted-foreground hover:text-destructive">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+              <span className="text-foreground font-semibold">+{a.price_monthly || 0}€</span>
+            </div>
+          ))}
+          <div className="border-t border-border pt-2 flex justify-between">
+            <span className="font-black text-foreground uppercase">Gesamt</span>
+            <span className="text-2xl font-black text-primary">{totalMonthly}€<span className="text-sm font-normal text-muted-foreground">/mtl.</span></span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button
+            onClick={onBack}
+            className="h-14 px-6 rounded-2xl border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={onNext}
+            className="flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-black text-base uppercase tracking-wide hover:bg-primary/90 active:scale-[0.98] transition-all"
+          >
+            Weiter zum Abschluss →
+          </button>
+        </div>
       </div>
     </div>
   );

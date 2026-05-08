@@ -7,11 +7,11 @@ import {
 } from 'lucide-react';
 
 const ADMIN_SECTIONS = [
-  { title: 'Leistungskatalog', description: 'Leistungen anlegen, bearbeiten und verwalten', icon: BookOpen, path: '/leistungskatalog', color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  { title: 'Tarife', description: 'Tarife und Vertragsmodelle bearbeiten', icon: Package, path: '/tarife', color: 'text-primary', bg: 'bg-primary/10' },
-  { title: 'Empfehlungsregeln', description: 'Scoring-Regeln und Prioritäten anpassen', icon: Target, path: '/admin/regeln', color: 'text-orange-400', bg: 'bg-orange-400/10' },
-  { title: 'Analytics', description: 'Beratungen und Performance auswerten', icon: BarChart3, path: '/analytics', color: 'text-purple-400', bg: 'bg-purple-400/10' },
-  { title: 'Beratungsverlauf', description: 'Alle Beratungen einsehen', icon: FileText, path: '/beratungsverlauf', color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
+  { title: 'Leistungskatalog', description: 'Leistungen anlegen, bearbeiten und verwalten', icon: BookOpen, path: '/berater/leistungen', color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  { title: 'Tarife', description: 'Tarife und Vertragsmodelle bearbeiten', icon: Package, path: '/berater/tarife', color: 'text-primary', bg: 'bg-primary/10' },
+  { title: 'Empfehlungsregeln', description: 'Scoring-Regeln und Prioritäten anpassen', icon: Target, path: '/berater/regeln', color: 'text-orange-400', bg: 'bg-orange-400/10' },
+  { title: 'Analytics', description: 'Beratungen und Performance auswerten', icon: BarChart3, path: '/berater/analytics', color: 'text-purple-400', bg: 'bg-purple-400/10' },
+  { title: 'Beratungsverlauf', description: 'Alle Beratungen einsehen', icon: FileText, path: '/berater/verlauf', color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
 ];
 
 export default function Admin() {

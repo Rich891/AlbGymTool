@@ -3,14 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import StepProgress from '@/components/shared/StepProgress';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X } from 'lucide-react';
+
 import CustomerStep from './consultation/CustomerStep';
 import AnamnesisStep from './consultation/AnamnesisStep';
 import GoalStep from './consultation/GoalStep';
+import AnalysisScreen from './consultation/AnalysisScreen';
 import RecommendationStep from './consultation/RecommendationStep';
 import ClosingStep from './consultation/ClosingStep';
-
-const STEPS = ['Kunde', 'Anamnese', 'Ziele', 'Empfehlung', 'Abschluss'];
 
 export default function ConsultationFlow() {
   const { type } = useParams();
@@ -21,7 +22,6 @@ export default function ConsultationFlow() {
   const [customer, setCustomer] = useState({});
   const [anamnesis, setAnamnesis] = useState({});
   const [selectedGoals, setSelectedGoals] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]);
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [selectedTariff, setSelectedTariff] = useState(null);
 
@@ -29,22 +29,19 @@ export default function ConsultationFlow() {
     queryKey: ['services'],
     queryFn: () => base44.entities.Service.list('-created_date', 200),
   });
-
   const { data: tariffs = [] } = useQuery({
     queryKey: ['tariffs'],
     queryFn: () => base44.entities.Tariff.list('sort_order', 50),
   });
-
   const { data: rules = [] } = useQuery({
     queryKey: ['rules'],
     queryFn: () => base44.entities.RecommendationRule.list('-priority', 100),
   });
 
-  const totalMonthly = (selectedTariff?.monthly_price || 0) + 
+  const totalMonthly = (selectedTariff?.monthly_price || 0) +
     selectedAddons.reduce((sum, a) => sum + (a.price_monthly || 0), 0);
 
   const handleClose = async (outcome, notes) => {
-    // Save or update customer
     let customerId = customer.id;
     if (!customerId) {
       const saved = await base44.entities.Customer.create(customer);
@@ -52,18 +49,14 @@ export default function ConsultationFlow() {
     } else {
       await base44.entities.Customer.update(customerId, customer);
     }
-
-    // Save consultation
     await base44.entities.Consultation.create({
       customer_id: customerId,
-      customer_name: `${customer.first_name} ${customer.last_name}`,
+      customer_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim(),
       consultation_type: type || 'neukunde',
       status: outcome === 'abschluss' ? 'abgeschlossen' : outcome === 'testphase' ? 'testphase' : 'angebot_gespeichert',
       anamnesis,
       selected_goals: selectedGoals,
-      recommended_services: services.slice(0, 10).map(s => ({ id: s.id, name: s.name })),
       selected_tariff: selectedTariff?.name,
-      selected_services: selectedServices.map(s => s.name || s),
       selected_addons: selectedAddons.map(a => a.name),
       monthly_price: totalMonthly,
       start_costs: selectedTariff?.start_fee || 0,
@@ -71,92 +64,112 @@ export default function ConsultationFlow() {
       trial_period: outcome === 'testphase',
       outcome,
       notes,
-      upsells_shown: selectedAddons.map(a => a.name),
       upsells_accepted: selectedAddons.map(a => a.name),
     });
-
     queryClient.invalidateQueries({ queryKey: ['consultations-recent'] });
     toast.success(
-      outcome === 'abschluss' ? 'Vertrag erfolgreich abgeschlossen!' :
-      outcome === 'testphase' ? '14-Tage-Testphase gestartet!' :
-      'Angebot gespeichert!'
+      outcome === 'abschluss' ? '🎉 Vertrag abgeschlossen!' :
+      outcome === 'testphase' ? '✅ 14-Tage-Test gestartet!' :
+      '💾 Angebot gespeichert!'
     );
     navigate('/');
   };
 
-  const consultationType = type === 'rehasport' ? 'Rehasport-Beratung' : 
-                           type === 'upgrade' ? 'Bestandskunden-Upgrade' : 
-                           'Neukunden-Beratung';
+  // Steps: 0=customer, 1=anamnesis, 2=goals, 3=analysis, 4=recommendation, 5=closing
+  const TOTAL_STEPS = 5; // visible steps (excl. analysis)
+  const progressStep = step > 3 ? step - 1 : step; // analysis is step 3, no progress dot
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">{consultationType}</h1>
-        <button 
-          onClick={() => navigate('/')} 
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+        {/* Progress dots */}
+        <div className="flex items-center gap-2">
+          {[0, 1, 2, 4, 5].map((s, i) => (
+            <div
+              key={s}
+              className={`rounded-full transition-all duration-300 ${
+                step === s ? 'w-6 h-2.5 bg-primary' :
+                step > s ? 'w-2.5 h-2.5 bg-primary/50' :
+                'w-2.5 h-2.5 bg-border'
+              }`}
+            />
+          ))}
+        </div>
+
+        <img
+          src="https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/96b390eb9_AlbGymLogomark.png"
+          alt="AlbGym"
+          className="h-8 object-contain"
+        />
+
+        <button
+          onClick={() => navigate('/')}
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
         >
-          Abbrechen
+          <X className="w-5 h-5" />
         </button>
       </div>
 
-      <StepProgress steps={STEPS} currentStep={step} />
-
-      {step === 0 && (
-        <CustomerStep 
-          customer={customer} 
-          setCustomer={setCustomer} 
-          onNext={() => setStep(1)} 
-        />
-      )}
-
-      {step === 1 && (
-        <AnamnesisStep 
-          anamnesis={anamnesis} 
-          setAnamnesis={setAnamnesis} 
-          onNext={() => setStep(2)} 
-          onBack={() => setStep(0)} 
-        />
-      )}
-
-      {step === 2 && (
-        <GoalStep 
-          selectedGoals={selectedGoals} 
-          setSelectedGoals={setSelectedGoals} 
-          onNext={() => setStep(3)} 
-          onBack={() => setStep(1)} 
-        />
-      )}
-
-      {step === 3 && (
-        <RecommendationStep
-          customer={customer}
-          anamnesis={anamnesis}
-          selectedGoals={selectedGoals}
-          services={services}
-          tariffs={tariffs}
-          rules={rules}
-          selectedServices={selectedServices}
-          setSelectedServices={setSelectedServices}
-          selectedAddons={selectedAddons}
-          setSelectedAddons={setSelectedAddons}
-          selectedTariff={selectedTariff}
-          setSelectedTariff={setSelectedTariff}
-          onNext={() => setStep(4)}
-          onBack={() => setStep(2)}
-        />
-      )}
-
-      {step === 4 && (
-        <ClosingStep
-          customer={customer}
-          selectedTariff={selectedTariff}
-          selectedAddons={selectedAddons}
-          totalMonthly={totalMonthly}
-          onClose={handleClose}
-          onBack={() => setStep(3)}
-        />
-      )}
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {step === 0 && (
+            <StepWrapper key="customer">
+              <CustomerStep customer={customer} setCustomer={setCustomer} onNext={() => setStep(1)} />
+            </StepWrapper>
+          )}
+          {step === 1 && (
+            <StepWrapper key="anamnesis">
+              <AnamnesisStep anamnesis={anamnesis} setAnamnesis={setAnamnesis} onNext={() => setStep(2)} onBack={() => setStep(0)} />
+            </StepWrapper>
+          )}
+          {step === 2 && (
+            <StepWrapper key="goals">
+              <GoalStep selectedGoals={selectedGoals} setSelectedGoals={setSelectedGoals} onNext={() => setStep(3)} onBack={() => setStep(1)} />
+            </StepWrapper>
+          )}
+          {step === 3 && (
+            <StepWrapper key="analysis">
+              <AnalysisScreen onDone={() => setStep(4)} />
+            </StepWrapper>
+          )}
+          {step === 4 && (
+            <StepWrapper key="recommendation">
+              <RecommendationStep
+                customer={customer} anamnesis={anamnesis} selectedGoals={selectedGoals}
+                services={services} tariffs={tariffs} rules={rules}
+                selectedAddons={selectedAddons} setSelectedAddons={setSelectedAddons}
+                selectedTariff={selectedTariff} setSelectedTariff={setSelectedTariff}
+                onNext={() => setStep(5)} onBack={() => setStep(2)}
+              />
+            </StepWrapper>
+          )}
+          {step === 5 && (
+            <StepWrapper key="closing">
+              <ClosingStep
+                customer={customer} selectedTariff={selectedTariff}
+                selectedAddons={selectedAddons} totalMonthly={totalMonthly}
+                onClose={handleClose} onBack={() => setStep(4)}
+              />
+            </StepWrapper>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
+  );
+}
+
+function StepWrapper({ children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 30 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -30 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      className="h-full"
+    >
+      {children}
+    </motion.div>
   );
 }
