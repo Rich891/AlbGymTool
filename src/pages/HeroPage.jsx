@@ -1,47 +1,47 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import AdvisorModal from '@/components/advisor/AdvisorModal';
 
-const ENTRY_TILES = [
+const TILES = [
   {
-    id: 'neukunde',
-    title: 'Ich will fitter werden',
-    subtitle: 'Mehr Energie, mehr Stärke, mehr Lebensgefühl',
-    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80',
-    type: 'neukunde',
+    id: 'training',
+    title: 'Training',
+    sub: 'Kraftaufbau, Ausdauer, Abnehmen & mehr',
+    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900&q=80',
+    color: 'from-primary/75',
+    action: null, // placeholder
+    placeholder: true,
   },
   {
-    id: 'beschwerden',
-    title: 'Ich möchte Beschwerden angehen',
-    subtitle: 'Rücken, Gelenke oder Schmerzen gezielt verbessern',
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80',
-    type: 'rehasport',
-  },
-  {
-    id: 'sicher',
-    title: 'Ich will sicher und mit Plan starten',
-    subtitle: 'Geführt, strukturiert und mit professioneller Anleitung',
-    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80',
-    type: 'neukunde',
-  },
-  {
-    id: 'reha',
-    title: 'Ich bin wegen Rehasport hier',
-    subtitle: 'Mit Verordnung – Krankenkasse übernimmt die Kosten',
-    image: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&q=80',
-    type: 'rehasport',
+    id: 'rehasport',
+    title: 'Rehasport',
+    sub: 'Mit Verordnung – Krankenkasse übernimmt die Kosten',
+    image: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=900&q=80',
+    color: 'from-teal-500/75',
+    action: '/rehasport',
+    placeholder: false,
   },
 ];
 
 export default function HeroPage() {
   const navigate = useNavigate();
   const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [trainingMsg, setTrainingMsg] = useState(false);
+
+  const handleTile = (tile) => {
+    if (tile.placeholder) {
+      setTrainingMsg(true);
+      setTimeout(() => setTrainingMsg(false), 3000);
+      return;
+    }
+    navigate(tile.action);
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
-      {/* Beraterbereich button – top right */}
-      <div className="absolute top-6 right-6 z-50">
+      {/* Advisor button – top right */}
+      <div className="absolute top-5 right-5 z-50">
         <button
           onClick={() => setAdvisorOpen(true)}
           className="text-xs text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-xl border border-border/50 hover:border-border bg-background/80 backdrop-blur-sm"
@@ -50,79 +50,72 @@ export default function HeroPage() {
         </button>
       </div>
 
-      {/* Hero Section */}
-      <div className="flex flex-col items-center justify-center pt-16 pb-10 px-6 text-center">
-        {/* Logo */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
+      {/* Logo */}
+      <div className="flex justify-center pt-14 pb-8">
+        <motion.img
+          initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-8"
-        >
-          <img
-            src="https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/0137b7bb4_AlbGymLogo.png"
-            alt="AlbGym"
-            className="h-16 object-contain mx-auto"
-          />
-        </motion.div>
-
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-4xl md:text-6xl font-black text-foreground tracking-tight leading-none uppercase mb-4"
-        >
-          DEIN PASSENDER<br />
-          <span className="text-primary">START IM ALBGYM</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-lg md:text-xl text-muted-foreground max-w-xl leading-relaxed"
-        >
-          Finde in wenigen Schritten heraus, welche Trainingslösung<br className="hidden md:block" />
-          am besten zu dir und deinen Zielen passt.
-        </motion.p>
+          src="https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/0137b7bb4_AlbGymLogo.png"
+          alt="AlbGym"
+          className="h-16 object-contain"
+        />
       </div>
 
-      {/* Entry Tiles */}
-      <div className="flex-1 px-4 md:px-8 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto">
-          {ENTRY_TILES.map((tile, i) => (
+      {/* Headline */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="text-center px-6 mb-10"
+      >
+        <h1 className="text-4xl md:text-6xl font-black text-foreground tracking-tight leading-none uppercase">
+          WIE KÖNNEN WIR<br /><span className="text-primary">DIR HELFEN?</span>
+        </h1>
+        <p className="text-lg text-muted-foreground mt-3">Wähle deinen Bereich und starte in wenigen Schritten.</p>
+      </motion.div>
+
+      {/* Tiles */}
+      <div className="flex-1 px-4 md:px-8 pb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
+          {TILES.map((tile, i) => (
             <motion.button
               key={tile.id}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
-              onClick={() => navigate(`/beratung/${tile.type}?entry=${tile.id}`)}
-              className="group relative overflow-hidden rounded-3xl h-52 md:h-64 text-left focus:outline-none"
+              transition={{ duration: 0.5, delay: 0.2 + i * 0.1 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => handleTile(tile)}
+              className="group relative overflow-hidden rounded-3xl h-64 md:h-80 text-left focus:outline-none"
             >
-              {/* Background Image */}
               <img
                 src={tile.image}
                 alt={tile.title}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
-              {/* Dark overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10 group-hover:from-black/70 transition-all duration-300" />
-              {/* Green accent on hover */}
-              <div className="absolute inset-0 ring-inset ring-0 group-hover:ring-2 group-hover:ring-primary/60 rounded-3xl transition-all duration-300" />
+              {/* Overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-t ${tile.color} to-black/50 transition-opacity duration-300 group-hover:opacity-90`} />
+              {/* Glow ring */}
+              <div className="absolute inset-0 rounded-3xl ring-inset ring-0 group-hover:ring-2 group-hover:ring-primary/70 transition-all duration-300 group-hover:shadow-[0_0_50px_rgba(0,230,80,0.3)]" />
 
               {/* Content */}
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase leading-tight mb-1 group-hover:text-primary transition-colors duration-300">
+              <div className="absolute bottom-0 left-0 right-0 p-8">
+                <h3 className="text-3xl md:text-4xl font-black text-white uppercase leading-tight group-hover:text-primary transition-colors duration-300">
                   {tile.title}
                 </h3>
-                <p className="text-sm text-white/70 group-hover:text-white/90 transition-colors duration-300 leading-snug">
-                  {tile.subtitle}
+                <p className="text-sm md:text-base text-white/70 mt-2 group-hover:text-white/90 transition-colors duration-300 leading-snug">
+                  {tile.sub}
                 </p>
+                {tile.placeholder && (
+                  <span className="mt-3 inline-block text-xs text-white/40 uppercase tracking-wider font-bold">
+                    Demnächst verfügbar
+                  </span>
+                )}
               </div>
 
-              {/* Arrow indicator */}
-              <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:bg-primary/80 transition-all duration-300">
+              {/* Arrow */}
+              <div className={`absolute top-5 right-5 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300
+                ${tile.placeholder ? 'bg-white/10' : 'bg-white/10 backdrop-blur-sm group-hover:bg-primary/80'}`}>
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
@@ -130,6 +123,19 @@ export default function HeroPage() {
             </motion.button>
           ))}
         </div>
+
+        {/* Training placeholder notice */}
+        {trainingMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-6 max-w-4xl mx-auto p-5 rounded-2xl border border-primary/30 bg-primary/5 text-center"
+          >
+            <p className="text-foreground font-semibold">Dieser Bereich wird in Kürze ergänzt.</p>
+            <p className="text-muted-foreground text-sm mt-1">Bitte wende dich direkt an das Team vor Ort.</p>
+          </motion.div>
+        )}
       </div>
 
       <AdvisorModal open={advisorOpen} onClose={() => setAdvisorOpen(false)} />
