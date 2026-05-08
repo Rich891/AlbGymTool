@@ -27,44 +27,46 @@ export default function RehaStart({ onNew, onBack }) {
   const [existingPlaceholder, setExistingPlaceholder] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col px-4 md:px-8 pt-8 pb-10">
-      <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
-        <ArrowLeft className="w-4 h-4" /> Zurück
-      </button>
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
+      <div className="w-full max-w-4xl">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
+          <ArrowLeft className="w-4 h-4" /> Zurück
+        </button>
 
-      <div className="mb-10">
-        <h1 className="text-4xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-none">
-          REHASPORT<br /><span className="text-primary">IM ALBGYM</span>
-        </h1>
-        <p className="text-lg text-muted-foreground mt-3 max-w-xl">
-          Starte sicher, verständlich und mit einem klaren nächsten Schritt.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
-        <BigCard
-          title="Ich starte neu"
-          sub="Ich möchte mit Rehasport beginnen."
-          image="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80"
-          color="from-primary/70"
-          onClick={onNew}
-        />
-        <BigCard
-          title="Ich bin schon dabei"
-          sub="Ich bin bereits im Rehasport und möchte wissen, wie es weitergeht."
-          image="https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&q=80"
-          color="from-blue-600/70"
-          onClick={() => setExistingPlaceholder(true)}
-        />
-      </div>
-
-      {existingPlaceholder && (
-        <div className="mt-8 max-w-lg p-6 rounded-2xl border border-primary/30 bg-primary/5">
-          <p className="text-foreground font-semibold">Dieser Bereich wird in Kürze ergänzt.</p>
-          <p className="text-muted-foreground text-sm mt-1">Bitte wende dich direkt an das AlbGym-Team vor Ort.</p>
-          <button onClick={() => setExistingPlaceholder(false)} className="mt-3 text-sm text-primary hover:underline">Schließen</button>
+        <div className="text-center mb-10">
+          <h1 className="text-4xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-none">
+            REHASPORT<br /><span className="text-primary">IM ALBGYM</span>
+          </h1>
+          <p className="text-lg text-muted-foreground mt-3">
+            Starte sicher, verständlich und mit einem klaren nächsten Schritt.
+          </p>
         </div>
-      )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <BigCard
+            title="Ich starte neu"
+            sub="Ich möchte mit Rehasport beginnen."
+            image="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80"
+            color="from-primary/70"
+            onClick={onNew}
+          />
+          <BigCard
+            title="Ich bin schon dabei"
+            sub="Ich bin bereits im Rehasport und möchte wissen, wie es weitergeht."
+            image="https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&q=80"
+            color="from-blue-600/70"
+            onClick={() => setExistingPlaceholder(true)}
+          />
+        </div>
+
+        {existingPlaceholder && (
+          <div className="mt-8 p-6 rounded-2xl border border-primary/30 bg-primary/5 text-center">
+            <p className="text-foreground font-semibold">Dieser Bereich wird in Kürze ergänzt.</p>
+            <p className="text-muted-foreground text-sm mt-1">Bitte wende dich direkt an das AlbGym-Team vor Ort.</p>
+            <button onClick={() => setExistingPlaceholder(false)} className="mt-3 text-sm text-primary hover:underline">Schließen</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -17,17 +17,20 @@ export default function RehaComplaints({ profile, update, onNext, onBack }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-4 md:px-8 pt-8 pb-10">
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
+      <div className="w-full max-w-4xl">
       <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
         <ArrowLeft className="w-4 h-4" /> Zurück
       </button>
 
+      <div className="text-center mb-8">
       <h1 className="text-3xl md:text-4xl font-black text-foreground uppercase tracking-tight leading-tight mb-2">
         WAS MACHT DIR AM MEISTEN ZU SCHAFFEN?
       </h1>
-      <p className="text-muted-foreground mb-8 text-sm font-medium text-primary">Mehrfachauswahl möglich</p>
+      <p className="text-sm font-medium text-primary">Mehrfachauswahl möglich</p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {COMPLAINTS.map(opt => {
           const selected = (profile.complaints || []).includes(opt.id);
           return (
@@ -56,7 +59,7 @@ export default function RehaComplaints({ profile, update, onNext, onBack }) {
         })}
       </div>
 
-      <div className="mt-auto pt-8 max-w-4xl">
+      <div className="mt-8">
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onNext}
@@ -65,6 +68,7 @@ export default function RehaComplaints({ profile, update, onNext, onBack }) {
         >
           Profil anzeigen →
         </motion.button>
+      </div>
       </div>
     </div>
   );

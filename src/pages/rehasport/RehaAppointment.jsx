@@ -31,7 +31,8 @@ export default function RehaAppointment({ profile, onDone }) {
   const firstName = (profile.name || 'du').split(' ')[0];
 
   return (
-    <div className="min-h-screen flex flex-col px-4 md:px-8 pt-8 pb-10">
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
+      <div className="w-full max-w-3xl">
       {/* Success header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
@@ -83,7 +84,7 @@ export default function RehaAppointment({ profile, onDone }) {
         )}
       </div>
 
-      <div className="mt-auto pt-10 max-w-3xl">
+      <div className="mt-10">
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onDone}
@@ -91,6 +92,7 @@ export default function RehaAppointment({ profile, onDone }) {
         >
           Zur Startseite
         </motion.button>
+      </div>
       </div>
     </div>
   );

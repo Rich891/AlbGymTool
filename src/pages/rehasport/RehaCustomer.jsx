@@ -6,19 +6,22 @@ export default function RehaCustomer({ profile, update, onNext, onBack }) {
   const canProceed = profile.name.trim().length > 1 && profile.birthdate && profile.gender;
 
   return (
-    <div className="min-h-screen flex flex-col px-4 md:px-8 pt-8 pb-10">
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
+      <div className="w-full max-w-lg">
       <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
         <ArrowLeft className="w-4 h-4" /> Zurück
       </button>
 
+      <div className="text-center mb-10">
       <h1 className="text-4xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-none mb-2">
         WILLKOMMEN<br /><span className="text-primary">IM REHASPORT</span>
       </h1>
-      <p className="text-lg text-muted-foreground mb-10 max-w-xl">
+      <p className="text-lg text-muted-foreground">
         Lass uns dich kurz kennenlernen, damit wir deinen Start besser einordnen können.
       </p>
+      </div>
 
-      <div className="space-y-5 max-w-lg">
+      <div className="space-y-5">
         {/* Name */}
         <div>
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Dein Name *</label>
@@ -67,7 +70,7 @@ export default function RehaCustomer({ profile, update, onNext, onBack }) {
         </div>
       </div>
 
-      <div className="mt-auto pt-10 max-w-lg">
+      <div className="mt-10">
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onNext}
@@ -76,6 +79,7 @@ export default function RehaCustomer({ profile, update, onNext, onBack }) {
         >
           Weiter →
         </motion.button>
+      </div>
       </div>
     </div>
   );

@@ -14,17 +14,20 @@ export default function RehaRules({ profile, update, onNext, onBack }) {
   const accepted = profile.rulesAccepted;
 
   return (
-    <div className="min-h-screen flex flex-col px-4 md:px-8 pt-8 pb-10">
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
+      <div className="w-full max-w-4xl">
       <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
         <ArrowLeft className="w-4 h-4" /> Zurück
       </button>
 
+      <div className="text-center mb-8">
       <h1 className="text-3xl md:text-4xl font-black text-foreground uppercase tracking-tight leading-tight mb-2">
         WICHTIGE REGELN
       </h1>
-      <p className="text-muted-foreground mb-8">Für deinen Rehasport im AlbGym.</p>
+      <p className="text-muted-foreground">Für deinen Rehasport im AlbGym.</p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {RULES.map((rule, i) => {
           const Icon = rule.icon;
           return (
@@ -42,7 +45,7 @@ export default function RehaRules({ profile, update, onNext, onBack }) {
       </div>
 
       {/* Accept */}
-      <div className="mt-8 max-w-4xl">
+      <div className="mt-8">
         <button
           onClick={() => update({ rulesAccepted: !accepted })}
           className={`w-full flex items-start gap-4 p-5 rounded-2xl border-2 transition-all text-left
@@ -58,7 +61,7 @@ export default function RehaRules({ profile, update, onNext, onBack }) {
         </button>
       </div>
 
-      <div className="mt-auto pt-8 max-w-4xl">
+      <div className="mt-6">
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onNext}
@@ -67,6 +70,7 @@ export default function RehaRules({ profile, update, onNext, onBack }) {
         >
           Bestätigen und weiter →
         </motion.button>
+      </div>
       </div>
     </div>
   );

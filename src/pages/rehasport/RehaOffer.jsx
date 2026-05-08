@@ -32,18 +32,21 @@ export default function RehaOffer({ profile, update, onNext, onBack }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-4 md:px-8 pt-8 pb-10">
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
+      <div className="w-full max-w-2xl">
       <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
         <ArrowLeft className="w-4 h-4" /> Zurück
       </button>
 
+      <div className="text-center mb-8">
       <h1 className="text-3xl md:text-4xl font-black text-foreground uppercase tracking-tight leading-tight mb-2">
         DEIN EIGENER WEG ZU<br /><span className="text-primary">{title.toUpperCase()}</span>
       </h1>
-      <p className="text-muted-foreground mb-8 max-w-xl">Dein persönliches Angebot basierend auf deinen Antworten.</p>
+      <p className="text-muted-foreground">Dein persönliches Angebot basierend auf deinen Antworten.</p>
+      </div>
 
       {/* Offer Card */}
-      <div className="max-w-2xl w-full">
+      <div className="w-full">
         <div className="rounded-3xl border border-border bg-card overflow-hidden">
           <div className="bg-gradient-to-r from-primary/20 to-primary/5 px-6 py-5 border-b border-border">
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-1">Dein Paket</p>
@@ -103,7 +106,7 @@ export default function RehaOffer({ profile, update, onNext, onBack }) {
       </div>
 
       {/* CTAs */}
-      <div className="mt-8 max-w-2xl flex flex-col gap-3">
+      <div className="mt-8 flex flex-col gap-3">
         {hasSubsidizable && !subsidyMode && (
           <motion.button
             whileTap={{ scale: 0.97 }}
@@ -123,6 +126,7 @@ export default function RehaOffer({ profile, update, onNext, onBack }) {
         >
           {subsidyMode ? 'Jetzt starten →' : 'Ohne Zuschuss fortfahren →'}
         </motion.button>
+      </div>
       </div>
     </div>
   );

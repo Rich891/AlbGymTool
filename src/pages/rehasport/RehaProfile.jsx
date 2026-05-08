@@ -48,13 +48,16 @@ function InfoRow({ icon: IconComponent, label, value }) {
 
 export default function RehaProfile({ profile, onConfirm, onChange }) {
   return (
-    <div className="min-h-screen flex flex-col px-4 md:px-8 pt-8 pb-10">
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
+      <div className="w-full max-w-2xl">
+      <div className="text-center mb-8">
       <h1 className="text-4xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-none mb-2">
         DEIN <span className="text-primary">PROFIL</span>
       </h1>
-      <p className="text-muted-foreground mb-8">Überprüfe deine Angaben bevor es weitergeht.</p>
+      <p className="text-muted-foreground">Überprüfe deine Angaben bevor es weitergeht.</p>
+      </div>
 
-      <div className="max-w-2xl space-y-3">
+      <div className="space-y-3">
         <InfoRow icon={User} label="Name" value={profile.name || '–'} />
         <InfoRow icon={Calendar} label="Alter" value={`${calcAge(profile.birthdate)} Jahre`} />
         <InfoRow icon={User} label="Geschlecht" value={profile.gender || '–'} />
@@ -63,7 +66,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
         <InfoRow icon={Target} label="Zielrichtung" value={deriveDirection(profile)} />
       </div>
 
-      <div className="mt-auto pt-10 max-w-2xl flex flex-col gap-3">
+      <div className="mt-10 flex flex-col gap-3">
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onConfirm}
@@ -77,6 +80,7 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
         >
           <Pencil className="w-4 h-4" /> Angaben ändern
         </button>
+      </div>
       </div>
     </div>
   );
