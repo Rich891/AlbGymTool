@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 const FIVE_LOGO = 'https://media.base44.com/images/public/69fd9350879c9d422990f406/0291e3711_442236-five_logo_4c_weiss.png';
 const MILON_LOGO = 'https://media.base44.com/images/public/69fd9350879c9d422990f406/d9acc9839_442240-milon_logo_weiss.png';
 
-const WISH_HEADLINES = {
-  pain_free: 'DEIN WEG ZU WENIGER BESCHWERDEN',
-  everyday: 'DEIN WEG ZU MEHR SICHERHEIT',
-  motivation: 'DEIN WEG MIT STRUKTUR & UNTERSTÜTZUNG',
-  guidance: 'DEIN WEG – KLAR UND GEFÜHRT',
+const WISH_GOALS = {
+  pain_free: 'WENIGER BESCHWERDEN',
+  everyday: 'MEHR SICHERHEIT',
+  motivation: 'STRUKTUR & UNTERSTÜTZUNG',
+  guidance: 'KLARHEIT & FÜHRUNG',
 };
 
 const WISH_WHY = {
@@ -56,8 +56,14 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
   const hasFive = profile.selectedOffers?.includes('five');
   const hasMilon = profile.selectedOffers?.includes('milon');
   const mainWish = profile.wishes?.[0];
-  const headline = WISH_HEADLINES[mainWish] || 'DEIN PAKET FÜR REHASPORT';
+  const goal = WISH_GOALS[mainWish] || 'DEIN REHASPORT-PAKET';
   const whyText = WISH_WHY[mainWish] || 'Dieses Paket wurde für deinen Start zusammengestellt';
+
+  const includedItems = [
+    { label: 'Rehasport+', sub: 'Eigenständig trainieren neben dem Kurs' },
+    ...(hasFive ? [{ label: 'FIVE Training', sub: 'Mehr Beweglichkeit & Körperhaltung' }] : []),
+    ...(hasMilon ? [{ label: 'Milon Training', sub: 'Geführtes Krafttraining mit Fortschritt' }] : []),
+  ];
 
   const handleStart = async (withSubsidy = false) => {
     setSaving(true);
@@ -89,10 +95,9 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2">
             Dein Weg zu ...
           </p>
-          <h1 className="text-3xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-tight">
-            {headline}
+          <h1 className="text-3xl md:text-5xl font-black text-primary uppercase tracking-tight leading-tight">
+            {goal}
           </h1>
-          <h2 className="text-2xl md:text-3xl font-black text-primary mt-2">{packageName}</h2>
         </div>
 
         {/* REHASPORT+ KARTE – immer drin */}
@@ -197,6 +202,29 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
             )}
           </div>
         )}
+
+        {/* LEISTUNGS-SLIDER */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-6 overflow-x-auto pb-2 -mx-4 px-4">
+          <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
+            {includedItems.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 bg-card border border-primary/30 rounded-2xl px-5 py-3 flex-shrink-0">
+                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                  <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-foreground">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
 
         {/* PREIS + BUTTONS */}
         <motion.div
