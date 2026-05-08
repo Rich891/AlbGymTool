@@ -316,38 +316,82 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+              className="fixed inset-0 bg-black/70 flex items-end md:items-center justify-center z-50 p-0 md:p-4">
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-card border border-border rounded-3xl p-8 max-w-sm w-full">
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-xl font-black text-foreground uppercase">Zuschuss erklärt</h2>
-                  <button onClick={() => setShowSubsidyInfo(false)} className="p-2 hover:bg-secondary rounded-lg">
-                    <X className="w-4 h-4" />
+                initial={{ y: 60, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 60, opacity: 0 }}
+                className="bg-card border border-border rounded-t-3xl md:rounded-3xl w-full md:max-w-lg max-h-[92vh] overflow-y-auto">
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">§20 SGB V</p>
+                    <h2 className="text-2xl font-black text-foreground uppercase">Zuschuss erklärt</h2>
+                  </div>
+                  <button onClick={() => setShowSubsidyInfo(false)} className="p-2 hover:bg-secondary rounded-xl transition-all">
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="space-y-3 text-sm text-muted-foreground leading-relaxed mb-6">
-                  <p>Viele gesetzliche Krankenkassen unterstützen zertifizierte Präventionsangebote nach §20 SGB V.</p>
-                  <p className="font-bold text-foreground">So funktioniert das Zuschuss-Modell:</p>
-                  <ul className="space-y-1.5 list-disc list-inside">
-                    <li>Rehasport+ läuft zum Basispreis von 6,98€ / Woche</li>
-                    <li>Einmalig fällt eine §20-Pauschale von 199€ an</li>
-                    <li>Deine Krankenkasse erstattet voraussichtlich bis zu {SUBSIDY_AMOUNT}€ davon</li>
-                    <li>Dein voraussichtlicher Eigenanteil: nur {netFee}€</li>
-                  </ul>
-                  <p className="bg-secondary/60 border border-border rounded-xl p-3 text-xs">
-                    * Der angezeigte Zuschuss und Eigenanteil sind Richtwerte. Die tatsächliche Erstattung hängt von deiner Krankenkasse, deinem persönlichen Anspruch und regelmäßiger Teilnahme ab. Keine Garantie.
+                <div className="px-6 py-6 space-y-5">
+                  {/* Intro */}
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Viele gesetzliche Krankenkassen bezuschussen zertifizierte Präventionsangebote nach §20 SGB V – auch im AlbGym.
+                  </p>
+
+                  {/* Step-by-step */}
+                  <div className="space-y-3">
+                    <p className="text-xs font-black uppercase tracking-widest text-primary">So läuft es ab</p>
+                    {[
+                      { step: '1', label: 'Rehasport+ starten', text: `Basispreis ${weeklyPrice.toFixed(2).replace('.', ',')}€ / Woche – läuft normal weiter` },
+                      { step: '2', label: '§20-Pauschale einmalig', text: 'Einmalig 199,00€ für den zertifizierten Präventionskurs' },
+                      { step: '3', label: 'Krankenkasse erstattet', text: `Deine Krankenkasse überweist dir voraussichtlich bis zu ${SUBSIDY_AMOUNT}€ zurück` },
+                      { step: '4', label: 'Dein Eigenanteil', text: `Unterm Strich bleiben nur ${netFee}€ bei dir` },
+                    ].map(({ step, label, text }) => (
+                      <div key={step} className="flex gap-4 items-start p-4 rounded-2xl bg-secondary/50 border border-border">
+                        <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-black text-primary-foreground">{step}</span>
+                        </div>
+                        <div>
+                          <p className="font-black text-foreground text-sm">{label}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Zusammenfassung */}
+                  <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-2 text-sm">
+                    <p className="text-xs font-black uppercase tracking-widest text-primary mb-3">Zusammenfassung</p>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>§20-Pauschale</span>
+                      <span className="font-bold">199,00€</span>
+                    </div>
+                    <div className="flex justify-between text-primary">
+                      <span>Voraussichtlicher Zuschuss</span>
+                      <span className="font-bold">− {SUBSIDY_AMOUNT},00€</span>
+                    </div>
+                    <div className="border-t border-primary/20 pt-2 flex justify-between font-black text-foreground">
+                      <span>Dein Eigenanteil</span>
+                      <span className="text-primary text-lg">{netFee},00€</span>
+                    </div>
+                  </div>
+
+                  {/* Hinweis */}
+                  <p className="text-xs text-muted-foreground bg-secondary/60 border border-border rounded-2xl p-4 leading-relaxed">
+                    ⚠️ Der Zuschuss ist ein Richtwert. Die tatsächliche Erstattung hängt von deiner Krankenkasse, deinem persönlichen Anspruch und regelmäßiger Teilnahme ab. Keine Garantie.
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setShowSubsidyInfo(false)}
-                  className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-black uppercase text-sm tracking-widest hover:bg-primary/90 transition-all">
-                  Verstanden
-                </button>
+                {/* Footer Button */}
+                <div className="px-6 pb-6">
+                  <button
+                    onClick={() => setShowSubsidyInfo(false)}
+                    className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase text-sm tracking-widest hover:bg-primary/90 transition-all">
+                    Verstanden
+                  </button>
+                </div>
               </motion.div>
             </motion.div>
           )}
