@@ -18,15 +18,22 @@ const SERVICE_IMAGES = {
   milon: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=700&q=80',
 };
 
-const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+// Woche startet Montag
+const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
 function fmt(d) {
   return d.toISOString().slice(0, 10);
 }
 
+// Montag-basierter Offset: So=0 → 6, Mo=1 → 0, Di=2 → 1, ...
+function mondayOffset(date) {
+  const day = date.getDay(); // 0=So, 1=Mo, ...
+  return (day + 6) % 7;
+}
+
 function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, onBack }) {
-  const [step, setStep] = useState('calendar'); // calendar | time | confirm | done
+  const [step, setStep] = useState('calendar');
   const [calMonth, setCalMonth] = useState(new Date());
   const [workDays, setWorkDays] = useState({});
   const [loadingDays, setLoadingDays] = useState(false);
@@ -37,7 +44,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState(null);
 
-  const loadWorkDays = async (month) => {
+  const loadWorkDays = async () => {
     setLoadingDays(true);
     setError(null);
     try {
@@ -49,7 +56,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
     setLoadingDays(false);
   };
 
-  useEffect(() => { loadWorkDays(calMonth); }, [calMonth]);
+  useEffect(() => { loadWorkDays(); }, [serviceId]);
 
   const loadSlots = async (date) => {
     setLoadingSlots(true);
@@ -64,11 +71,11 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
     setLoadingSlots(false);
   };
 
-  const handleDayClick = (date) => {
-    setSelectedDate(date);
+  const handleDayClick = (dateStr) => {
+    setSelectedDate(dateStr);
     setSelectedTime(null);
     setStep('time');
-    loadSlots(date);
+    loadSlots(dateStr);
   };
 
   const handleBook = async () => {
@@ -94,23 +101,30 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
     setBooking(false);
   };
 
-  // Build calendar grid
-  const firstDay = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
-  const lastDay = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0);
-  const startOffset = firstDay.getDay();
+  // Calendar grid (Montag-basiert)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const firstDay = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
+  const lastDay = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0);
+  const startOffset = mondayOffset(firstDay);
 
   const calDays = [];
   for (let i = 0; i < startOffset; i++) calDays.push(null);
-  for (let d = 1; d <= lastDay.getDate(); d++) calDays.push(new Date(calMonth.getFullYear(), calMonth.getMonth(), d));
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    calDays.push(new Date(calMonth.getFullYear(), calMonth.getMonth(), d));
+  }
 
   const isAvailable = (d) => {
-    if (!d || d < today) return false;
+    if (!d) return false;
+    const normalized = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (normalized < today) return false;
     const key = fmt(d);
     const info = workDays[key];
-    return info && info !== '0';
+    return info && info.is_day_off !== '1' && info !== '0';
   };
+
+  // Collect all available dates for the current month view
+  const availableDates = calDays.filter(d => d && isAvailable(d)).map(d => fmt(d));
 
   if (step === 'done') {
     return (
@@ -121,7 +135,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
         <h3 className="text-2xl font-black text-foreground uppercase mb-2">Termin gebucht!</h3>
         <p className="text-muted-foreground text-sm mb-1">{SERVICE_LABELS[serviceType]}</p>
         <p className="text-muted-foreground text-sm">
-          {selectedDate && new Date(selectedDate).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })} · {selectedTime}
+          {selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })} · {selectedTime}
         </p>
         <button onClick={onConfirmed} className="mt-8 px-8 h-12 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide text-sm hover:bg-primary/90 transition-all">
           Weiter →
@@ -134,11 +148,14 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
     <div>
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
-        <button onClick={step === 'calendar' ? onBack : () => setStep('calendar')} className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+        <button
+          onClick={step === 'calendar' ? onBack : () => setStep('calendar')}
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+        >
           <ChevronLeft className="w-4 h-4" />
         </button>
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">{SERVICE_LABELS[serviceType]}</p>
+          <p className="text-xs text-primary uppercase tracking-widest font-bold">{SERVICE_LABELS[serviceType]}</p>
           <p className="text-sm text-foreground font-semibold">
             {step === 'calendar' ? 'Datum wählen' : step === 'time' ? 'Uhrzeit wählen' : 'Bestätigen'}
           </p>
@@ -150,50 +167,94 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
       {/* CALENDAR */}
       {step === 'calendar' && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary">
+          {/* Month nav */}
+          <div className="flex items-center justify-between mb-5">
+            <button
+              onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="font-black text-foreground text-sm uppercase tracking-wide">
+            <span className="font-black text-foreground text-base uppercase tracking-widest">
               {MONTHS[calMonth.getMonth()]} {calMonth.getFullYear()}
             </span>
-            <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary">
+            <button
+              onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Day headers */}
-          <div className="grid grid-cols-7 mb-1">
-            {DAYS.map(d => <div key={d} className="text-center text-xs text-muted-foreground font-bold py-1">{d}</div>)}
-          </div>
-
           {loadingDays ? (
-            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-          ) : (
-            <div className="grid grid-cols-7 gap-1">
-              {calDays.map((d, i) => {
-                const avail = isAvailable(d);
-                const isToday = d && fmt(d) === fmt(today);
-                return (
-                  <button
-                    key={i}
-                    disabled={!avail}
-                    onClick={() => avail && handleDayClick(fmt(d))}
-                    className={`h-10 rounded-xl text-sm font-semibold transition-all
-                      ${!d ? '' : avail
-                        ? 'bg-secondary hover:bg-primary hover:text-primary-foreground text-foreground cursor-pointer'
-                        : 'text-muted-foreground/30 cursor-not-allowed'
-                      }
-                      ${isToday ? 'ring-1 ring-primary' : ''}
-                    `}
-                  >
-                    {d ? d.getDate() : ''}
-                  </button>
-                );
-              })}
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="w-7 h-7 animate-spin text-primary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Verfügbarkeit wird geladen…</p>
             </div>
+          ) : (
+            <>
+              {/* Availability summary */}
+              {availableDates.length > 0 && (
+                <div className="flex items-center gap-2 mb-4 px-1">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <p className="text-xs text-primary font-bold uppercase tracking-wide">
+                    {availableDates.length} freie Tag{availableDates.length !== 1 ? 'e' : ''} diesen Monat
+                  </p>
+                </div>
+              )}
+
+              {/* Day headers */}
+              <div className="grid grid-cols-7 mb-2">
+                {DAYS.map(d => (
+                  <div key={d} className="text-center text-xs text-muted-foreground/60 font-bold py-1 uppercase tracking-wider">{d}</div>
+                ))}
+              </div>
+
+              {/* Day cells */}
+              <div className="grid grid-cols-7 gap-1.5">
+                {calDays.map((d, i) => {
+                  const avail = isAvailable(d);
+                  const isToday = d && fmt(d) === fmt(today);
+                  const isPast = d && new Date(d.getFullYear(), d.getMonth(), d.getDate()) < today;
+
+                  if (!d) return <div key={i} />;
+
+                  return (
+                    <motion.button
+                      key={i}
+                      whileTap={avail ? { scale: 0.9 } : {}}
+                      disabled={!avail}
+                      onClick={() => avail && handleDayClick(fmt(d))}
+                      className={`
+                        relative h-11 rounded-2xl text-sm font-bold transition-all duration-200 flex flex-col items-center justify-center gap-0.5
+                        ${avail
+                          ? 'bg-primary/15 border border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-[0_0_16px_rgba(0,230,80,0.4)] cursor-pointer'
+                          : isPast
+                            ? 'text-muted-foreground/20 cursor-not-allowed'
+                            : 'text-muted-foreground/25 cursor-not-allowed'
+                        }
+                        ${isToday ? 'ring-2 ring-primary ring-offset-1 ring-offset-card' : ''}
+                      `}
+                    >
+                      <span>{d.getDate()}</span>
+                      {avail && <span className="w-1 h-1 rounded-full bg-primary absolute bottom-1.5" />}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center gap-4 mt-4 px-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-lg bg-primary/15 border border-primary/40" />
+                  <span className="text-xs text-muted-foreground">Verfügbar</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-lg bg-transparent" />
+                  <span className="text-xs text-muted-foreground/40">Nicht verfügbar</span>
+                </div>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -201,29 +262,40 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
       {/* TIME SLOTS */}
       {step === 'time' && (
         <div>
-          <p className="text-sm text-muted-foreground mb-4">
-            {new Date(selectedDate).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
+          <div className="flex items-center gap-2 mb-5">
+            <Calendar className="w-4 h-4 text-primary" />
+            <p className="text-sm font-bold text-foreground">
+              {selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+          </div>
           {loadingSlots ? (
-            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-          ) : slots.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-6">Keine freien Zeiten an diesem Tag.</p>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {slots.map(slot => (
-                <button
-                  key={slot}
-                  onClick={() => { setSelectedTime(slot); setStep('confirm'); }}
-                  className={`h-12 rounded-xl text-sm font-bold transition-all border
-                    ${selectedTime === slot
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border bg-secondary hover:border-primary/50 text-foreground'
-                    }`}
-                >
-                  {slot}
-                </button>
-              ))}
+            <div className="flex flex-col items-center justify-center py-10 gap-3">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Zeiten werden geladen…</p>
             </div>
+          ) : slots.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground text-sm">Keine freien Zeiten an diesem Tag.</p>
+              <button onClick={() => setStep('calendar')} className="mt-4 text-xs text-primary font-bold uppercase tracking-wide hover:underline">
+                Anderen Tag wählen →
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold mb-3">{slots.length} freie Zeiten</p>
+              <div className="grid grid-cols-3 gap-2">
+                {slots.map(slot => (
+                  <motion.button
+                    key={slot}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => { setSelectedTime(slot); setStep('confirm'); }}
+                    className="h-13 py-3 rounded-2xl text-sm font-black transition-all border bg-primary/10 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-[0_0_12px_rgba(0,230,80,0.3)] cursor-pointer"
+                  >
+                    {slot.slice(0, 5)}
+                  </motion.button>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -231,20 +303,35 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
       {/* CONFIRM */}
       {step === 'confirm' && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-secondary p-4 space-y-3">
-            <div className="flex items-center gap-3 text-sm">
-              <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="text-foreground font-semibold">
-                {new Date(selectedDate).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-              </span>
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">Datum</p>
+                <p className="text-sm text-foreground font-black">
+                  {selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-sm">
-              <Clock className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="text-foreground font-semibold">{selectedTime} Uhr</span>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">Uhrzeit</p>
+                <p className="text-sm text-foreground font-black">{selectedTime && selectedTime.slice(0, 5)} Uhr</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-sm">
-              <User className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="text-foreground font-semibold">{clientData.name}</span>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                <User className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">Name</p>
+                <p className="text-sm text-foreground font-black">{clientData.name}</p>
+              </div>
             </div>
           </div>
 
@@ -252,7 +339,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
             whileTap={{ scale: 0.97 }}
             onClick={handleBook}
             disabled={booking}
-            className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide text-sm hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide text-sm hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,230,80,0.3)]"
           >
             {booking ? <><Loader2 className="w-4 h-4 animate-spin" /> Wird gebucht…</> : 'Termin jetzt buchen →'}
           </motion.button>
