@@ -3,7 +3,9 @@ import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function RehaCustomer({ profile, update, onNext, onBack }) {
-  const canProceed = profile.name.trim().length > 1 && profile.birthdate && profile.gender;
+  const firstName = profile.first_name || '';
+  const lastName = profile.last_name || '';
+  const canProceed = firstName.trim().length > 0 && lastName.trim().length > 0 && profile.birthdate && profile.gender;
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
@@ -23,15 +25,27 @@ export default function RehaCustomer({ profile, update, onNext, onBack }) {
 
       <div className="space-y-5">
         {/* Name */}
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Dein Name *</label>
-          <input
-            type="text"
-            value={profile.name}
-            onChange={e => update({ name: e.target.value })}
-            placeholder="Vorname Nachname"
-            className="w-full h-16 px-5 rounded-2xl border-2 border-border bg-card text-foreground text-xl font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Vorname *</label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={e => update({ first_name: e.target.value, name: `${e.target.value} ${lastName}`.trim() })}
+              placeholder="Max"
+              className="w-full h-16 px-5 rounded-2xl border-2 border-border bg-card text-foreground text-xl font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Nachname *</label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={e => update({ last_name: e.target.value, name: `${firstName} ${e.target.value}`.trim() })}
+              placeholder="Mustermann"
+              className="w-full h-16 px-5 rounded-2xl border-2 border-border bg-card text-foreground text-xl font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
         </div>
 
         {/* Birthdate */}

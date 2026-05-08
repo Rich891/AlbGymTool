@@ -18,8 +18,9 @@ import RehaContract from './RehaContract';
 export default function RehasportFlow() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [testMode, setTestMode] = useState(false);
   const [profile, setProfile] = useState({
-    name: '', birthdate: '', gender: '',
+    name: '', first_name: '', last_name: '', birthdate: '', gender: '',
     reasons: [], complaints: [],
     rulesAccepted: false,
     wishes: [], selectedOffers: [],
@@ -38,13 +39,21 @@ export default function RehasportFlow() {
     <RehaUpsellBridge key="bridge" profile={profile} update={update} onNext={() => setStep(7)} onBack={() => setStep(5)} />,
     <RehaUpsell key="upsell" profile={profile} update={update} onNext={() => setStep(8)} onBack={() => setStep(6)} />,
     <RehaPackage key="package" profile={profile} update={update} onNext={() => setStep(9)} onBack={() => setStep(7)} />,
-    <RehaBeforeClosing key="before-closing" profile={profile} update={update} onNext={() => setStep(10)} onBack={() => setStep(8)} />,
+    <RehaBeforeClosing key="before-closing" profile={profile} update={update} onNext={() => setStep(10)} onBack={() => setStep(8)} testMode={testMode} />,
     <RehaBooking key="booking" profile={profile} onBack={() => setStep(9)} onDone={() => { update({ bookingDone: true }); setStep(11); }} />,
     <RehaContract key="contract" profile={profile} onDone={() => navigate('/')} />,
   ];
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Test-Mode Toggle – nur für Berater sichtbar */}
+      <div className="fixed top-3 right-3 z-50">
+        <button
+          onClick={() => setTestMode(t => !t)}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all border ${testMode ? 'bg-orange-500/20 border-orange-500/60 text-orange-400' : 'bg-card border-border text-muted-foreground/40 hover:text-muted-foreground'}`}>
+          {testMode ? '⚙ TEST AN' : '⚙'}
+        </button>
+      </div>
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
