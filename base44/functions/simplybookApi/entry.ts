@@ -1,24 +1,28 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-
 const COMPANY_LOGIN = Deno.env.get('SIMPLYBOOK_COMPANY_LOGIN');
 const API_KEY = Deno.env.get('SIMPLYBOOK_API_KEY');
+const API_SECRET = Deno.env.get('SIMPLYBOOK_API_SECRET');
 const LOGIN_URL = 'https://user-api.simplybook.it/login/';
 const API_URL = 'https://user-api.simplybook.it/';
 
 async function rpc(url, method, params = [], headers = {}) {
+  const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
+  console.log(`[RPC] ${url} -> ${method}`, JSON.stringify(params).slice(0, 100));
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    body,
   });
   const text = await res.text();
+  console.log(`[RPC] response:`, text.slice(0, 300));
   let data;
-  try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON from SimplyBook: ' + text.slice(0, 200)); }
+  try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON: ' + text.slice(0, 200)); }
   if (data.error) throw new Error(JSON.stringify(data.error));
   return data.result;
 }
 
 async function getToken() {
+  // Try with public API key first, then secret
+  console.log('[AUTH] company:', COMPANY_LOGIN, 'key length:', API_KEY?.length, 'secret length:', API_SECRET?.length);
   return await rpc(LOGIN_URL, 'getToken', [COMPANY_LOGIN, API_KEY]);
 }
 
