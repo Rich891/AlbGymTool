@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Download, Check, Home } from 'lucide-react';
+import { Download, Check, Home, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
+import { generateTeilnahmebescheinigung } from './generateTeilnahmebescheinigung';
 
 const LOGO_URL = 'https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/0137b7bb4_AlbGymLogo.png';
 const COMPANY_ADDRESS = {
@@ -236,6 +237,7 @@ function generateContract(profile) {
 
 export default function RehaContract({ profile, onDone }) {
   const [downloading, setDownloading] = useState(false);
+  const [downloadingBescheinigung, setDownloadingBescheinigung] = useState(false);
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -246,6 +248,18 @@ export default function RehaContract({ profile, onDone }) {
       console.error('Fehler beim Download:', err);
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const handleDownloadBescheinigung = async () => {
+    setDownloadingBescheinigung(true);
+    try {
+      const doc = generateTeilnahmebescheinigung(profile);
+      doc.save(`AlbGym-Teilnahmebescheinigung-${profile.name?.replace(/\s/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) {
+      console.error('Fehler beim Download:', err);
+    } finally {
+      setDownloadingBescheinigung(false);
     }
   };
 
@@ -360,6 +374,26 @@ export default function RehaContract({ profile, onDone }) {
               </>
             )}
           </motion.button>
+
+          {profile.subsidyActive && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleDownloadBescheinigung}
+              disabled={downloadingBescheinigung}
+              className="w-full h-16 rounded-2xl bg-secondary border border-primary/40 text-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/10 transition-all disabled:opacity-50 flex items-center justify-center gap-3">
+              {downloadingBescheinigung ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+                  Wird vorbereitet...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-5 h-5 text-primary" />
+                  Teilnahmebescheinigung (§20) herunterladen
+                </>
+              )}
+            </motion.button>
+          )}
 
           <motion.button
             whileTap={{ scale: 0.97 }}
