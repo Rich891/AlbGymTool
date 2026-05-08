@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, Info, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Info, X, Loader2, Dumbbell, Bike, ShowerHead, Coffee, ClipboardList, Clock, Accessibility, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const FIVE_LOGO = 'https://media.base44.com/images/public/69fd9350879c9d422990f406/0291e3711_442236-five_logo_4c_weiss.png';
@@ -64,14 +64,14 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
   const netFee = section20Fee - SUBSIDY_AMOUNT; // 40€ Eigenanteil
 
   const allInclusive = [
-    '🏋️ Krafttraining',
-    '🚴 Cardio',
-    '🚿 Duschen & Umkleiden',
-    '🥤 Getränke',
-    '📋 Einweisungen',
-    '🕐 Jederzeit verfügbar',
-    ...(hasFive ? ['🤸 FIVE Beweglichkeit'] : []),
-    ...(hasMilon ? ['⚙️ Milon geführtes Training'] : []),
+    { icon: Dumbbell, label: 'Krafttraining' },
+    { icon: Bike, label: 'Cardio' },
+    { icon: ShowerHead, label: 'Duschen & Umkleiden' },
+    { icon: Coffee, label: 'Getränke' },
+    { icon: ClipboardList, label: 'Einweisungen' },
+    { icon: Clock, label: 'Jederzeit verfügbar' },
+    ...(hasFive ? [{ icon: Accessibility, label: 'FIVE Beweglichkeit' }] : []),
+    ...(hasMilon ? [{ icon: Settings2, label: 'Milon geführtes Training' }] : []),
   ];
 
   const handleStart = async (withSubsidy = false) => {
@@ -121,11 +121,6 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/95 to-black/30" />
 
-          {/* Included Badge */}
-          <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-primary flex items-center justify-center z-10">
-            <Check className="w-5 h-5 text-primary-foreground" />
-          </div>
-
           <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
             <p className="text-xs font-black uppercase tracking-widest mb-2 text-primary">
               {whyText}
@@ -155,9 +150,6 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-orange-900/90 to-black/40" />
 
-                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center z-10">
-                  <Check className="w-5 h-5 text-white" />
-                </div>
                 <div className="absolute top-4 left-4 z-10 h-8">
                   <img src={FIVE_LOGO} alt="FIVE" className="h-full object-contain" />
                 </div>
@@ -189,9 +181,6 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 to-black/40" />
 
-                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center z-10">
-                  <Check className="w-5 h-5 text-white" />
-                </div>
                 <div className="absolute top-4 left-4 z-10 h-8">
                   <img src={MILON_LOGO} alt="Milon" className="h-full object-contain" />
                 </div>
@@ -220,13 +209,17 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
           className="mb-6 bg-card border border-border rounded-3xl p-6">
           <p className="text-xs font-black uppercase tracking-widest text-primary mb-4">Alles inklusive</p>
           <div className="flex flex-wrap gap-2">
-            {allInclusive.map((item, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1.5 bg-secondary border border-border rounded-full px-4 py-2 text-sm font-semibold text-foreground">
-                {item}
-              </span>
-            ))}
+            {allInclusive.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-2 bg-secondary border border-border rounded-full px-4 py-2 text-sm font-semibold text-foreground">
+                  <Icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                  {item.label}
+                </span>
+              );
+            })}
           </div>
         </motion.div>
 
