@@ -102,7 +102,7 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
         </div>
 
         {/* Form */}
-        <div className="bg-card border border-border rounded-3xl p-8 mb-8 space-y-5">
+        <form onSubmit={e => e.preventDefault()} className="bg-card border border-border rounded-3xl p-8 mb-8 space-y-5">
           <div>
             <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">
               Adresse *
@@ -193,7 +193,7 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack }) {
               className="w-full h-12 px-4 rounded-2xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
             />
           </div>
-        </div>
+        </form>
 
         {/* Consent Modal */}
         {showConsent && (
