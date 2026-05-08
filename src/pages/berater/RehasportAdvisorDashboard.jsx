@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import TeilnahmebescheinigungDownload from './TeilnahmebescheinigungDownload';
 import CustomerDetail from './CustomerDetail';
 import InsuranceManager from './InsuranceManager';
+import NewCustomerModal from './NewCustomerModal';
 
 const NAV_ITEMS = [
   { id: 'customers', label: 'Kundenkatalog', icon: Users },
@@ -20,15 +21,11 @@ export default function RehasportAdvisorDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [bescheinigungFor, setBescheinigungFor] = useState(null);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
 
   const { data: consultations = [] } = useQuery({
     queryKey: ['rehasport-consultations'],
     queryFn: () => base44.entities.RehasportConsultation.list('-created_date', 100),
-  });
-
-  const { data: insurances = [] } = useQuery({
-    queryKey: ['health-insurances'],
-    queryFn: () => base44.entities.HealthInsurance.list('name', 100),
   });
 
   const { data: tariffs = [] } = useQuery({
@@ -45,7 +42,7 @@ export default function RehasportAdvisorDashboard() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <div className="w-64 bg-card border-r border-border p-6">
+      <div className="w-64 bg-card border-r border-border p-6 flex-shrink-0">
         <h2 className="text-2xl font-black text-foreground uppercase mb-8">Berater-Area</h2>
         <nav className="space-y-2 mb-8">
           {NAV_ITEMS.map(item => {
@@ -53,7 +50,7 @@ export default function RehasportAdvisorDashboard() {
             return (
               <motion.button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => { setActiveTab(item.id); setSelectedCustomer(null); }}
                 whileHover={{ x: 4 }}
                 className={`w-full px-4 py-3 rounded-2xl flex items-center gap-3 transition-all text-sm font-bold uppercase tracking-wide ${
                   activeTab === item.id
@@ -73,13 +70,26 @@ export default function RehasportAdvisorDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-8 overflow-y-auto">
+
+        {/* CUSTOMERS TAB */}
         {activeTab === 'customers' && selectedCustomer ? (
-          <CustomerDetail consultation={selectedCustomer} onBack={() => setSelectedCustomer(null)} />
+          <CustomerDetail
+            consultation={selectedCustomer}
+            onBack={() => setSelectedCustomer(null)}
+            onDeleted={() => setSelectedCustomer(null)}
+          />
         ) : activeTab === 'customers' && (
           <div>
-            <h1 className="text-3xl font-black text-foreground uppercase mb-6">Kundenkatalog</h1>
-            
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-3xl font-black text-foreground uppercase">Kundenkatalog</h1>
+              <button
+                onClick={() => setShowNewCustomer(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-primary-foreground font-black text-sm uppercase tracking-wide hover:bg-primary/90 transition-all">
+                <Plus className="w-4 h-4" /> Neuer Kunde
+              </button>
+            </div>
+
             <input
               type="text"
               placeholder="Nach Name, E-Mail oder Telefon suchen..."
@@ -99,11 +109,14 @@ export default function RehasportAdvisorDashboard() {
                     <th className="text-left p-3 font-bold text-muted-foreground">Paket</th>
                     <th className="text-left p-3 font-bold text-muted-foreground">Status</th>
                     <th className="text-left p-3 font-bold text-muted-foreground">Dokumente</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {filteredConsultations.map(consultation => (
-                    <tr key={consultation.id} onClick={() => setSelectedCustomer(consultation)} className="border-b border-border hover:bg-secondary/50 transition-all cursor-pointer">
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredConsultations.map(consultation => (
+                    <tr
+                      key={consultation.id}
+                      onClick={() => setSelectedCustomer(consultation)}
+                      className="border-b border-border hover:bg-secondary/50 transition-all cursor-pointer">
                       <td className="p-3 font-medium text-foreground">{consultation.customer_name}</td>
                       <td className="p-3 text-muted-foreground">{consultation.email || '–'}</td>
                       <td className="p-3 text-muted-foreground">{consultation.phone || '–'}</td>
@@ -129,9 +142,12 @@ export default function RehasportAdvisorDashboard() {
                         )}
                       </td>
                     </tr>
-                    ))}
+                  ))}
                 </tbody>
               </table>
+              {filteredConsultations.length === 0 && (
+                <p className="text-center text-muted-foreground py-12 text-sm">Keine Kunden gefunden.</p>
+              )}
             </div>
           </div>
         )}
@@ -143,9 +159,7 @@ export default function RehasportAdvisorDashboard() {
             <h1 className="text-3xl font-black text-foreground uppercase mb-6">Tarifverwaltung</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {tariffs.map(tariff => (
-                <motion.div
-                  key={tariff.id}
-                  className="bg-card border border-border rounded-2xl p-6">
+                <motion.div key={tariff.id} className="bg-card border border-border rounded-2xl p-6">
                   <h3 className="text-lg font-black text-foreground mb-4">{tariff.name}</h3>
                   <div className="space-y-2 text-sm mb-4">
                     <div className="flex justify-between">
@@ -198,12 +212,22 @@ export default function RehasportAdvisorDashboard() {
         )}
       </div>
 
+      {/* Overlays */}
       {bescheinigungFor && (
         <TeilnahmebescheinigungDownload
           consultation={bescheinigungFor}
           onClose={() => setBescheinigungFor(null)}
         />
       )}
+
+      <AnimatePresence>
+        {showNewCustomer && (
+          <NewCustomerModal
+            onClose={() => setShowNewCustomer(false)}
+            onCreated={(record) => { setShowNewCustomer(false); setSelectedCustomer(record); }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
