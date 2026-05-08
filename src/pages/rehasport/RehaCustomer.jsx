@@ -30,7 +30,6 @@ export default function RehaCustomer({ profile, update, onNext, onBack }) {
             value={profile.name}
             onChange={e => update({ name: e.target.value })}
             placeholder="Vorname Nachname"
-            autoFocus
             className="w-full h-16 px-5 rounded-2xl border-2 border-border bg-card text-foreground text-xl font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-all"
           />
         </div>
