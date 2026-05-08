@@ -64,6 +64,7 @@ export default function RehasportFlow() {
           insurance_number: profile.insurance_number,
           account_holder: profile.account_holder,
           iban: profile.iban,
+          signature: profile.signature,
           reasons: profile.reasons || [],
           complaints: profile.complaints || [],
           wishes: profile.wishes || [],
