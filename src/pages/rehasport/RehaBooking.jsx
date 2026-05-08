@@ -195,21 +195,28 @@ export default function RehaBooking({ profile, onBack, onDone }) {
         <p className="text-muted-foreground mb-4">Buche deine Einweisungstermine:</p>
 
         {/* Service Pills */}
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-4 flex-wrap">
           {services.map((service) => (
             <motion.button
               key={service}
               onClick={() => setSelectedService(service)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-full font-black text-xs uppercase tracking-wide border transition-all cursor-pointer ${
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              className={`px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-widest border-2 transition-all cursor-pointer flex items-center gap-2 ${
                 booked[service]
-                  ? `${SERVICE_COLORS[service].bg} ${SERVICE_COLORS[service].text} ${SERVICE_COLORS[service].border} opacity-50 line-through`
+                  ? `${SERVICE_COLORS[service].bg} ${SERVICE_COLORS[service].text} ${SERVICE_COLORS[service].border} opacity-40 line-through`
                   : selectedService === service
-                  ? `ring-2 ring-offset-2 ring-offset-background ${SERVICE_COLORS[service].border.replace('border-', 'ring-')}`
-                  : `${SERVICE_COLORS[service].bg} ${SERVICE_COLORS[service].text} ${SERVICE_COLORS[service].border}`
+                  ? `${SERVICE_COLORS[service].bg} ${SERVICE_COLORS[service].text} ring-2 ring-offset-2 ring-offset-background shadow-[0_0_20px_var(--service-glow)] ${SERVICE_COLORS[service].border}`
+                  : `border-border bg-card text-muted-foreground hover:${SERVICE_COLORS[service].text} hover:${SERVICE_COLORS[service].border} hover:shadow-lg`
               }`}>
-              {booked[service] && <Check className="w-3 h-3 inline mr-1" />}
+              {booked[service] ? (
+                <Check className="w-4 h-4" />
+              ) : selectedService === service ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  className="w-4 h-4 rounded-full border-2 border-transparent border-t-current" />
+              ) : null}
               {SERVICE_LABELS[service]}
             </motion.button>
           ))}
