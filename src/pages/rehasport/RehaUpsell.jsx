@@ -110,9 +110,9 @@ export default function RehaUpsell({ profile, update, onNext, onBack }) {
                 </div>
                 }
 
-              {isBase &&
-                <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full z-10 hidden">Basis</div>
-                }
+              
+
+                
 
               <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
                 <h3 className={`text-xl font-black uppercase leading-tight ${sel ? 'text-primary' : 'text-white group-hover:text-primary'} transition-colors duration-300`}>
