@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Check, ChevronDown, ChevronUp, FlaskConical } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 
@@ -277,44 +278,26 @@ export default function RehaProfile({ profile, onConfirm, onChange, testMode }) 
                   </p>
                 </div>
 
-                <div className="space-y-4 mb-8">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={consents.counseling}
-                      onChange={e => setConsents({ ...consents, counseling: e.target.checked })}
-                      className="w-5 h-5 rounded mt-1 accent-primary cursor-pointer"
-                    />
-                    <span className="text-sm text-foreground leading-relaxed">
-                      Ich akzeptiere die Verarbeitung meiner Beratungs- und Kontaktdaten.
-                    </span>
-                  </label>
-
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={consents.health}
-                      onChange={e => setConsents({ ...consents, health: e.target.checked })}
-                      className="w-5 h-5 rounded mt-1 accent-primary cursor-pointer"
-                    />
-                    <span className="text-sm text-foreground leading-relaxed">
-                      Ich akzeptiere die Verarbeitung gesundheitsbezogener Angaben im Rahmen der Beratung.
-                    </span>
-                  </label>
-
-                  {hasBankData && (
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={consents.bank}
-                        onChange={e => setConsents({ ...consents, bank: e.target.checked })}
-                        className="w-5 h-5 rounded mt-1 accent-primary cursor-pointer"
-                      />
-                      <span className="text-sm text-foreground leading-relaxed">
-                        Ich akzeptiere die Nutzung meiner Bankdaten für Vertrags-/SEPA-Abwicklung.
-                      </span>
+                <div className="space-y-3 mb-8">
+                  {[
+                    { key: 'counseling', label: 'Ich akzeptiere die Verarbeitung meiner Beratungs- und Kontaktdaten.' },
+                    { key: 'health', label: 'Ich akzeptiere die Verarbeitung gesundheitsbezogener Angaben im Rahmen der Beratung.' },
+                    ...(hasBankData ? [{ key: 'bank', label: 'Ich akzeptiere die Nutzung meiner Bankdaten für Vertrags-/SEPA-Abwicklung.' }] : []),
+                  ].map(({ key, label }) => (
+                    <label
+                      key={key}
+                      onClick={() => setConsents(prev => ({ ...prev, [key]: !prev[key] }))}
+                      className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                        consents[key] ? 'border-primary bg-primary/10' : 'border-border bg-secondary/40 hover:border-primary/40'
+                      }`}>
+                      <div className={`w-6 h-6 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                        consents[key] ? 'bg-primary border-primary' : 'border-muted-foreground/40'
+                      }`}>
+                        {consents[key] && <Check className="w-4 h-4 text-primary-foreground" />}
+                      </div>
+                      <span className="text-sm text-foreground leading-relaxed">{label}</span>
                     </label>
-                  )}
+                  ))}
                 </div>
 
                 <div className="flex gap-3">
