@@ -59,10 +59,19 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
   const goal = WISH_GOALS[mainWish] || 'DEIN REHASPORT-PAKET';
   const whyText = WISH_WHY[mainWish] || 'Dieses Paket wurde für deinen Start zusammengestellt';
 
-  const includedItems = [
-    { label: 'Rehasport+', sub: 'Eigenständig trainieren neben dem Kurs' },
-    ...(hasFive ? [{ label: 'FIVE Training', sub: 'Mehr Beweglichkeit & Körperhaltung' }] : []),
-    ...(hasMilon ? [{ label: 'Milon Training', sub: 'Geführtes Krafttraining mit Fortschritt' }] : []),
+  const SUBSIDY_AMOUNT = 159; // voraussichtlicher Zuschuss
+  const section20Fee = 199;
+  const netFee = section20Fee - SUBSIDY_AMOUNT; // 40€ Eigenanteil
+
+  const allInclusive = [
+    '🏋️ Krafttraining',
+    '🚴 Cardio',
+    '🚿 Duschen & Umkleiden',
+    '🥤 Getränke',
+    '📋 Einweisungen',
+    '🕐 Jederzeit verfügbar',
+    ...(hasFive ? ['🤸 FIVE Beweglichkeit'] : []),
+    ...(hasMilon ? ['⚙️ Milon geführtes Training'] : []),
   ];
 
   const handleStart = async (withSubsidy = false) => {
@@ -203,25 +212,20 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
           </div>
         )}
 
-        {/* LEISTUNGS-SLIDER */}
+        {/* ALLES INKLUSIVE PANEL */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-6 overflow-x-auto pb-2 -mx-4 px-4">
-          <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
-            {includedItems.map((item, i) => (
-              <div
+          className="mb-6 bg-card border border-border rounded-3xl p-6">
+          <p className="text-xs font-black uppercase tracking-widest text-primary mb-4">Alles inklusive</p>
+          <div className="flex flex-wrap gap-2">
+            {allInclusive.map((item, i) => (
+              <span
                 key={i}
-                className="flex items-center gap-3 bg-card border border-primary/30 rounded-2xl px-5 py-3 flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                  <Check className="w-3.5 h-3.5 text-primary-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-black text-foreground">{item.label}</p>
-                  <p className="text-xs text-muted-foreground">{item.sub}</p>
-                </div>
-              </div>
+                className="inline-flex items-center gap-1.5 bg-secondary border border-border rounded-full px-4 py-2 text-sm font-semibold text-foreground">
+                {item}
+              </span>
             ))}
           </div>
         </motion.div>
@@ -261,39 +265,42 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}>
-                <div className="flex items-end justify-between mb-2">
+                <div className="flex items-start justify-between mb-4">
                   <div>
                     <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">Dein Preis mit Zuschuss</p>
-                    {/* Alter Preis durchgestrichen */}
                     <p className="text-base text-muted-foreground line-through mb-1">
                       {weeklyPrice.toFixed(2).replace('.', ',')}€ / Woche
                     </p>
-                    {/* Neuer Preis groß */}
                     <p className="text-5xl font-black text-primary">6,98€</p>
                     <p className="text-sm text-muted-foreground mt-1">pro Woche</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">+ 199€ §20-Pauschale</p>
                   </div>
                   <button
                     onClick={() => setShowSubsidy(false)}
-                    className="text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest font-bold">
+                    className="text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest font-bold mt-1">
                     Zurück
                   </button>
                 </div>
 
-                {/* Zuschuss Hinweis */}
-                <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 mt-4 mb-2">
-                  <p className="text-sm font-black text-foreground mb-0.5">
-                    Voraussichtlicher Zuschuss: bis zu 80 %
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Abhängig von Krankenkasse, Anspruch und regelmäßiger Teilnahme. Nicht garantiert.
-                  </p>
+                {/* §20-Rechnung */}
+                <div className="bg-secondary/50 border border-border rounded-2xl p-4 mb-3 space-y-2 text-sm">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>§20-Pauschale</span>
+                    <span className="font-bold">199,00€</span>
+                  </div>
+                  <div className="flex justify-between text-primary">
+                    <span>Voraussichtlicher Zuschuss*</span>
+                    <span className="font-bold">− {SUBSIDY_AMOUNT},00€</span>
+                  </div>
+                  <div className="border-t border-border pt-2 flex justify-between text-foreground font-black">
+                    <span>Dein Eigenanteil*</span>
+                    <span className="text-primary">{netFee},00€</span>
+                  </div>
                 </div>
 
                 <button
                   onClick={() => setShowSubsidyInfo(true)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-2 mb-4">
-                  <Info className="w-3 h-3" /> Wie funktioniert das?
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mb-4">
+                  <Info className="w-3 h-3" /> * Wie funktioniert das?
                 </button>
               </motion.div>
             )}
@@ -331,14 +338,15 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
 
                 <div className="space-y-3 text-sm text-muted-foreground leading-relaxed mb-6">
                   <p>Viele gesetzliche Krankenkassen unterstützen zertifizierte Präventionsangebote nach §20 SGB V.</p>
-                  <p className="font-bold text-foreground">Wenn dein Paket FIVE und/oder Milon enthält:</p>
+                  <p className="font-bold text-foreground">So funktioniert das Zuschuss-Modell:</p>
                   <ul className="space-y-1.5 list-disc list-inside">
                     <li>Rehasport+ läuft zum Basispreis von 6,98€ / Woche</li>
-                    <li>Zusätzlich fällt eine §20-Pauschale von 199€ an</li>
-                    <li>Ein Teil kommt voraussichtlich von deiner Krankenkasse zurück</li>
+                    <li>Einmalig fällt eine §20-Pauschale von 199€ an</li>
+                    <li>Deine Krankenkasse erstattet voraussichtlich bis zu {SUBSIDY_AMOUNT}€ davon</li>
+                    <li>Dein voraussichtlicher Eigenanteil: nur {netFee}€</li>
                   </ul>
                   <p className="bg-secondary/60 border border-border rounded-xl p-3 text-xs">
-                    ⚠️ Der Zuschuss ist nicht garantiert und hängt von deiner Krankenkasse, deinem Anspruch und regelmäßiger Teilnahme ab.
+                    * Der angezeigte Zuschuss und Eigenanteil sind Richtwerte. Die tatsächliche Erstattung hängt von deiner Krankenkasse, deinem persönlichen Anspruch und regelmäßiger Teilnahme ab. Keine Garantie.
                   </p>
                 </div>
 
