@@ -140,7 +140,7 @@ export default function RehaBooking({ profile, onBack, onDone }) {
 
   const daysArray = Object.entries(slots)
     .map(([date, times]) => ({ date, times }))
-    .sort(([a], [b]) => a.localeCompare(b));
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   const weekEnd = addDays(weekStart, 6);
   const canGoPrev = weekStart >= new Date();
