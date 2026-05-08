@@ -177,7 +177,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
 
       {/* WEEK VIEW */}
       {step === 'week' &&
-      <div className="flex flex-col flex-1 rounded-md">
+      <div className="flex flex-col flex-1 rounded-3xl">
           {/* Hero Header */}
           <div className="relative h-64 md:h-80 overflow-hidden">
             <img src={SERVICE_IMAGES[serviceType]} alt={SERVICE_LABELS[serviceType]} className="w-full h-full object-cover" />
