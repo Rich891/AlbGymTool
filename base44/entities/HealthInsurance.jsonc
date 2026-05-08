@@ -1,0 +1,85 @@
+{
+  "name": "HealthInsurance",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name der Krankenkasse"
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Alternative Namen"
+    },
+    "region": {
+      "type": "string",
+      "description": "Region/Bundesland"
+    },
+    "subsidy_per_course": {
+      "type": "number",
+      "description": "Zuschuss pro Kurs in \u20ac"
+    },
+    "subsidy_per_year": {
+      "type": "number",
+      "description": "Max. Zuschuss pro Jahr in \u20ac"
+    },
+    "courses_per_year": {
+      "type": "number",
+      "description": "Anzahl Kurse pro Jahr"
+    },
+    "reimbursement_rate": {
+      "type": "number",
+      "description": "Erstattungssatz in %"
+    },
+    "participation_requirement": {
+      "type": "string",
+      "description": "Teilnahmevoraussetzung"
+    },
+    "applies_to": {
+      "type": "string",
+      "enum": [
+        "online",
+        "pr\u00e4senz",
+        "beide"
+      ],
+      "description": "Online/Pr\u00e4senz/beide"
+    },
+    "zpp_certification_required": {
+      "type": "boolean",
+      "description": "ZPP-Zertifizierung erforderlich"
+    },
+    "note": {
+      "type": "string",
+      "description": "Hinweistext"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "Quelle/Link"
+    },
+    "last_verified": {
+      "type": "string",
+      "format": "date",
+      "description": "Zuletzt gepr\u00fcft am"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "best\u00e4tigt",
+        "pr\u00fcfen",
+        "veraltet"
+      ],
+      "default": "best\u00e4tigt",
+      "description": "Status"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Aktiv"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -10,7 +10,8 @@ import RehaProfile from './RehaProfile';
 import RehaRules from './RehaRules';
 import RehaUpsellBridge from './RehaUpsellBridge';
 import RehaUpsell from './RehaUpsell';
-import RehaOffer from './RehaOffer';
+import RehaOfferWithSubsidy from './RehaOfferWithSubsidy';
+import RehaBeforeClosing from './RehaBeforeClosing';
 import RehaBooking from './RehaBooking';
 import RehaContract from './RehaContract';
 
@@ -36,8 +37,9 @@ export default function RehasportFlow() {
     <RehaRules key="rules" profile={profile} update={update} onNext={() => setStep(6)} onBack={() => setStep(4)} />,
     <RehaUpsellBridge key="bridge" profile={profile} update={update} onNext={() => setStep(7)} onBack={() => setStep(5)} />,
     <RehaUpsell key="upsell" profile={profile} update={update} onNext={() => setStep(8)} onBack={() => setStep(6)} />,
-    <RehaOffer key="offer" profile={profile} update={update} onNext={() => setStep(9)} onBack={() => setStep(7)} />,
-    <RehaBooking key="booking" profile={profile} onBack={() => setStep(8)} onDone={() => { update({ bookingDone: true }); setStep(10); }} />,
+    <RehaOfferWithSubsidy key="offer" profile={profile} update={update} onNext={() => setStep(9)} onBack={() => setStep(7)} />,
+    <RehaBeforeClosing key="before-closing" profile={profile} update={update} onNext={() => setStep(10)} onBack={() => setStep(8)} />,
+    <RehaBooking key="booking" profile={profile} onBack={() => setStep(9)} onDone={() => { update({ bookingDone: true }); setStep(11); }} />,
     <RehaContract key="contract" profile={profile} onDone={() => navigate('/')} />,
   ];
 

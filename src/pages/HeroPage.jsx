@@ -42,12 +42,14 @@ export default function HeroPage() {
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       {/* Advisor button – top right */}
       <div className="absolute top-5 right-5 z-50">
-        <button
-          onClick={() => setAdvisorOpen(true)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-xl border border-border/50 hover:border-border bg-background/80 backdrop-blur-sm"
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate('/berater/login')}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-xl border border-border/50 hover:border-border bg-background/80 backdrop-blur-sm font-bold"
         >
-          Beraterbereich
-        </button>
+          🔐 Beraterbereich
+        </motion.button>
       </div>
 
       {/* Logo */}

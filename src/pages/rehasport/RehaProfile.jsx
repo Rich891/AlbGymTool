@@ -1,86 +1,304 @@
-import React from 'react';
-import { User, Calendar, Heart, Target, Activity, Pencil, Check } from 'lucide-react';
-import { motion } from 'framer-motion';
-
-const REASON_LABELS = {
-  pain: 'Schmerzen reduzieren',
-  mobility: 'Wieder beweglicher werden',
-  recovery: 'Nach Krankheit / Verletzung',
-  stability: 'Mehr Stabilität im Alltag',
-};
-
-const COMPLAINT_LABELS = {
-  back: 'Rücken & Nacken',
-  joints: 'Knie, Hüfte & Gelenke',
-  strength: 'Kraft & Stabilität',
-  everyday: 'Beweglichkeit & Alltag',
-};
-
-function calcAge(birthdate) {
-  if (!birthdate) return '–';
-  const diff = Date.now() - new Date(birthdate).getTime();
-  return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
-}
-
-function deriveDirection(profile) {
-  const c = profile.complaints || [];
-  const r = profile.reasons || [];
-  if (c.includes('back') || r.includes('mobility')) return 'Beweglichkeit & Rücken';
-  if (c.includes('joints') || c.includes('strength')) return 'Kraft & Stabilität';
-  if (r.includes('pain')) return 'Schmerzreduktion';
-  return 'Allgemeine Gesundheit';
-}
-
-function InfoRow({ icon: IconComponent, label, value }) {
-  const Icon = IconComponent;
-  return (
-    <div className="flex items-start gap-4 p-4 rounded-2xl bg-secondary/60">
-      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-        <Icon className="w-5 h-5 text-primary" />
-      </div>
-      <div>
-        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-0.5">{label}</p>
-        <p className="text-foreground font-semibold text-base">{value}</p>
-      </div>
-    </div>
-  );
-}
+import React, { useState } from 'react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { base44 } from '@/api/base44Client';
 
 export default function RehaProfile({ profile, onConfirm, onChange }) {
+  const [expanded, setExpanded] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consents, setConsents] = useState({
+    counseling: false,
+    health: false,
+    bank: false,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const hasExtendedData = profile.address || profile.email || profile.phone;
+  const hasBankData = profile.iban;
+  const canProceedWithoutMore = !expanded && !hasExtendedData;
+
+  const handleConfirm = async () => {
+    if (expanded && hasExtendedData) {
+      setShowConsent(true);
+      return;
+    }
+    onConfirm();
+  };
+
+  const handleConsentConfirm = async () => {
+    if (!consents.counseling || !consents.health || (hasBankData && !consents.bank)) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await base44.entities.RehasportConsultation.create({
+        customer_name: profile.name,
+        birthdate: profile.birthdate,
+        gender: profile.gender,
+        address: profile.address || '',
+        email: profile.email || '',
+        phone: profile.phone || '',
+        health_insurance: profile.health_insurance || '',
+        insurance_number: profile.insurance_number || '',
+        account_holder: profile.account_holder || '',
+        iban: profile.iban || '',
+        bic: profile.bic || '',
+        reasons: profile.reasons || [],
+        complaints: profile.complaints || [],
+        wishes: profile.wishes || [],
+        rules_accepted: profile.rulesAccepted || false,
+        consent_counseling: consents.counseling,
+        consent_health: consents.health,
+        consent_bank: consents.bank,
+        status: 'beratung_gestartet',
+      });
+
+      setShowConsent(false);
+      onConfirm();
+    } catch (err) {
+      console.error('Fehler beim Speichern:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
-      <div className="w-full max-w-2xl">
-      <div className="text-center mb-8">
-      <h1 className="text-4xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-none mb-2">
-        DEIN <span className="text-primary">PROFIL</span>
-      </h1>
-      <p className="text-muted-foreground">Überprüfe deine Angaben bevor es weitergeht.</p>
-      </div>
-
-      <div className="space-y-3">
-        <InfoRow icon={User} label="Name" value={profile.name || '–'} />
-        <InfoRow icon={Calendar} label="Alter" value={`${calcAge(profile.birthdate)} Jahre`} />
-        <InfoRow icon={User} label="Geschlecht" value={profile.gender || '–'} />
-        <InfoRow icon={Heart} label="Startgründe" value={(profile.reasons || []).map(r => REASON_LABELS[r]).join(', ') || '–'} />
-        <InfoRow icon={Activity} label="Hauptbeschwerden" value={(profile.complaints || []).map(c => COMPLAINT_LABELS[c]).join(', ') || '–'} />
-        <InfoRow icon={Target} label="Zielrichtung" value={deriveDirection(profile)} />
-      </div>
-
-      <div className="mt-10 flex flex-col gap-3">
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={onConfirm}
-          className="w-full h-16 rounded-2xl bg-primary text-primary-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/90 transition-all flex items-center justify-center gap-3"
-        >
-          <Check className="w-6 h-6" /> Bestätigen
-        </motion.button>
+      <div className="w-full max-w-xl">
         <button
           onClick={onChange}
-          className="w-full h-14 rounded-2xl border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-all font-semibold flex items-center justify-center gap-2"
-        >
-          <Pencil className="w-4 h-4" /> Angaben ändern
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
+          <ArrowLeft className="w-4 h-4" /> Ändern
         </button>
-      </div>
+
+        <div className="text-center mb-10">
+          <h1 className="text-4xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-none mb-2">
+            DEIN PROFIL
+          </h1>
+          <p className="text-lg text-muted-foreground">Kurze Übersicht deiner Angaben</p>
+        </div>
+
+        {/* Profile Card */}
+        <div className="bg-card border border-border rounded-3xl p-8 mb-6 space-y-6">
+          {/* Basic Info */}
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Name</p>
+            <p className="text-2xl font-black text-foreground">{profile.name}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Geburtsdatum</p>
+              <p className="text-lg font-bold text-foreground">{profile.birthdate || '–'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Geschlecht</p>
+              <p className="text-lg font-bold text-foreground">{profile.gender || '–'}</p>
+            </div>
+          </div>
+
+          {/* Expandable More Section */}
+          <motion.button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full py-4 px-4 rounded-2xl border border-border bg-secondary/50 hover:bg-secondary transition-all flex items-center justify-between">
+            <span className="text-sm font-bold text-foreground">Mehr Angaben hinzufügen</span>
+            {expanded ? (
+              <ChevronUp className="w-4 h-4 text-primary" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </motion.button>
+
+          <AnimatePresence>
+            {expanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-4 border-t border-border pt-6">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Adresse</p>
+                  <input
+                    type="text"
+                    value={profile.address || ''}
+                    onChange={e => onChange({ ...profile, address: e.target.value })}
+                    placeholder="z. B. Musterstr. 1, 70178 Stuttgart"
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">E-Mail</p>
+                  <input
+                    type="email"
+                    value={profile.email || ''}
+                    onChange={e => onChange({ ...profile, email: e.target.value })}
+                    placeholder="deine.email@example.com"
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Telefon</p>
+                  <input
+                    type="tel"
+                    value={profile.phone || ''}
+                    onChange={e => onChange({ ...profile, phone: e.target.value })}
+                    placeholder="+49 ..."
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Krankenkasse</p>
+                  <input
+                    type="text"
+                    value={profile.health_insurance || ''}
+                    onChange={e => onChange({ ...profile, health_insurance: e.target.value })}
+                    placeholder="z. B. AOK Bayern"
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Krankenkassennummer</p>
+                  <input
+                    type="text"
+                    value={profile.insurance_number || ''}
+                    onChange={e => onChange({ ...profile, insurance_number: e.target.value })}
+                    placeholder="xxxxxxxxxxxxxx"
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Kontoinhaber</p>
+                  <input
+                    type="text"
+                    value={profile.account_holder || ''}
+                    onChange={e => onChange({ ...profile, account_holder: e.target.value })}
+                    placeholder="Name"
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">IBAN</p>
+                  <input
+                    type="text"
+                    value={profile.iban || ''}
+                    onChange={e => onChange({ ...profile, iban: e.target.value })}
+                    placeholder="DE..."
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">BIC (optional)</p>
+                  <input
+                    type="text"
+                    value={profile.bic || ''}
+                    onChange={e => onChange({ ...profile, bic: e.target.value })}
+                    placeholder="XXXXYY"
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Consent Modal */}
+        <AnimatePresence>
+          {showConsent && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-card border border-border rounded-3xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <h2 className="text-2xl font-black text-foreground uppercase mb-4">Datenschutz & Einwilligung</h2>
+
+                <div className="space-y-4 mb-8 text-sm text-muted-foreground leading-relaxed">
+                  <p>
+                    Wir speichern deine Angaben, um deine Rehasport-Beratung, mögliche Zusatzangebote, Zuschussinformationen und einen eventuellen Vertragsabschluss korrekt vorbereiten zu können.
+                  </p>
+                  <p>
+                    Dabei können auch gesundheitsbezogene Angaben verarbeitet werden, z. B. Beschwerden, Trainingsziele oder Einschränkungen. Diese Daten werden ausschließlich für Beratung, Betreuung, Terminplanung, Zuschussprüfung und Vertragsabwicklung im AlbGym genutzt.
+                  </p>
+                </div>
+
+                <div className="space-y-4 mb-8">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consents.counseling}
+                      onChange={e => setConsents({ ...consents, counseling: e.target.checked })}
+                      className="w-5 h-5 rounded mt-1 accent-primary cursor-pointer"
+                    />
+                    <span className="text-sm text-foreground leading-relaxed">
+                      Ich akzeptiere die Verarbeitung meiner Beratungs- und Kontaktdaten.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consents.health}
+                      onChange={e => setConsents({ ...consents, health: e.target.checked })}
+                      className="w-5 h-5 rounded mt-1 accent-primary cursor-pointer"
+                    />
+                    <span className="text-sm text-foreground leading-relaxed">
+                      Ich akzeptiere die Verarbeitung gesundheitsbezogener Angaben im Rahmen der Beratung.
+                    </span>
+                  </label>
+
+                  {hasBankData && (
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={consents.bank}
+                        onChange={e => setConsents({ ...consents, bank: e.target.checked })}
+                        className="w-5 h-5 rounded mt-1 accent-primary cursor-pointer"
+                      />
+                      <span className="text-sm text-foreground leading-relaxed">
+                        Ich akzeptiere die Nutzung meiner Bankdaten für Vertrags-/SEPA-Abwicklung.
+                      </span>
+                    </label>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowConsent(false)}
+                    className="flex-1 h-12 rounded-2xl border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                    Abbrechen
+                  </button>
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleConsentConfirm}
+                    disabled={saving || !consents.counseling || !consents.health || (hasBankData && !consents.bank)}
+                    className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                    {saving ? 'Wird gespeichert...' : 'Bestätigen & fortfahren →'}
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Action Button */}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleConfirm}
+          className="w-full h-16 rounded-2xl bg-primary text-primary-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/90 transition-all">
+          {expanded ? 'Angaben speichern & weiter' : 'Profil bestätigen →'}
+        </motion.button>
       </div>
     </div>
   );

@@ -11,6 +11,10 @@ import HeroPage from '@/pages/HeroPage';
 import ConsultationFlow from '@/pages/ConsultationFlow';
 import RehasportFlow from '@/pages/rehasport/RehasportFlow';
 
+// Advisor pages
+import AdvisorLogin from '@/pages/berater/AdvisorLogin';
+import RehasportAdvisorDashboard from '@/pages/berater/RehasportAdvisorDashboard';
+
 // Advisor area (protected)
 import AdvisorArea from '@/pages/AdvisorArea';
 import AdvisorLayout from '@/components/layout/AdvisorLayout';
@@ -52,6 +56,10 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<HeroPage />} />
       <Route path="/beratung/:type" element={<ConsultationFlow />} />
       <Route path="/rehasport" element={<RehasportFlow />} />
+
+      {/* Advisor area */}
+      <Route path="/berater/login" element={<AdvisorLogin />} />
+      <Route path="/berater/dashboard" element={<RehasportAdvisorDashboard />} />
 
       {/* Advisor area */}
       <Route path="/berater" element={<AdvisorArea />} />

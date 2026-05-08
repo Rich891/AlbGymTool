@@ -1,0 +1,64 @@
+{
+  "name": "RehasportTariff",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Tarifname"
+    },
+    "description": {
+      "type": "string",
+      "description": "Beschreibung"
+    },
+    "weekly_price": {
+      "type": "number",
+      "description": "Wochenpreis"
+    },
+    "package_type": {
+      "type": "string",
+      "enum": [
+        "rehasport_plus",
+        "plus_five",
+        "plus_milon",
+        "plus_both"
+      ],
+      "description": "Pakettyp"
+    },
+    "includes_five": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enth\u00e4lt FIVE"
+    },
+    "includes_milon": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enth\u00e4lt Milon"
+    },
+    "section20_course_fee": {
+      "type": "number",
+      "description": "\u00a720 Kursgeb\u00fchr"
+    },
+    "section20_duration_months": {
+      "type": "number",
+      "description": "\u00a720 G\u00fcltig f\u00fcr X Monate"
+    },
+    "min_contract_months": {
+      "type": "number",
+      "description": "Mindestlaufzeit Monate"
+    },
+    "standard_conditions": {
+      "type": "string",
+      "description": "Standardkonditionen"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Aktiv"
+    }
+  },
+  "required": [
+    "name",
+    "weekly_price",
+    "package_type"
+  ]
+}

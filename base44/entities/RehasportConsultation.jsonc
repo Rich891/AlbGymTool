@@ -1,0 +1,155 @@
+{
+  "name": "RehasportConsultation",
+  "type": "object",
+  "properties": {
+    "customer_name": {
+      "type": "string",
+      "description": "Kundenname"
+    },
+    "birthdate": {
+      "type": "string",
+      "format": "date",
+      "description": "Geburtsdatum"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "m\u00e4nnlich",
+        "weiblich",
+        "divers"
+      ],
+      "description": "Geschlecht"
+    },
+    "address": {
+      "type": "string",
+      "description": "Adresse"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "E-Mail"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefon"
+    },
+    "health_insurance": {
+      "type": "string",
+      "description": "Krankenkasse"
+    },
+    "insurance_number": {
+      "type": "string",
+      "description": "Krankenkassennummer"
+    },
+    "account_holder": {
+      "type": "string",
+      "description": "Kontoinhaber"
+    },
+    "iban": {
+      "type": "string",
+      "description": "IBAN"
+    },
+    "bic": {
+      "type": "string",
+      "description": "BIC"
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Rehabziele"
+    },
+    "complaints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Beschwerden"
+    },
+    "wishes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "W\u00fcnsche"
+    },
+    "rules_accepted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Regeln akzeptiert"
+    },
+    "consent_counseling": {
+      "type": "boolean",
+      "default": false,
+      "description": "Einwilligung Beratungsdaten"
+    },
+    "consent_health": {
+      "type": "boolean",
+      "default": false,
+      "description": "Einwilligung Gesundheitsdaten"
+    },
+    "consent_bank": {
+      "type": "boolean",
+      "default": false,
+      "description": "Einwilligung Bankdaten"
+    },
+    "selected_offers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ausgew\u00e4hlte Angebote"
+    },
+    "subsidy_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Zuschuss aktiviert"
+    },
+    "subsidy_variant": {
+      "type": "string",
+      "enum": [
+        "none",
+        "1_course",
+        "2_courses"
+      ],
+      "default": "none",
+      "description": "\u00a720-Variante"
+    },
+    "weekly_price": {
+      "type": "number",
+      "description": "Wochenpreis"
+    },
+    "course_fee": {
+      "type": "number",
+      "description": "Kursgeb\u00fchr"
+    },
+    "estimated_subsidy": {
+      "type": "number",
+      "description": "Gesch\u00e4tzter Zuschuss"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "beratung_gestartet",
+        "angebot_erstellt",
+        "abgeschlossen",
+        "abgebrochen"
+      ],
+      "default": "beratung_gestartet",
+      "description": "Status"
+    },
+    "section20_conditions_accepted": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00a720-Bedingungen akzeptiert"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notizen"
+    }
+  },
+  "required": [
+    "customer_name"
+  ]
+}
