@@ -357,7 +357,7 @@ export default function RehaAppointment({ profile, onDone }) {
   const [activeService, setActiveService] = useState(null);
   const firstName = (profile.name || 'du').split(' ')[0];
   const allConfirmed = needed.every(t => confirmed[t]);
-  const clientData = { name: profile.name, email: profile.email || '', phone: profile.phone || '' };
+  const clientData = { name: profile.name, email: profile.email || 'test@albgym.de', phone: profile.phone || '07071000000' };
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
