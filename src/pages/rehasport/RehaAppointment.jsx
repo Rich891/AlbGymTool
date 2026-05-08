@@ -205,7 +205,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
             </button>
           </div>
 
-          {loadingDays || anyLoading && daysWithSlots.length === 0 ? (
+          {loadingDays || (anyLoading && daysWithSlots.length === 0) ? (
             <div className="flex flex-col items-center justify-center py-14 gap-3">
               <Loader2 className="w-7 h-7 animate-spin text-primary" />
               <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Termine werden geladen…</p>
@@ -218,7 +218,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-6">
               {daysWithSlots.map((d) => {
                 const key = fmtDate(d);
                 const daySlots = slotsByDate[key] || [];
@@ -226,48 +226,55 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
                 const monthName = MONTHS_SHORT[d.getMonth()];
 
                 return (
-                  <div key={key} className="relative overflow-hidden rounded-3xl border border-border">
-                    <div className="flex min-h-[120px]">
-                      {/* Left: image panel */}
-                      <div className="relative w-28 flex-shrink-0 overflow-hidden">
+                  <div key={key}>
+                    {/* Date label above */}
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3 px-1">
+                      {dayName}, {d.getDate()}. {monthName}
+                    </p>
+
+                    {/* Hero card */}
+                    <div className="relative overflow-hidden rounded-3xl border border-border bg-card">
+                      {/* Hero image strip */}
+                      <div className="relative h-44 overflow-hidden">
                         <img
                           src={SERVICE_IMAGES[serviceType]}
                           alt={SERVICE_LABELS[serviceType]}
-                          className="absolute inset-0 w-full h-full object-cover"
+                          className="w-full h-full object-cover"
                         />
-                        <div className={`absolute inset-0 bg-gradient-to-r ${style.gradient} to-transparent`} />
+                        <div className={`absolute inset-0 bg-gradient-to-b ${style.gradient} to-transparent`} />
 
-                        {/* Logo if available */}
+                        {/* Logo top-left */}
                         {SERVICE_LOGOS[serviceType] && (
-                          <div className="absolute top-3 left-3 right-3 z-10">
-                            <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-5 object-contain object-left" />
+                          <div className="absolute top-4 left-5 z-10 h-8">
+                            <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-full object-contain" />
                           </div>
                         )}
 
-                        {/* Date */}
-                        <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
-                          <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">{monthName} {d.getDate()}</p>
-                          <p className="text-2xl font-black text-white leading-none">{dayName}</p>
+                        {/* Slot count badge top-right */}
+                        <div className="absolute top-4 right-4 z-10 px-3 py-1 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
+                          <p className="text-xs font-black text-white">{daySlots.length} frei</p>
                         </div>
                       </div>
 
-                      {/* Right: slots */}
-                      <div className="flex-1 bg-card p-4 flex flex-col justify-center">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-3">
-                          {daySlots.length} freie{daySlots.length === 1 ? 'r' : ''} Termin{daySlots.length !== 1 ? 'e' : ''}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {daySlots.map(slot => (
-                            <motion.button
-                              key={slot}
-                              whileTap={{ scale: 0.93 }}
-                              onClick={() => { setSelectedDate(key); setSelectedTime(slot); setStep('confirm'); }}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${style.slotBg}`}
-                            >
-                              {slot.slice(0, 5)}
-                            </motion.button>
-                          ))}
-                        </div>
+                      {/* Slots grid below the image */}
+                      <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {daySlots.map(slot => (
+                          <motion.button
+                            key={slot}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => { setSelectedDate(key); setSelectedTime(slot); setStep('confirm'); }}
+                            className={`group relative overflow-hidden rounded-2xl border py-4 px-3 text-left transition-all duration-200 cursor-pointer ${style.slotBg}`}
+                          >
+                            {/* Uhrzeit groß */}
+                            <p className="text-2xl font-black leading-none mb-1">{slot.slice(0, 5)}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Uhr</p>
+
+                            {/* Hover overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <span className="text-white text-xs font-black uppercase tracking-widest">Jetzt buchen</span>
+                            </div>
+                          </motion.button>
+                        ))}
                       </div>
                     </div>
                   </div>
