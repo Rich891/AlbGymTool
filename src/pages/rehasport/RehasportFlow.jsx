@@ -12,6 +12,7 @@ import RehaRules from './RehaRules';
 import RehaUpsellBridge from './RehaUpsellBridge';
 import RehaUpsell from './RehaUpsell';
 import RehaPackage from './RehaPackage';
+import RehaSignature from './RehaSignature';
 import RehaBeforeClosing from './RehaBeforeClosing';
 import RehaBooking from './RehaBooking';
 import RehaContract from './RehaContract';
@@ -42,13 +43,14 @@ export default function RehasportFlow() {
     <RehaRules key="rules" profile={profile} update={update} onNext={() => setStep(6)} onBack={() => setStep(4)} />,
     <RehaUpsellBridge key="bridge" profile={profile} update={update} onNext={() => setStep(7)} onBack={() => setStep(5)} />,
     <RehaUpsell key="upsell" profile={profile} update={update} onNext={() => setStep(8)} onBack={() => setStep(6)} />,
-    <RehaPackage key="package" profile={profile} update={update} onNext={() => {
+    <RehaPackage key="package" profile={profile} update={update} onNext={() => setStep(9)} onBack={() => setStep(7)} />,
+    <RehaSignature key="signature" profile={profile} update={update} onNext={() => {
       const required = ['address', 'email', 'phone', 'health_insurance', 'insurance_number', 'account_holder', 'iban'];
       const allFilled = required.every(f => profile[f]?.trim?.());
-      setStep(allFilled ? 10 : 9);
-    }} onBack={() => setStep(7)} />,
-    <RehaBeforeClosing key="before-closing" profile={profile} update={update} onNext={() => setStep(10)} onBack={() => setStep(8)} testMode={testMode} />,
-    <RehaBooking key="booking" profile={profile} onBack={() => setStep(9)} onDone={() => { update({ bookingDone: true }); setStep(11); }} />,
+      setStep(allFilled ? 11 : 10);
+    }} onBack={() => setStep(8)} />,
+    <RehaBeforeClosing key="before-closing" profile={profile} update={update} onNext={() => setStep(11)} onBack={() => setStep(9)} testMode={testMode} />,
+    <RehaBooking key="booking" profile={profile} onBack={() => setStep(10)} onDone={() => { update({ bookingDone: true }); setStep(12); }} />,
     <RehaContract key="contract" profile={profile} onDone={async () => {
       try {
         await base44.entities.RehasportConsultation.create({
@@ -79,6 +81,9 @@ export default function RehasportFlow() {
     }} />,
   ];
 
+  // Gültige Steps: 0-12
+  const validStep = Math.min(Math.max(step, 0), 12);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Test-Mode Toggle – nur für Berater sichtbar */}
@@ -98,14 +103,14 @@ export default function RehasportFlow() {
       </div>
       <AnimatePresence mode="wait">
         <motion.div
-          key={step}
+          key={validStep}
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -40 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
           className="min-h-screen"
         >
-          {steps[step]}
+          {steps[validStep]}
         </motion.div>
       </AnimatePresence>
     </div>
