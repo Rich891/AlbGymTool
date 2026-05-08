@@ -184,24 +184,24 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
 
       {/* WEEK VIEW */}
       {step === 'week' &&
-      <div className="flex gap-6 -mx-6 -my-6 h-[calc(100vh-200px)]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
           {/* LEFT: Hero image */}
-          <div className="hidden md:flex md:w-1/2 relative overflow-hidden rounded-r-3xl flex-shrink-0">
+          <div className="hidden md:flex relative overflow-hidden rounded-3xl">
             <img
               src={SERVICE_IMAGES[serviceType]}
               alt={SERVICE_LABELS[serviceType]}
-              className="w-full h-full object-cover object-right-bottom"
+              className="w-full h-80 object-cover object-center"
             />
-            <div className={`absolute inset-0 bg-gradient-to-b ${style.gradient} to-transparent`} />
+            <div className={`absolute inset-0 bg-gradient-to-t ${style.gradient} to-transparent`} />
             {SERVICE_LOGOS[serviceType] &&
-            <div className="absolute top-6 left-6 z-10 h-12">
+            <div className="absolute top-4 left-4 z-10 h-10">
               <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-full object-contain" />
             </div>
             }
           </div>
 
           {/* RIGHT: Week nav + slots */}
-          <div className="flex-1 flex flex-col px-6 py-6 overflow-y-auto">
+          <div className="flex flex-col">
             {/* Week navigation */}
             <div className="flex items-center justify-between mb-8 gap-4">
               <button
@@ -278,13 +278,13 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
               </div>
           }
           </div>
-        </div>
-      }
+          </div>
+          }
 
-      {/* CONFIRM */}
-      {step === 'confirm' &&
-      <div className="space-y-4">
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-4">
+          {/* CONFIRM */}
+          {step === 'confirm' &&
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
                 <Calendar className="w-4 h-4 text-primary" />
@@ -321,12 +321,14 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
           onClick={handleBook}
           disabled={booking}
           className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide text-sm hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,230,80,0.3)]">
-          
+
             {booking ? <><Loader2 className="w-4 h-4 animate-spin" /> Wird gebucht…</> : 'Termin jetzt buchen →'}
           </motion.button>
-        </div>
-      }
-    </div>);
+          </div>
+          }
+          </div>
+          );
+          }
 
 }
 
