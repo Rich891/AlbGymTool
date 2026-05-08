@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
 
 import RehaStart from './RehaStart';
 import RehaCustomer from './RehaCustomer';
@@ -48,7 +49,34 @@ export default function RehasportFlow() {
     }} onBack={() => setStep(7)} />,
     <RehaBeforeClosing key="before-closing" profile={profile} update={update} onNext={() => setStep(10)} onBack={() => setStep(8)} testMode={testMode} />,
     <RehaBooking key="booking" profile={profile} onBack={() => setStep(9)} onDone={() => { update({ bookingDone: true }); setStep(11); }} />,
-    <RehaContract key="contract" profile={profile} onDone={() => navigate('/')} />,
+    <RehaContract key="contract" profile={profile} onDone={async () => {
+      try {
+        await base44.entities.RehasportConsultation.create({
+          customer_name: profile.name,
+          birthdate: profile.birthdate,
+          gender: profile.gender,
+          address: profile.address,
+          email: profile.email,
+          phone: profile.phone,
+          health_insurance: profile.health_insurance,
+          insurance_number: profile.insurance_number,
+          account_holder: profile.account_holder,
+          iban: profile.iban,
+          reasons: profile.reasons || [],
+          complaints: profile.complaints || [],
+          wishes: profile.wishes || [],
+          rules_accepted: profile.rulesAccepted || false,
+          selected_offers: profile.selectedOffers || [],
+          subsidy_active: profile.subsidyActive || false,
+          subsidy_variant: profile.subsidy_variant || 'none',
+          weekly_price: profile.weekly_price,
+          status: 'abgeschlossen',
+        });
+      } catch (err) {
+        console.error('Fehler beim Speichern:', err);
+      }
+      navigate('/');
+    }} />,
   ];
 
   return (

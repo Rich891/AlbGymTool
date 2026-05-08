@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { ArrowLeft, FileText, Phone, CreditCard, Heart, Package, Trash2, Activity, Calendar } from 'lucide-react';
+import { ArrowLeft, FileText, Phone, CreditCard, Heart, Package, Trash2, Activity, Calendar, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import TeilnahmebescheinigungDownload from './TeilnahmebescheinigungDownload';
+import { generateTeilnahmebescheinigung } from '../rehasport/generateTeilnahmebescheinigung';
+import { calculateBescheinigungDates } from './TeilnahmebescheinigungDownload';
+import { jsPDF } from 'jspdf';
 
 const STATUS_STYLES = {
   abgeschlossen: 'bg-primary/10 text-primary',
@@ -72,6 +75,7 @@ export default function CustomerDetail({ consultation, onBack }) {
   const [showBescheinigung, setShowBescheinigung] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloadingDoc, setDownloadingDoc] = useState(null); // 'vertrag', 'desc1', 'desc2'
   const qc = useQueryClient();
 
   const { data: allConsultations = [] } = useQuery({
@@ -91,6 +95,202 @@ export default function CustomerDetail({ consultation, onBack }) {
       onBack();
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const generateVertrag = () => {
+    const LOGO_URL = 'https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/0137b7bb4_AlbGymLogo.png';
+    const COMPANY_ADDRESS = {
+      name: 'AlbGym GmbH',
+      street: 'Wilhelmstraße 123',
+      city: '73230 Kirchheim unter Teck',
+      phone: '+49 (0) 7381 9386-510',
+      email: 'info@alb-gym.de',
+      website: 'www.alb-gym.de',
+    };
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'A4' });
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 15;
+
+    try {
+      doc.addImage(LOGO_URL, 'PNG', pageWidth - 50, 10, 35, 12);
+    } catch {}
+
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(COMPANY_ADDRESS.name, 15, yPos);
+    doc.text(COMPANY_ADDRESS.street, 15, yPos + 4);
+    doc.text(COMPANY_ADDRESS.city, 15, yPos + 8);
+    doc.text(`Tel: ${COMPANY_ADDRESS.phone}`, 15, yPos + 12);
+    doc.text(`Mail: ${COMPANY_ADDRESS.email}`, 15, yPos + 16);
+
+    yPos = 50;
+
+    doc.setFontSize(18);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MITGLIEDSCHAFTSVERTRAG REHASPORT+', 15, yPos);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Ausgestellt: ${new Date().toLocaleDateString('de-DE')}`, 15, yPos + 8);
+
+    yPos += 20;
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 150, 100);
+    doc.text('1. KUNDENDATEN', 15, yPos);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    yPos += 7;
+
+    const customerData = [
+      `Name: ${consultation.customer_name || 'N/A'}`,
+      `Geburtsdatum: ${consultation.birthdate || 'N/A'}`,
+      `Geschlecht: ${consultation.gender || 'N/A'}`,
+      `Adresse: ${consultation.address || 'N/A'}`,
+      `E-Mail: ${consultation.email || 'N/A'}`,
+      `Telefon: ${consultation.phone || 'N/A'}`,
+    ];
+
+    customerData.forEach(line => {
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = 15;
+      }
+      doc.text(line, 15, yPos);
+      yPos += 6;
+    });
+
+    yPos += 4;
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 150, 100);
+    doc.text('2. LEISTUNGEN', 15, yPos);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    yPos += 7;
+
+    const services = [
+      { name: 'Rehasport+', included: true },
+      { name: 'FIVE Training', included: consultation.selected_offers?.includes('five') },
+      { name: 'Milon Training', included: consultation.selected_offers?.includes('milon') },
+    ];
+
+    services.forEach(service => {
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = 15;
+      }
+      const status = service.included ? '✓' : '–';
+      doc.text(`${status} ${service.name}`, 15, yPos);
+      yPos += 6;
+    });
+
+    yPos += 4;
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 150, 100);
+    doc.text('3. FINANZIELLE BEDINGUNGEN', 15, yPos);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    yPos += 7;
+
+    const pricing = [
+      `Wochenpreis: ${consultation.weekly_price?.toFixed(2) || '6,98'}€`,
+      `Monatspreis (ca.): ${((consultation.weekly_price || 6.98) * 4.33).toFixed(2)}€`,
+    ];
+
+    if (consultation.subsidy_active) {
+      pricing.push(`Zuschusspaket: ${consultation.subsidy_variant === '1_course' ? '1 Kurs (99€)' : '2 Kurse (198€)'}`);
+      pricing.push(`Geschätzter Zuschuss: bis ${consultation.estimated_subsidy || '0'}€`);
+    }
+
+    pricing.forEach(line => {
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = 15;
+      }
+      doc.text(line, 15, yPos);
+      yPos += 6;
+    });
+
+    yPos += 4;
+
+    if (consultation.health_insurance) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 150, 100);
+      doc.text('4. KRANKENKASSENDATEN', 15, yPos);
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      yPos += 7;
+
+      const insuranceData = [
+        `Krankenkasse: ${consultation.health_insurance}`,
+        `Versichertennummer: ${consultation.insurance_number || 'N/A'}`,
+        `Kontoinhaber: ${consultation.account_holder || 'N/A'}`,
+        `IBAN: ${consultation.iban || 'N/A'}`,
+      ];
+
+      insuranceData.forEach(line => {
+        if (yPos > pageHeight - 20) {
+          doc.addPage();
+          yPos = 15;
+        }
+        doc.text(line, 15, yPos);
+        yPos += 6;
+      });
+
+      yPos += 4;
+    }
+
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`${COMPANY_ADDRESS.website} | ${COMPANY_ADDRESS.phone}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+
+    return doc;
+  };
+
+  const handleDownloadVertrag = async () => {
+    setDownloadingDoc('vertrag');
+    try {
+      const doc = generateVertrag();
+      doc.save(`AlbGym-Vertrag-${consultation.customer_name?.replace(/\s/g, '-')}.pdf`);
+    } finally {
+      setDownloadingDoc(null);
+    }
+  };
+
+  const handleDownloadBescheinigung = async (num) => {
+    setDownloadingDoc(`desc${num}`);
+    try {
+      const dates = calculateBescheinigungDates(new Date(consultation.created_date || Date.now()));
+      const startDate = num === 1 ? dates.start1 : dates.start2;
+      const endDate = num === 1 ? dates.end1 : dates.end2;
+      const doc = generateTeilnahmebescheinigung({
+        name: consultation.customer_name,
+        birthdate: consultation.birthdate,
+        insurance_number: consultation.insurance_number,
+        iban: consultation.iban,
+        _startDate: startDate,
+        _endDate: endDate,
+      });
+      doc.save(`Teilnahmebescheinigung-${num}-${consultation.customer_name?.replace(/\s/g, '-')}.pdf`);
+    } finally {
+      setDownloadingDoc(null);
     }
   };
 
@@ -114,11 +314,27 @@ export default function CustomerDetail({ consultation, onBack }) {
             {STATUS_LABELS[consultation.status] || consultation.status}
           </span>
         </div>
-        {consultation.subsidy_active && (
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowBescheinigung(true)}
-            className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-primary-foreground font-black text-sm uppercase tracking-wide hover:bg-primary/90 transition-all shadow-lg">
-            <FileText className="w-4 h-4" /> §20 Fertigmeldungen
-          </motion.button>
+        
+        {/* Document Downloads */}
+        {consultation.status === 'abgeschlossen' && (
+          <div className="flex flex-wrap gap-2">
+            <motion.button whileTap={{ scale: 0.97 }} onClick={handleDownloadVertrag} disabled={downloadingDoc === 'vertrag'}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-bold text-xs uppercase tracking-wide transition-all disabled:opacity-50">
+              {downloadingDoc === 'vertrag' ? <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /> : <><Download className="w-3.5 h-3.5" /> Vertrag</>}
+            </motion.button>
+            {consultation.subsidy_active && (
+              <>
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleDownloadBescheinigung(1)} disabled={downloadingDoc === 'desc1'}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-bold text-xs uppercase tracking-wide transition-all disabled:opacity-50">
+                  {downloadingDoc === 'desc1' ? <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /> : <><Download className="w-3.5 h-3.5" /> Bescheinigung 1</>}
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleDownloadBescheinigung(2)} disabled={downloadingDoc === 'desc2'}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-bold text-xs uppercase tracking-wide transition-all disabled:opacity-50">
+                  {downloadingDoc === 'desc2' ? <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /> : <><Download className="w-3.5 h-3.5" /> Bescheinigung 2</>}
+                </motion.button>
+              </>
+            )}
+          </div>
         )}
       </div>
 
@@ -221,9 +437,7 @@ export default function CustomerDetail({ consultation, onBack }) {
         )}
       </AnimatePresence>
 
-      {showBescheinigung && (
-        <TeilnahmebescheinigungDownload consultation={consultation} onClose={() => setShowBescheinigung(false)} />
-      )}
+
     </div>
   );
 }

@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { Download, Check, Home, PenLine } from 'lucide-react';
+import { Download, Check, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
-import SignaturePad from '@/components/shared/SignaturePad';
-import { generateTeilnahmebescheinigung } from './generateTeilnahmebescheinigung';
-import { calculateBescheinigungDates } from '../berater/TeilnahmebescheinigungDownload';
 
 const LOGO_URL = 'https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/0137b7bb4_AlbGymLogo.png';
 const COMPANY_ADDRESS = {
@@ -16,7 +13,7 @@ const COMPANY_ADDRESS = {
   website: 'www.alb-gym.de',
 };
 
-function generateContract(profile, signatureDataUrl = null) {
+function generateContract(profile) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'A4' });
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -225,14 +222,8 @@ function generateContract(profile, signatureDataUrl = null) {
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Mitglied:`, 15, yPos);
-  if (signatureDataUrl) {
-    try { doc.addImage(signatureDataUrl, 'PNG', 35, yPos - 8, 55, 14); } catch {}
-  } else {
-    doc.text('________________________', 35, yPos);
-  }
-  doc.text(`Datum: ${new Date().toLocaleDateString('de-DE')}`, 110, yPos);
-  yPos += 12;
+  doc.text(`Mitglied: ________________________  Datum: ${new Date().toLocaleDateString('de-DE')}`, 15, yPos);
+  yPos += 8;
   doc.text(`AlbGym: ________________________  Datum: ${new Date().toLocaleDateString('de-DE')}`, 15, yPos);
 
   // Footer
@@ -245,40 +236,16 @@ function generateContract(profile, signatureDataUrl = null) {
 
 export default function RehaContract({ profile, onDone }) {
   const [downloading, setDownloading] = useState(false);
-  const [downloadingDesc, setDownloadingDesc] = useState(null); // 1 or 2
-  const [signature, setSignature] = useState(null);
 
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const doc = generateContract(profile, signature);
+      const doc = generateContract(profile);
       doc.save(`AlbGym-Vertrag-${profile.name?.replace(/\s/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) {
       console.error('Fehler beim Download:', err);
     } finally {
       setDownloading(false);
-    }
-  };
-
-  const handleDownloadBescheinigung = (num) => {
-    setDownloadingDesc(num);
-    try {
-      const dates = calculateBescheinigungDates(new Date());
-      const startDate = num === 1 ? dates.start1 : dates.start2;
-      const endDate = num === 1 ? dates.end1 : dates.end2;
-      const doc = generateTeilnahmebescheinigung({
-        name: profile.name,
-        birthdate: profile.birthdate,
-        insurance_number: profile.insurance_number,
-        iban: profile.iban,
-        _startDate: startDate,
-        _endDate: endDate,
-      });
-      doc.save(`Teilnahmebescheinigung-${num}-${profile.name?.replace(/\s/g, '-')}.pdf`);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setDownloadingDesc(null);
     }
   };
 
@@ -374,75 +341,32 @@ export default function RehaContract({ profile, onDone }) {
           </div>
         </motion.div>
 
-        {/* Unterschrift */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6 bg-card border border-border rounded-3xl p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <PenLine className="w-4 h-4 text-primary" />
-            <p className="text-xs font-black uppercase tracking-widest text-primary">Digitale Unterschrift</p>
-          </div>
-          <SignaturePad label="Kunde" onSigned={setSignature} />
-          {signature && (
-            <p className="text-xs text-primary mt-2 font-semibold">✓ Unterschrift gespeichert – wird ins PDF eingebettet</p>
-          )}
-        </motion.div>
-
         {/* Action Buttons */}
-        <div className="space-y-3">
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleDownload}
-            disabled={downloading}
-            className="w-full h-16 rounded-2xl bg-primary text-primary-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg">
-            {downloading ? (
-              <>
-                <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                Wird vorbereitet...
-              </>
-            ) : (
-              <>
-                <Download className="w-5 h-5" />
-                Vertrag herunterladen (PDF)
-              </>
-            )}
-          </motion.button>
-
-          {/* Teilnahmebescheinigungen wenn §20 aktiv */}
-          {profile.subsidyActive && (
-            <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-              <p className="text-xs font-black uppercase tracking-widest text-primary">§20 Teilnahmebescheinigungen</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handleDownloadBescheinigung(1)}
-                  disabled={downloadingDesc === 1}
-                  className="h-12 rounded-xl bg-secondary border border-border text-foreground font-bold text-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                  {downloadingDesc === 1
-                    ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                    : <><Download className="w-4 h-4" /> Bescheinigung 1</>}
-                </button>
-                <button
-                  onClick={() => handleDownloadBescheinigung(2)}
-                  disabled={downloadingDesc === 2}
-                  className="h-12 rounded-xl bg-secondary border border-border text-foreground font-bold text-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                  {downloadingDesc === 2
-                    ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                    : <><Download className="w-4 h-4" /> Bescheinigung 2</>}
-                </button>
-              </div>
-            </div>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleDownload}
+          disabled={downloading}
+          className="w-full h-16 rounded-2xl bg-primary text-primary-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg mb-3">
+          {downloading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              Wird vorbereitet...
+            </>
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              Vertrag herunterladen (PDF)
+            </>
           )}
+        </motion.button>
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={onDone}
-            className="w-full h-16 rounded-2xl border-2 border-primary text-primary font-black text-lg uppercase tracking-wide hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-3">
-            <Home className="w-5 h-5" />
-            Zur Startseite
-          </motion.button>
-        </div>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={onDone}
+          className="w-full h-16 rounded-2xl border-2 border-primary text-primary font-black text-lg uppercase tracking-wide hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-3">
+          <Home className="w-5 h-5" />
+          Zur Startseite
+        </motion.button>
 
         {/* Info */}
         <p className="text-center text-xs text-muted-foreground mt-8">
