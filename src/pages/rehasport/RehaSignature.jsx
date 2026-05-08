@@ -11,7 +11,10 @@ export default function RehaSignature({ profile, update, onNext, onBack }) {
     if (!signature) return;
     setSaving(true);
     try {
+      console.log('Unterschrift wird gespeichert:', signature.slice(0, 50) + '...');
       update({ signature });
+      // Warte kurz damit update durchgeht
+      await new Promise(resolve => setTimeout(resolve, 100));
       onNext();
     } finally {
       setSaving(false);
