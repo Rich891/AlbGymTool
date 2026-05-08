@@ -1,0 +1,103 @@
+{
+  "name": "Service",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name der Leistung"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Kraft & Muskelaufbau",
+        "Einfaches Training",
+        "Beweglichkeit & R\u00fccken",
+        "Abnehmen & Stoffwechsel",
+        "Reha & Gesundheit",
+        "Performance & Koordination",
+        "Wellness & Regeneration",
+        "Kurse & Community",
+        "Komfort"
+      ],
+      "description": "Kategorie"
+    },
+    "goal_areas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Zielbereiche"
+    },
+    "short_description": {
+      "type": "string",
+      "description": "Kurzbeschreibung"
+    },
+    "benefit_argument": {
+      "type": "string",
+      "description": "Nutzenargument"
+    },
+    "ideal_for": {
+      "type": "string",
+      "description": "Ideal f\u00fcr"
+    },
+    "less_suitable_for": {
+      "type": "string",
+      "description": "Weniger geeignet f\u00fcr"
+    },
+    "contraindications": {
+      "type": "string",
+      "description": "Kontraindikationen/Hinweise"
+    },
+    "price_monthly": {
+      "type": "number",
+      "description": "Monatlicher Preis in EUR"
+    },
+    "price_once": {
+      "type": "number",
+      "description": "Einmaliger Preis in EUR"
+    },
+    "included_in_tariff": {
+      "type": "boolean",
+      "description": "Im Tarif enthalten"
+    },
+    "is_addon": {
+      "type": "boolean",
+      "description": "Zusatzleistung"
+    },
+    "upsell_priority": {
+      "type": "number",
+      "description": "Upsell-Priorit\u00e4t (1-10)"
+    },
+    "combination_rules": {
+      "type": "string",
+      "description": "Kombinationsregeln"
+    },
+    "experience_required": {
+      "type": "string",
+      "enum": [
+        "keine",
+        "wenig",
+        "mittel",
+        "viel"
+      ],
+      "description": "Mindest-Erfahrung"
+    },
+    "time_efficient": {
+      "type": "boolean",
+      "description": "Zeiteffizient"
+    },
+    "needs_coaching": {
+      "type": "boolean",
+      "description": "Erfordert Betreuung"
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "Aktiv",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "category"
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "name": "Customer",
+  "type": "object",
+  "properties": {
+    "first_name": {
+      "type": "string",
+      "description": "Vorname"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Nachname"
+    },
+    "age": {
+      "type": "number",
+      "description": "Alter"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "m\u00e4nnlich",
+        "weiblich",
+        "divers"
+      ],
+      "description": "Geschlecht"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefonnummer"
+    },
+    "email": {
+      "type": "string",
+      "description": "E-Mail"
+    },
+    "training_goal": {
+      "type": "string",
+      "description": "Haupttrainingsziel"
+    },
+    "training_experience": {
+      "type": "string",
+      "enum": [
+        "keine",
+        "wenig",
+        "mittel",
+        "viel"
+      ],
+      "description": "Trainingserfahrung"
+    },
+    "training_frequency": {
+      "type": "string",
+      "enum": [
+        "1x",
+        "2x",
+        "3x",
+        "4x",
+        "5x+"
+      ],
+      "description": "Gew\u00fcnschte Trainingsh\u00e4ufigkeit pro Woche"
+    },
+    "restrictions": {
+      "type": "string",
+      "description": "Einschr\u00e4nkungen"
+    },
+    "complaints": {
+      "type": "string",
+      "description": "Beschwerden"
+    },
+    "budget_feeling": {
+      "type": "string",
+      "enum": [
+        "sparsam",
+        "preiswert",
+        "flexibel",
+        "egal"
+      ],
+      "description": "Budgetgef\u00fchl"
+    },
+    "interest_coaching": {
+      "type": "boolean",
+      "description": "Interesse an Betreuung"
+    },
+    "interest_wellness": {
+      "type": "boolean",
+      "description": "Interesse an Wellness"
+    },
+    "interest_courses": {
+      "type": "boolean",
+      "description": "Interesse an Kursen"
+    },
+    "interest_reha": {
+      "type": "boolean",
+      "description": "Interesse an \u00a720/Reha-Angeboten"
+    },
+    "privacy_consent": {
+      "type": "boolean",
+      "description": "Datenschutz-Einwilligung"
+    },
+    "privacy_consent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Datum der Einwilligung"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notizen"
+    }
+  },
+  "required": [
+    "first_name",
+    "last_name"
+  ]
+}

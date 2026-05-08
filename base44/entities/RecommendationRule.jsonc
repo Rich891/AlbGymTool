@@ -1,0 +1,49 @@
+{
+  "name": "RecommendationRule",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Regelname"
+    },
+    "description": {
+      "type": "string",
+      "description": "Beschreibung"
+    },
+    "condition_goal": {
+      "type": "string",
+      "description": "Wenn Ziel = ..."
+    },
+    "condition_experience": {
+      "type": "string",
+      "description": "Wenn Erfahrung = ..."
+    },
+    "condition_extra": {
+      "type": "string",
+      "description": "Zus\u00e4tzliche Bedingung"
+    },
+    "boost_services": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Leistungen hoch gewichten (Namen)"
+    },
+    "boost_amount": {
+      "type": "number",
+      "description": "Score-Boost (0-30)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "Aktiv",
+      "default": true
+    },
+    "priority": {
+      "type": "number",
+      "description": "Priorit\u00e4t (1-10)"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

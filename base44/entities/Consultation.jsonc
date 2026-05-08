@@ -1,0 +1,147 @@
+{
+  "name": "Consultation",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "Kunden-ID"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Kundenname"
+    },
+    "consultation_type": {
+      "type": "string",
+      "enum": [
+        "neukunde",
+        "rehasport",
+        "upgrade",
+        "schnellverkauf"
+      ],
+      "description": "Beratungstyp"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "aktiv",
+        "abgeschlossen",
+        "angebot_gespeichert",
+        "testphase",
+        "abgebrochen"
+      ],
+      "default": "aktiv",
+      "description": "Status"
+    },
+    "anamnesis": {
+      "type": "object",
+      "description": "Anamnese-Antworten"
+    },
+    "selected_goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ausgew\u00e4hlte Ziele"
+    },
+    "recommended_services": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Empfohlene Leistungen mit Scores"
+    },
+    "selected_tariff": {
+      "type": "string",
+      "description": "Gew\u00e4hlter Tarif"
+    },
+    "selected_services": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Gew\u00e4hlte Leistungen"
+    },
+    "selected_addons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Gew\u00e4hlte Zusatzleistungen"
+    },
+    "monthly_price": {
+      "type": "number",
+      "description": "Monatlicher Preis"
+    },
+    "start_costs": {
+      "type": "number",
+      "description": "Startkosten"
+    },
+    "discount": {
+      "type": "number",
+      "description": "Rabatt in %"
+    },
+    "contract_duration": {
+      "type": "string",
+      "description": "Vertragslaufzeit"
+    },
+    "trial_period": {
+      "type": "boolean",
+      "description": "14-Tage-Testphase"
+    },
+    "advisor_email": {
+      "type": "string",
+      "description": "Berater E-Mail"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Beratungsnotizen"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "abschluss",
+        "testphase",
+        "angebot",
+        "kein_abschluss"
+      ],
+      "description": "Ergebnis"
+    },
+    "reha_form56": {
+      "type": "boolean",
+      "description": "Formular 56 vorhanden"
+    },
+    "reha_approval": {
+      "type": "boolean",
+      "description": "Genehmigung vorhanden"
+    },
+    "reha_diagnosis": {
+      "type": "string",
+      "description": "Diagnose-/Beschwerdebereich"
+    },
+    "upsells_shown": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Gezeigte Upsells"
+    },
+    "upsells_accepted": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Angenommene Upsells"
+    },
+    "upsells_rejected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Abgelehnte Upsells"
+    }
+  },
+  "required": [
+    "customer_id",
+    "consultation_type"
+  ]
+}

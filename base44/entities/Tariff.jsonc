@@ -1,0 +1,64 @@
+{
+  "name": "Tariff",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Tarifname"
+    },
+    "description": {
+      "type": "string",
+      "description": "Beschreibung"
+    },
+    "monthly_price": {
+      "type": "number",
+      "description": "Monatlicher Preis in EUR"
+    },
+    "start_fee": {
+      "type": "number",
+      "description": "Startgeb\u00fchr in EUR"
+    },
+    "duration_months": {
+      "type": "number",
+      "description": "Mindestlaufzeit in Monaten"
+    },
+    "included_services": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Enthaltene Leistungs-IDs"
+    },
+    "included_service_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Enthaltene Leistungsnamen"
+    },
+    "goal_areas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Passende Zielbereiche"
+    },
+    "ideal_for": {
+      "type": "string",
+      "description": "Ideal f\u00fcr"
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "Aktiv",
+      "default": true
+    },
+    "sort_order": {
+      "type": "number",
+      "description": "Sortierung"
+    }
+  },
+  "required": [
+    "name",
+    "monthly_price"
+  ]
+}
