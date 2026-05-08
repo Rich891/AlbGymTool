@@ -20,26 +20,31 @@ export default function RehaRules({ profile, update, onNext, onBack }) {
         <ArrowLeft className="w-4 h-4" /> Zurück
       </button>
 
-      <div className="text-center mb-8">
-      <h1 className="text-3xl md:text-4xl font-black text-foreground uppercase tracking-tight leading-tight mb-2">
-        WICHTIGE REGELN
-      </h1>
-      <p className="text-muted-foreground">Für deinen Rehasport im AlbGym.</p>
+      <div className="text-center mb-10">
+        <h1 className="text-3xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-none mb-3">
+          WICHTIGE<br /><span className="text-primary">REGELN</span>
+        </h1>
+        <p className="text-lg text-muted-foreground">Für deinen Rehasport im AlbGym.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {RULES.map((rule, i) => {
           const Icon = rule.icon;
           return (
-            <div key={i} className="flex gap-4 p-5 rounded-2xl bg-card border border-border">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07 }}
+              className="flex gap-4 p-6 rounded-3xl bg-card border border-border">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Icon className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h3 className="font-black text-foreground text-base mb-1">{rule.title}</h3>
                 <p className="text-sm text-muted-foreground leading-snug">{rule.text}</p>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
