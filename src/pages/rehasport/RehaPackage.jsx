@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
 
 const PACKAGES = [
   {
@@ -15,15 +14,40 @@ const PACKAGES = [
       'Zugang zu Gruppenkursen',
       '1x wöchentliche Einweisung',
       'Trainingsanalyse & Betreuung',
-      'Beratung durch Trainier',
+      'Beratung durch Trainer',
     ],
-    basePrice: 6.98,
-    monthlyPrice: 30.33,
+    weeklyPrice: 6.98,
+  },
+];
+
+const ADDONS = [
+  {
+    id: 'five',
+    name: 'FIVE Training',
+    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80',
+    color: 'from-orange-600/80',
+    benefits: [
+      'Hochmodernes EMS-Training',
+      'Nur 20 Min pro Woche',
+      'Maximale Effizienz',
+      'Professionelle Betreuung',
+    ],
+  },
+  {
+    id: 'milon',
+    name: 'Milon Training',
+    image: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=800&q=80',
+    color: 'from-blue-600/80',
+    benefits: [
+      'KI-gestütztes Training',
+      'Personalisierte Workouts',
+      'Automatische Anpassung',
+      'Spielerisches Trainieren',
+    ],
   },
 ];
 
 export default function RehaPackage({ profile, update, onNext, onBack }) {
-  const [selectedPackage, setSelectedPackage] = useState('standard');
   const [showSubsidyModal, setShowSubsidyModal] = useState(false);
   const [subsidyVariant, setSubsidyVariant] = useState(null);
   const [section20Accepted, setSection20Accepted] = useState({
@@ -33,12 +57,13 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
     conditions_when_stopped: false,
   });
   const [saving, setSaving] = useState(false);
+  const [showSubsidyPrice, setShowSubsidyPrice] = useState(false);
 
-  const pkg = PACKAGES.find(p => p.id === selectedPackage);
+  const pkg = PACKAGES[0];
   const selectedAddons = profile.selectedOffers || [];
-  const addonsPrice = selectedAddons.length * 5;
-  const weeklyPrice = pkg.basePrice + addonsPrice;
+  const weeklyPrice = pkg.weeklyPrice;
   const monthlyPrice = weeklyPrice * 4.33;
+  const subsidyMonthlyPrice = Math.round(monthlyPrice * 0.5); // 50% Beispiel
 
   const handleSelectSubsidy = (variant) => {
     setSubsidyVariant(variant);
@@ -77,6 +102,13 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
     }
   };
 
+  const handleSubsidyClick = () => {
+    setShowSubsidyPrice(true);
+    setTimeout(() => {
+      handleSelectSubsidy('1_course');
+    }, 300);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -113,15 +145,15 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
 
       {/* Content */}
       <div className="flex-1 px-4 md:px-8 py-12 overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-8">
           {/* Leistungen */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border border-border rounded-3xl p-8 mb-10">
+            className="bg-card border border-border rounded-3xl p-8">
             <h2 className="text-2xl font-black text-foreground uppercase mb-6">Das ist enthalten</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pkg.includes.map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
@@ -131,36 +163,47 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 </div>
               ))}
             </div>
-
-            {/* Addons */}
-            {selectedAddons.length > 0 && (
-              <div className="border-t border-border pt-6">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-3">
-                  + Zusätzlich gewählt
-                </p>
-                <div className="space-y-2">
-                  {selectedAddons.includes('five') && (
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-orange-500/10 border border-orange-400/30">
-                      <span className="font-bold text-foreground">FIVE Training</span>
-                      <span className="text-orange-400 font-bold">+5,00€/Wo</span>
-                    </div>
-                  )}
-                  {selectedAddons.includes('milon') && (
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-blue-500/10 border border-blue-400/30">
-                      <span className="font-bold text-foreground">Milon Training</span>
-                      <span className="text-blue-400 font-bold">+5,00€/Wo</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </motion.div>
 
-          {/* Pricing Section */}
+          {/* Addons - wenn ausgewählt */}
+          {selectedAddons.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="space-y-4">
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">+ Du hast auch gewählt</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ADDONS.filter(a => selectedAddons.includes(a.id)).map(addon => (
+                  <div
+                    key={addon.id}
+                    className="relative overflow-hidden rounded-3xl h-64 group">
+                    <img
+                      src={addon.image}
+                      alt={addon.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className={`absolute inset-0 bg-gradient-to-t ${addon.color} to-transparent`} />
+
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                      <h3 className="text-2xl font-black uppercase mb-2">{addon.name}</h3>
+                      <div className="text-xs space-y-1">
+                        {addon.benefits.slice(0, 2).map((b, i) => (
+                          <p key={i} className="text-white/80">✓ {b}</p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Pricing */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.2 }}
             className="space-y-6">
             {/* Standard Pricing */}
             <div className="bg-card border-2 border-border rounded-3xl p-8">
@@ -181,45 +224,52 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 whileTap={{ scale: 0.97 }}
                 onClick={handleStartWithoutSubsidy}
                 disabled={saving}
-                className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Jetzt starten ohne Zuschuss →'}
+                className="w-full h-14 rounded-2xl bg-secondary text-secondary-foreground font-black uppercase tracking-wide hover:bg-secondary/80 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Jetzt starten →'}
               </motion.button>
             </div>
 
-            {/* Subsidy Option */}
-            <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/40 rounded-3xl p-8 relative overflow-hidden">
-              <div className="absolute top-4 right-4 px-3 py-1 bg-primary text-primary-foreground text-xs font-black uppercase rounded-full">
-                Sparoptionen
+            {/* Subsidy Button - BIG & ANIMIERT */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSubsidyClick}
+              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-8 md:p-12 w-full group">
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-white transition-opacity duration-300" />
+
+              <div className="relative space-y-6">
+                <div className="text-center">
+                  <p className="text-sm font-bold uppercase tracking-widest text-primary-foreground/80 mb-2">
+                    💰 Krankenkassen-Zuschuss
+                  </p>
+                  <h2 className="text-3xl md:text-4xl font-black uppercase leading-tight">
+                    WOW! Spar bis zu 50%
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <p className="text-sm opacity-80">Normalpreis</p>
+                    <p className="text-2xl font-black line-through opacity-60">{monthlyPrice.toFixed(2)}€</p>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="text-3xl opacity-60">→</div>
+                  </div>
+                  <motion.div
+                    initial={{ scale: 1 }}
+                    animate={showSubsidyPrice ? { scale: 1.1 } : { scale: 1 }}
+                    className="text-center bg-primary-foreground/20 rounded-2xl p-3">
+                    <p className="text-sm opacity-80">Mit Zuschuss</p>
+                    <p className="text-3xl font-black text-primary-foreground">
+                      {subsidyMonthlyPrice}€
+                    </p>
+                  </motion.div>
+                </div>
+
+                <div className="text-center border-t border-primary-foreground/20 pt-4">
+                  <p className="text-sm font-bold">Klick um Zuschuss zu berechnen →</p>
+                </div>
               </div>
-
-              <h3 className="text-xl font-black text-foreground uppercase mb-6">Mit Krankenkassen-Zuschuss</h3>
-
-              <div className="space-y-3 mb-8">
-                <p className="text-sm text-muted-foreground">
-                  Viele Krankenkassen bezuschussen zertifizierte Präventionskurse nach §20 SGB V. Wir berechnen deinen möglichen Zuschuss live für dich.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handleSelectSubsidy('1_course')}
-                  className="p-5 rounded-2xl border-2 border-primary/30 bg-background hover:border-primary hover:bg-primary/5 transition-all text-left">
-                  <p className="font-black text-foreground mb-1">1 §20-Kurs (6 Monate)</p>
-                  <p className="text-xs text-muted-foreground">Einmalgebühr 99€</p>
-                  <p className="text-sm font-bold text-primary mt-2">Zuschuss bis 99€</p>
-                </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handleSelectSubsidy('2_courses')}
-                  className="p-5 rounded-2xl border-2 border-primary/30 bg-background hover:border-primary hover:bg-primary/5 transition-all text-left">
-                  <p className="font-black text-foreground mb-1">2 §20-Kurse (12 Monate)</p>
-                  <p className="text-xs text-muted-foreground">2 × 99€ Gebühren</p>
-                  <p className="text-sm font-bold text-primary mt-2">Zuschuss bis 198€</p>
-                </motion.button>
-              </div>
-            </div>
+            </motion.button>
           </motion.div>
         </div>
       </div>
@@ -238,32 +288,28 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
               exit={{ scale: 0.9 }}
               className="bg-card border border-border rounded-3xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-black text-foreground uppercase mb-6">
-                WOW! Dein Zuschuss
+                🎉 Dein Zuschuss
               </h2>
 
-              {/* Preisberechnung */}
               <div className="bg-primary/10 border border-primary/30 rounded-2xl p-6 mb-8">
-                <div className="space-y-3 mb-4">
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Normalpreis monatlich:</span>
+                    <span className="text-muted-foreground">Normalpreis/Monat</span>
                     <span className="line-through text-muted-foreground">{monthlyPrice.toFixed(2)}€</span>
                   </div>
                   <div className="flex justify-between items-center border-t border-primary/20 pt-3">
-                    <span className="font-bold text-foreground">Mit Zuschuss:</span>
-                    <span className="text-2xl font-black text-primary">
-                      {(monthlyPrice - (subsidyVariant === '2_courses' ? 50 : 25)).toFixed(2)}€
-                    </span>
+                    <span className="font-bold text-foreground">Mit Zuschuss</span>
+                    <span className="text-3xl font-black text-primary">{subsidyMonthlyPrice}€</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-primary font-bold">Du sparst:</span>
-                    <span className="text-lg font-black text-primary">
-                      ~{subsidyVariant === '2_courses' ? '50' : '25'}€/Monat
+                    <span className="text-sm text-primary font-bold">Du sparst monatlich</span>
+                    <span className="text-2xl font-black text-primary">
+                      {(monthlyPrice - subsidyMonthlyPrice).toFixed(0)}€
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* §20 Bedingungen */}
               <div className="space-y-4 mb-8">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Bedingungen akzeptieren</p>
 
@@ -289,7 +335,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 <button
                   onClick={() => setShowSubsidyModal(false)}
                   className="flex-1 h-12 rounded-2xl border border-border text-foreground hover:bg-secondary transition-all font-bold">
-                  Abbrechen
+                  Zurück
                 </button>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
