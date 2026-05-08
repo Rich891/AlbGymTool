@@ -54,12 +54,19 @@ export default function RehasportFlow() {
   return (
     <div className="min-h-screen bg-background">
       {/* Test-Mode Toggle – nur für Berater sichtbar */}
-      <div className="fixed top-3 right-3 z-50">
+      <div className="fixed top-3 right-3 z-50 flex flex-col gap-1 items-end">
         <button
           onClick={() => setTestMode(t => !t)}
           className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all border ${testMode ? 'bg-orange-500/20 border-orange-500/60 text-orange-400' : 'bg-card border-border text-muted-foreground/40 hover:text-muted-foreground'}`}>
           {testMode ? '⚙ TEST AN' : '⚙'}
         </button>
+        {testMode && (
+          <button
+            onClick={() => { update({ bookingDone: true }); setStep(11); }}
+            className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all border bg-orange-500/20 border-orange-500/60 text-orange-400 hover:bg-orange-500/30">
+            Termin dummy →
+          </button>
+        )}
       </div>
       <AnimatePresence mode="wait">
         <motion.div
