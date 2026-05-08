@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Check, ChevronLeft, ChevronRight, Loader2, Calendar, Clock, User } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 
 const SERVICE_IDS = { geraete: 24, five: 26, milon: 25 };
@@ -18,23 +18,34 @@ const SERVICE_IMAGES = {
   milon: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=700&q=80',
 };
 
-const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+const SERVICE_LOGOS = {
+  five: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/0291e3711_442236-five_logo_4c_weiss.png',
+  milon: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/d9acc9839_442240-milon_logo_weiss.png',
+};
 
-function fmt(d) {
+// Per-service accent: gradient overlay + slot color
+const SERVICE_STYLE = {
+  geraete: { gradient: 'from-emerald-900/95', slotBg: 'bg-primary/15 border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-[0_0_12px_rgba(0,230,80,0.35)]' },
+  five:    { gradient: 'from-orange-900/95',  slotBg: 'bg-orange-500/15 border-orange-400/40 text-orange-300 hover:bg-orange-500 hover:text-white hover:border-orange-400 hover:shadow-[0_0_12px_rgba(251,146,60,0.4)]' },
+  milon:   { gradient: 'from-blue-900/95',    slotBg: 'bg-blue-500/15 border-blue-400/40 text-blue-300 hover:bg-blue-500 hover:text-white hover:border-blue-400 hover:shadow-[0_0_12px_rgba(96,165,250,0.4)]' },
+};
+
+const WEEKDAYS_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+
+function fmtDate(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
-// Get Monday of the week containing `date`
 function getMonday(date) {
   const d = new Date(date);
-  const day = d.getDay(); // 0=So
-  const diff = (day === 0 ? -6 : 1 - day);
-  d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
   return d;
 }
 
@@ -45,14 +56,13 @@ function addDays(date, n) {
 }
 
 function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, onBack }) {
-  const [step, setStep] = useState('week'); // week | confirm | done
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const [step, setStep] = useState('week');
   const [weekStart, setWeekStart] = useState(() => getMonday(today));
   const [workDays, setWorkDays] = useState({});
   const [loadingDays, setLoadingDays] = useState(false);
-  // slots per date: { '2026-05-15': ['10:00:00', ...] }
   const [slotsByDate, setSlotsByDate] = useState({});
   const [loadingSlots, setLoadingSlots] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
@@ -60,14 +70,15 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load work calendar once
+  const style = SERVICE_STYLE[serviceType];
+
   useEffect(() => {
     const load = async () => {
       setLoadingDays(true);
       try {
         const res = await base44.functions.invoke('simplybookApi', { action: 'getWorkDays', serviceId });
         setWorkDays(res.data.schedule || {});
-      } catch (e) {
+      } catch {
         setError('Kalender konnte nicht geladen werden.');
       }
       setLoadingDays(false);
@@ -75,26 +86,23 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
     load();
   }, [serviceId]);
 
-  // The 7 days of the current week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const isWorkDay = (d) => {
-    const key = fmt(d);
+    const key = fmtDate(d);
     const info = workDays[key];
-    if (!info) return false;
-    if (info === '0') return false;
-    if (info.is_day_off === '1') return false;
+    if (!info || info === '0') return false;
+    if (typeof info === 'object' && info.is_day_off === '1') return false;
     return true;
   };
 
-  const isPast = (d) => d < today;
-
-  // Load slots for all available days of the week
+  // Load slots for available days of this week
   useEffect(() => {
     if (loadingDays) return;
-    const availDays = weekDays.filter(d => !isPast(d) && isWorkDay(d));
-    availDays.forEach(async (d) => {
-      const key = fmt(d);
+    weekDays.forEach(async (d) => {
+      if (d < today) return;
+      if (!isWorkDay(d)) return;
+      const key = fmtDate(d);
       if (slotsByDate[key] !== undefined || loadingSlots[key]) return;
       setLoadingSlots(prev => ({ ...prev, [key]: true }));
       try {
@@ -107,22 +115,13 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
     });
   }, [weekStart, workDays, loadingDays]);
 
-  const handleSelectSlot = (dateStr, time) => {
-    setSelectedDate(dateStr);
-    setSelectedTime(time);
-    setStep('confirm');
-  };
-
   const handleBook = async () => {
     setBooking(true);
     setError(null);
     try {
       await base44.functions.invoke('simplybookApi', {
-        action: 'book',
-        serviceId,
-        unitId,
-        date: selectedDate,
-        time: selectedTime,
+        action: 'book', serviceId, unitId,
+        date: selectedDate, time: selectedTime,
         clientData: {
           name: clientData.name,
           email: clientData.email || 'info@alb-gym.de',
@@ -136,14 +135,16 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
     setBooking(false);
   };
 
-  const weekEnd = addDays(weekStart, 6);
   const fmtShort = (d) => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;
+  const weekEnd = addDays(weekStart, 6);
 
-  // Days that have at least one slot
+  // Only days with actual slots
   const daysWithSlots = weekDays.filter(d => {
-    const key = fmt(d);
-    return !isPast(d) && isWorkDay(d) && slotsByDate[key] && slotsByDate[key].length > 0;
+    const key = fmtDate(d);
+    return d >= today && isWorkDay(d) && slotsByDate[key] && slotsByDate[key].length > 0;
   });
+
+  const anyLoading = weekDays.some(d => loadingSlots[fmtDate(d)]);
 
   if (step === 'done') {
     return (
@@ -165,7 +166,7 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
 
   return (
     <div>
-      {/* Header */}
+      {/* Back + label */}
       <div className="flex items-center gap-3 mb-5">
         <button
           onClick={step === 'week' ? onBack : () => setStep('week')}
@@ -175,121 +176,108 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
         </button>
         <div>
           <p className="text-xs text-primary uppercase tracking-widest font-bold">{SERVICE_LABELS[serviceType]}</p>
-          <p className="text-sm text-foreground font-semibold">
-            {step === 'week' ? 'Termin wählen' : 'Bestätigen'}
-          </p>
+          <p className="text-sm text-foreground font-semibold">{step === 'week' ? 'Termin wählen' : 'Bestätigen'}</p>
         </div>
       </div>
 
-      {error && <p className="text-destructive text-sm mb-4 px-1">{error}</p>}
+      {error && <p className="text-destructive text-sm mb-4">{error}</p>}
 
       {/* WEEK VIEW */}
       {step === 'week' && (
         <div>
-          {/* Week navigation */}
-          <div className="flex items-center justify-between mb-5 px-1">
+          {/* Week nav */}
+          <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => setWeekStart(addDays(weekStart, -7))}
               disabled={addDays(weekStart, -1) < today}
-              className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ChevronLeft className="w-4 h-4" /> Vorige Woche
+              <ChevronLeft className="w-3.5 h-3.5" /> Vorige Woche
             </button>
             <span className="text-xs font-black text-foreground tracking-wider">
               {fmtShort(weekStart)} – {fmtShort(weekEnd)}.{weekEnd.getFullYear()}
             </span>
             <button
               onClick={() => setWeekStart(addDays(weekStart, 7))}
-              className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
             >
-              Nächste Woche <ChevronRight className="w-4 h-4" />
+              Nächste Woche <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {loadingDays ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
+          {loadingDays || anyLoading && daysWithSlots.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-3">
               <Loader2 className="w-7 h-7 animate-spin text-primary" />
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Lädt…</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Termine werden geladen…</p>
             </div>
-          ) : daysWithSlots.length === 0 && !Object.values(loadingSlots).some(Boolean) ? (
+          ) : daysWithSlots.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-muted-foreground text-sm mb-4">Keine freien Termine diese Woche.</p>
-              <button
-                onClick={() => setWeekStart(addDays(weekStart, 7))}
-                className="text-xs text-primary font-black uppercase tracking-wide hover:underline flex items-center gap-1 mx-auto"
-              >
+              <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-1 text-xs text-primary font-black uppercase tracking-wide hover:underline mx-auto">
                 Nächste Woche <ChevronRight className="w-3 h-3" />
               </button>
             </div>
           ) : (
             <div className="space-y-3">
-              {weekDays.map((d) => {
-                const key = fmt(d);
-                const past = isPast(d);
-                const workday = isWorkDay(d);
-                const loading = loadingSlots[key];
+              {daysWithSlots.map((d) => {
+                const key = fmtDate(d);
                 const daySlots = slotsByDate[key] || [];
-
-                if (past || !workday) return null;
+                const dayName = WEEKDAYS_SHORT[d.getDay()];
+                const monthName = MONTHS_SHORT[d.getMonth()];
 
                 return (
-                  <div key={key} className="rounded-2xl border border-border bg-card overflow-hidden">
-                    {/* Day header */}
-                    <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-secondary/50">
-                      <div className="text-center min-w-[2.5rem]">
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
-                          {MONTHS[d.getMonth()]} {d.getDate()}
-                        </p>
-                        <p className="text-lg font-black text-foreground leading-none">
-                          {WEEKDAYS[(d.getDay() + 6) % 7]}
-                        </p>
-                      </div>
-                      {daySlots.length > 0 && (
-                        <div className="flex items-center gap-1.5 ml-auto">
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                          <span className="text-xs text-primary font-bold">{daySlots.length} frei</span>
-                        </div>
-                      )}
-                    </div>
+                  <div key={key} className="relative overflow-hidden rounded-3xl border border-border">
+                    <div className="flex min-h-[120px]">
+                      {/* Left: image panel */}
+                      <div className="relative w-28 flex-shrink-0 overflow-hidden">
+                        <img
+                          src={SERVICE_IMAGES[serviceType]}
+                          alt={SERVICE_LABELS[serviceType]}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <div className={`absolute inset-0 bg-gradient-to-r ${style.gradient} to-transparent`} />
 
-                    {/* Slots */}
-                    <div className="p-3">
-                      {loading ? (
-                        <div className="flex justify-center py-3">
-                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        {/* Logo if available */}
+                        {SERVICE_LOGOS[serviceType] && (
+                          <div className="absolute top-3 left-3 right-3 z-10">
+                            <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-5 object-contain object-left" />
+                          </div>
+                        )}
+
+                        {/* Date */}
+                        <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+                          <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">{monthName} {d.getDate()}</p>
+                          <p className="text-2xl font-black text-white leading-none">{dayName}</p>
                         </div>
-                      ) : daySlots.length === 0 ? (
-                        <p className="text-xs text-muted-foreground/40 text-center py-2">Keine freien Zeiten</p>
-                      ) : (
+                      </div>
+
+                      {/* Right: slots */}
+                      <div className="flex-1 bg-card p-4 flex flex-col justify-center">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-3">
+                          {daySlots.length} freie{daySlots.length === 1 ? 'r' : ''} Termin{daySlots.length !== 1 ? 'e' : ''}
+                        </p>
                         <div className="flex flex-wrap gap-2">
                           {daySlots.map(slot => (
                             <motion.button
                               key={slot}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => handleSelectSlot(key, slot)}
-                              className="px-4 py-2 rounded-xl text-sm font-black border border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-[0_0_12px_rgba(0,230,80,0.3)] transition-all cursor-pointer"
+                              whileTap={{ scale: 0.93 }}
+                              onClick={() => { setSelectedDate(key); setSelectedTime(slot); setStep('confirm'); }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${style.slotBg}`}
                             >
                               {slot.slice(0, 5)}
                             </motion.button>
                           ))}
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
-
-              {/* Show loading days that are workdays */}
-              {Object.values(loadingSlots).some(Boolean) && daysWithSlots.length === 0 && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                </div>
-              )}
             </div>
           )}
 
           {/* Legend */}
-          <div className="flex items-center gap-1.5 mt-5 px-1">
+          <div className="flex items-center gap-1.5 mt-4 px-1">
             <div className="w-1.5 h-1.5 rounded-full bg-primary" />
             <span className="text-xs text-muted-foreground">Verfügbar</span>
           </div>
@@ -350,11 +338,10 @@ export default function RehaAppointment({ profile, onDone }) {
   const hasFive = selected.includes('five');
   const hasMilon = selected.includes('milon');
 
-  // Determine which einweisungen are needed
   const needed = [];
   if (hasFive) needed.push('five');
   if (hasMilon) needed.push('milon');
-  if (!hasFive && !hasMilon) needed.push('geraete'); // fallback
+  if (!hasFive && !hasMilon) needed.push('geraete');
 
   const [confirmed, setConfirmed] = useState({});
   const [activeService, setActiveService] = useState(null);
@@ -363,10 +350,17 @@ export default function RehaAppointment({ profile, onDone }) {
 
   const clientData = { name: profile.name, email: profile.email || 'info@alb-gym.de', phone: profile.phone || '+4973819386510' };
 
+  const SERVICE_IMAGES_OUTER = {
+    geraete: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=700&q=80',
+    five: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=700&q=80',
+    milon: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=700&q=80',
+  };
+  const OUTER_GRADIENT = { geraete: 'from-emerald-900/95', five: 'from-orange-900/95', milon: 'from-blue-900/95' };
+  const OUTER_ACCENT = { geraete: 'text-primary', five: 'text-orange-400', milon: 'text-blue-400' };
+
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
       <div className="w-full max-w-2xl">
-
         {activeService ? (
           <div className="bg-card border border-border rounded-3xl p-6">
             <BookingFlow
@@ -383,7 +377,6 @@ export default function RehaAppointment({ profile, onDone }) {
           </div>
         ) : (
           <>
-            {/* Header */}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                 <Check className="w-6 h-6 text-primary-foreground" />
@@ -397,11 +390,11 @@ export default function RehaAppointment({ profile, onDone }) {
               Super, {firstName}! Buche jetzt deine Einweisungstermine direkt hier.
             </p>
 
-            <div className={`grid gap-4 mb-8 ${needed.length > 1 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+            <div className="space-y-4 mb-8">
               {needed.map(type => (
                 <motion.button
                   key={type}
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => !confirmed[type] && setActiveService(type)}
                   className={`group relative overflow-hidden rounded-3xl h-48 text-left focus:outline-none w-full transition-all duration-300
                     ${confirmed[type]
@@ -409,8 +402,14 @@ export default function RehaAppointment({ profile, onDone }) {
                       : 'hover:shadow-[0_0_20px_rgba(255,255,255,0.06)] cursor-pointer'
                     }`}
                 >
-                  <img src={SERVICE_IMAGES[type]} alt={SERVICE_LABELS[type]} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <div className={`absolute inset-0 bg-gradient-to-t transition-all duration-300 ${confirmed[type] ? 'from-primary/60 to-black/50' : 'from-black/85 to-black/40'}`} />
+                  <img src={SERVICE_IMAGES_OUTER[type]} alt={SERVICE_LABELS[type]} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className={`absolute inset-0 bg-gradient-to-t ${OUTER_GRADIENT[type]} to-black/40 transition-all duration-300`} />
+
+                  {SERVICE_LOGOS[type] && (
+                    <div className="absolute top-4 left-5 z-10 h-7">
+                      <img src={SERVICE_LOGOS[type]} alt="" className="h-full object-contain" />
+                    </div>
+                  )}
 
                   {confirmed[type] && (
                     <div className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-primary flex items-center justify-center">
@@ -419,7 +418,7 @@ export default function RehaAppointment({ profile, onDone }) {
                   )}
 
                   <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
-                    <h3 className={`text-lg font-black uppercase leading-tight transition-colors duration-300 ${confirmed[type] ? 'text-primary' : 'text-white'}`}>
+                    <h3 className={`text-lg font-black uppercase leading-tight transition-colors duration-300 ${confirmed[type] ? 'text-primary' : OUTER_ACCENT[type]}`}>
                       {SERVICE_LABELS[type]}
                     </h3>
                     <span className={`mt-1 inline-block text-xs font-semibold uppercase tracking-widest ${confirmed[type] ? 'text-primary' : 'text-white/50'}`}>
