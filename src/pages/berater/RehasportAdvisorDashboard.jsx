@@ -5,6 +5,7 @@ import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut } from 'lucide
 import { motion } from 'framer-motion';
 import TeilnahmebescheinigungDownload from './TeilnahmebescheinigungDownload';
 import CustomerDetail from './CustomerDetail';
+import InsuranceManager from './InsuranceManager';
 
 const NAV_ITEMS = [
   { id: 'customers', label: 'Kundenkatalog', icon: Users },
@@ -135,47 +136,7 @@ export default function RehasportAdvisorDashboard() {
           </div>
         )}
 
-        {activeTab === 'insurance' && (
-          <div>
-            <h1 className="text-3xl font-black text-foreground uppercase mb-6">Krankenkassen-Datenbank</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {insurances.map(insurance => (
-                <motion.div
-                  key={insurance.id}
-                  className="bg-card border border-border rounded-2xl p-6">
-                  <h3 className="text-lg font-black text-foreground mb-4">{insurance.name}</h3>
-                  <div className="space-y-2 text-sm mb-4">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Zuschuss/Kurs</span>
-                      <span className="font-bold text-foreground">{insurance.subsidy_per_course}€</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Zuschuss/Jahr</span>
-                      <span className="font-bold text-foreground">{insurance.subsidy_per_year}€</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Kurse/Jahr</span>
-                      <span className="font-bold text-foreground">{insurance.courses_per_year}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Status</span>
-                      <span className={`font-bold ${insurance.status === 'bestätigt' ? 'text-primary' : insurance.status === 'prüfen' ? 'text-orange-500' : 'text-destructive'}`}>
-                        {insurance.status}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Zuletzt geprüft</span>
-                      <span>{insurance.last_verified}</span>
-                    </div>
-                  </div>
-                  <button className="w-full h-10 rounded-xl border border-border text-foreground hover:bg-secondary transition-all text-sm font-bold uppercase">
-                    Bearbeiten
-                  </button>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
+        {activeTab === 'insurance' && <InsuranceManager />}
 
         {activeTab === 'tariffs' && (
           <div>

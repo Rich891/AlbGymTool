@@ -11,11 +11,16 @@
       "items": {
         "type": "string"
       },
-      "description": "Alternative Namen"
+      "description": "Alternative Namen / Abk\u00fcrzungen"
     },
     "region": {
       "type": "string",
       "description": "Region/Bundesland"
+    },
+    "approval_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "Genehmigung f\u00fcr Rehasport-Rezept erforderlich?"
     },
     "subsidy_per_course": {
       "type": "number",
@@ -52,7 +57,7 @@
     },
     "note": {
       "type": "string",
-      "description": "Hinweistext"
+      "description": "Hinweistext / Besonderheiten"
     },
     "source_url": {
       "type": "string",
@@ -71,12 +76,12 @@
         "veraltet"
       ],
       "default": "best\u00e4tigt",
-      "description": "Status"
+      "description": "Datenstatus"
     },
     "is_active": {
       "type": "boolean",
       "default": true,
-      "description": "Aktiv"
+      "description": "Aktiv (erscheint in Auswahllisten)"
     }
   },
   "required": [

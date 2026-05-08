@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ChevronLeft, AlertCircle, Loader2, FlaskConical, CheckCircle2, XCircle } from 'lucide-react';
+import { ChevronLeft, AlertCircle, Loader2, FlaskConical, CheckCircle2, XCircle, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 
 // --- IBAN Validation (Mod97, no external lib needed) ---
 function validateIban(iban) {
@@ -72,6 +73,19 @@ function FieldSuccess({ show, msg }) {
 }
 
 export default function RehaBeforeClosing({ profile, update, onNext, onBack, testMode }) {
+  const [insuranceOpen, setInsuranceOpen] = useState(false);
+  const [insuranceSearch, setInsuranceSearch] = useState('');
+
+  const { data: insuranceList = [] } = useQuery({
+    queryKey: ['health-insurances'],
+    queryFn: () => base44.entities.HealthInsurance.list('name', 200),
+    select: data => data.filter(i => i.is_active !== false),
+  });
+
+  const filteredInsurances = insuranceList.filter(i =>
+    i.name?.toLowerCase().includes(insuranceSearch.toLowerCase())
+  );
+
   const [formData, setFormData] = useState({
     address: profile.address || '',
     email: profile.email || '',
@@ -284,18 +298,62 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack, tes
             <FieldError msg={touched.phone && !formData.phone?.trim() ? 'Bitte Telefonnummer eingeben' : null} />
           </div>
 
-          {/* Krankenkasse */}
-          <div>
+          {/* Krankenkasse – Dropdown aus DB */}
+          <div className="relative">
             <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Krankenkasse *</label>
-            <input
-              type="text"
-              value={formData.health_insurance}
-              onChange={e => set('health_insurance', e.target.value)}
-              onBlur={() => blur('health_insurance')}
-              placeholder="z. B. AOK Baden-Württemberg"
-              className={inputCls('health_insurance')}
-            />
-            <FieldError msg={touched.health_insurance && !formData.health_insurance?.trim() ? 'Bitte Krankenkasse eingeben' : null} />
+            <button
+              type="button"
+              onClick={() => { setInsuranceOpen(o => !o); setInsuranceSearch(''); }}
+              onBlur={() => { blur('health_insurance'); }}
+              className={`w-full h-12 px-4 rounded-2xl border bg-background text-left flex items-center justify-between focus:outline-none transition-all ${
+                touched.health_insurance && !formData.health_insurance?.trim()
+                  ? 'border-destructive'
+                  : formData.health_insurance
+                  ? 'border-primary/60'
+                  : 'border-border'
+              }`}>
+              <span className={formData.health_insurance ? 'text-foreground' : 'text-muted-foreground/40'}>
+                {formData.health_insurance || 'Krankenkasse auswählen...'}
+              </span>
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${insuranceOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+              {insuranceOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="absolute z-50 w-full mt-1 bg-card border border-border rounded-2xl shadow-xl overflow-hidden">
+                  <div className="p-2 border-b border-border">
+                    <input
+                      autoFocus
+                      value={insuranceSearch}
+                      onChange={e => setInsuranceSearch(e.target.value)}
+                      placeholder="Suchen..."
+                      className="w-full h-9 px-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary text-sm"
+                    />
+                  </div>
+                  <div className="max-h-56 overflow-y-auto">
+                    {filteredInsurances.length === 0 ? (
+                      <p className="p-4 text-sm text-muted-foreground text-center">Keine Treffer</p>
+                    ) : filteredInsurances.map(ins => (
+                      <button
+                        key={ins.id}
+                        type="button"
+                        onClick={() => { set('health_insurance', ins.name); setInsuranceOpen(false); }}
+                        className="w-full px-4 py-3 text-left text-sm hover:bg-secondary transition-all flex items-center justify-between">
+                        <span className="text-foreground font-medium">{ins.name}</span>
+                        {ins.approval_required && (
+                          <span className="text-xs text-orange-400 font-bold">Genehmigung nötig</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <FieldError msg={touched.health_insurance && !formData.health_insurance?.trim() ? 'Bitte Krankenkasse wählen' : null} />
           </div>
 
           {/* Versicherungsnummer */}
