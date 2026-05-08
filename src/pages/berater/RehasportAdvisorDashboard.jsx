@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
+import TeilnahmebescheinigungDownload from './TeilnahmebescheinigungDownload';
 
 const NAV_ITEMS = [
   { id: 'customers', label: 'Kundenkatalog', icon: Users },
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
 export default function RehasportAdvisorDashboard() {
   const [activeTab, setActiveTab] = useState('customers');
   const [searchTerm, setSearchTerm] = useState('');
+  const [bescheinigungFor, setBescheinigungFor] = useState(null);
 
   const { data: consultations = [] } = useQuery({
     queryKey: ['rehasport-consultations'],
@@ -91,10 +93,11 @@ export default function RehasportAdvisorDashboard() {
                     <th className="text-left p-3 font-bold text-muted-foreground">Krankenkasse</th>
                     <th className="text-left p-3 font-bold text-muted-foreground">Paket</th>
                     <th className="text-left p-3 font-bold text-muted-foreground">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredConsultations.map(consultation => (
+                    <th className="text-left p-3 font-bold text-muted-foreground">Dokumente</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {filteredConsultations.map(consultation => (
                     <tr key={consultation.id} className="border-b border-border hover:bg-secondary/50 transition-all">
                       <td className="p-3 font-medium text-foreground">{consultation.customer_name}</td>
                       <td className="p-3 text-muted-foreground">{consultation.email || '–'}</td>
@@ -110,8 +113,18 @@ export default function RehasportAdvisorDashboard() {
                           {consultation.status}
                         </span>
                       </td>
+                      <td className="p-3">
+                        {consultation.subsidy_active && (
+                          <button
+                            onClick={() => setBescheinigungFor(consultation)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all text-xs font-bold uppercase tracking-wide whitespace-nowrap">
+                            <FileText className="w-3.5 h-3.5" />
+                            §20 PDFs
+                          </button>
+                        )}
+                      </td>
                     </tr>
-                  ))}
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -219,6 +232,13 @@ export default function RehasportAdvisorDashboard() {
           </div>
         )}
       </div>
+
+      {bescheinigungFor && (
+        <TeilnahmebescheinigungDownload
+          consultation={bescheinigungFor}
+          onClose={() => setBescheinigungFor(null)}
+        />
+      )}
     </div>
   );
 }

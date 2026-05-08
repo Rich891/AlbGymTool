@@ -11,9 +11,10 @@ export function generateTeilnahmebescheinigung(profile) {
   const today = new Date();
   const todayStr = today.toLocaleDateString('de-DE');
 
-  // Startdatum = heute, Enddatum = heute + 6 Monate
-  const endDate = new Date(today);
-  endDate.setMonth(endDate.getMonth() + 6);
+  // Startdatum / Enddatum: aus Profil übernehmen wenn vorhanden, sonst Fallback
+  const startDate = profile._startDate ? new Date(profile._startDate) : today;
+  const endDate = profile._endDate ? new Date(profile._endDate) : (() => { const d = new Date(today); d.setMonth(d.getMonth() + 2); return d; })();
+  const startDateStr = startDate.toLocaleDateString('de-DE');
   const endDateStr = endDate.toLocaleDateString('de-DE');
 
   // --- Helper ---
@@ -69,7 +70,7 @@ export function generateTeilnahmebescheinigung(profile) {
 
   // von / bis
   black(); normal(); doc.setFontSize(8.5);
-  text(todayStr, 28, y);
+  text(startDateStr, 28, y);
   line(28, y + 1, 85, y + 1);
   text(endDateStr, 100, y);
   line(100, y + 1, W - 15, y + 1);
