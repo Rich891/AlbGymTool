@@ -218,69 +218,70 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
               </button>
             </div>
           ) : (
-            <div className="space-y-6">
-              {daysWithSlots.map((d) => {
-                const key = fmtDate(d);
-                const daySlots = slotsByDate[key] || [];
-                const dayName = WEEKDAYS_SHORT[d.getDay()];
-                const monthName = MONTHS_SHORT[d.getMonth()];
+            <>
+              {/* Hero banner with image */}
+              <div className="relative h-56 rounded-3xl overflow-hidden mb-8 border border-border">
+                <img
+                  src={SERVICE_IMAGES[serviceType]}
+                  alt={SERVICE_LABELS[serviceType]}
+                  className="w-full h-full object-cover"
+                />
+                <div className={`absolute inset-0 bg-gradient-to-b ${style.gradient} to-transparent`} />
+                {SERVICE_LOGOS[serviceType] && (
+                  <div className="absolute top-5 left-6 z-10 h-10">
+                    <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-full object-contain" />
+                  </div>
+                )}
+              </div>
 
-                return (
-                  <div key={key}>
-                    {/* Date label above */}
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3 px-1">
-                      {dayName}, {d.getDate()}. {monthName}
-                    </p>
+              {/* Slots grid */}
+              <div className="space-y-3">
+                {daysWithSlots.map((d) => {
+                  const key = fmtDate(d);
+                  const daySlots = slotsByDate[key] || [];
+                  const dayName = WEEKDAYS_SHORT[d.getDay()];
+                  const monthName = MONTHS_SHORT[d.getMonth()];
 
-                    {/* Hero card */}
-                    <div className="relative overflow-hidden rounded-3xl border border-border bg-card">
-                      {/* Hero image strip */}
-                      <div className="relative h-44 overflow-hidden">
-                        <img
-                          src={SERVICE_IMAGES[serviceType]}
-                          alt={SERVICE_LABELS[serviceType]}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className={`absolute inset-0 bg-gradient-to-b ${style.gradient} to-transparent`} />
-
-                        {/* Logo top-left */}
-                        {SERVICE_LOGOS[serviceType] && (
-                          <div className="absolute top-4 left-5 z-10 h-8">
-                            <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-full object-contain" />
-                          </div>
-                        )}
-
-                        {/* Slot count badge top-right */}
-                        <div className="absolute top-4 right-4 z-10 px-3 py-1 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
-                          <p className="text-xs font-black text-white">{daySlots.length} frei</p>
-                        </div>
-                      </div>
-
-                      {/* Slots grid below the image */}
-                      <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  return (
+                    <div key={key} className="space-y-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">{dayName}, {d.getDate()}. {monthName}</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {daySlots.map(slot => (
                           <motion.button
                             key={slot}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => { setSelectedDate(key); setSelectedTime(slot); setStep('confirm'); }}
-                            className={`group relative overflow-hidden rounded-2xl border py-4 px-3 text-left transition-all duration-200 cursor-pointer ${style.slotBg}`}
+                            className="group relative overflow-hidden rounded-2xl h-40 text-left focus:outline-none transition-all duration-200 cursor-pointer border border-border"
                           >
-                            {/* Uhrzeit groß */}
-                            <p className="text-2xl font-black leading-none mb-1">{slot.slice(0, 5)}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Uhr</p>
+                            {/* Background image */}
+                            <img
+                              src={SERVICE_IMAGES[serviceType]}
+                              alt=""
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                            />
+                            <div className={`absolute inset-0 bg-gradient-to-br ${style.gradient} to-black/60`} />
+
+                            {/* Content */}
+                            <div className="relative h-full flex flex-col justify-between p-3 z-10">
+                              {/* Uhrzeit groß unten */}
+                              <div className="mt-auto">
+                                <p className="text-3xl font-black leading-none">{slot.slice(0, 5)}</p>
+                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mt-0.5">Uhr</p>
+                              </div>
+                            </div>
 
                             {/* Hover overlay */}
-                            <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <span className="text-white text-xs font-black uppercase tracking-widest">Jetzt buchen</span>
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                              <span className="text-white text-sm font-black uppercase tracking-wide">Jetzt buchen</span>
                             </div>
                           </motion.button>
                         ))}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {/* Legend */}
