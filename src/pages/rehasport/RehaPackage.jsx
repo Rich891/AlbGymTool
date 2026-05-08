@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, Loader2, Info, X } from 'lucide-react';
+import { ArrowLeft, Check, Info, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const FIVE_LOGO = 'https://media.base44.com/images/public/69fd9350879c9d422990f406/0291e3711_442236-five_logo_4c_weiss.png';
+const MILON_LOGO = 'https://media.base44.com/images/public/69fd9350879c9d422990f406/d9acc9839_442240-milon_logo_weiss.png';
+
 const WISH_HEADLINES = {
-  pain_free: 'Dein Weg zu weniger Beschwerden',
-  everyday: 'Dein Weg zu mehr Sicherheit im Alltag',
-  motivation: 'Dein Weg mit Unterstützung & Struktur',
-  guidance: 'Dein sicherer Start ins Training',
+  pain_free: 'DEIN WEG ZU WENIGER BESCHWERDEN',
+  everyday: 'DEIN WEG ZU MEHR SICHERHEIT',
+  motivation: 'DEIN WEG MIT STRUKTUR & UNTERSTÜTZUNG',
+  guidance: 'DEIN WEG – KLAR UND GEFÜHRT',
 };
 
-const WISH_BENEFITS = {
-  pain_free: 'Gezielter an Beschwerden arbeiten',
-  everyday: 'Mehr Sicherheit und Stabilität im Alltag',
-  motivation: 'Mit Struktur und Unterstützung trainieren',
-  guidance: 'Klar geführt und sicher von Anfang an',
-};
-
-const ADDON_BENEFITS = {
-  five: 'Mehr Beweglichkeit und Flexibilität',
-  milon: 'Geführter Kraftaufbau mit Fortschritt',
+const WISH_WHY = {
+  pain_free: 'Weil du gezielter an deinen Beschwerden arbeiten möchtest',
+  everyday: 'Weil dir Stabilität und Sicherheit im Alltag wichtig sind',
+  motivation: 'Weil du mit Unterstützung dranbleiben möchtest',
+  guidance: 'Weil du einen sicheren und klaren Start möchtest',
 };
 
 const PACKAGE_PRICES = {
@@ -49,47 +47,24 @@ function getPackageName(addons) {
 export default function RehaPackage({ profile, update, onNext, onBack }) {
   const [showSubsidy, setShowSubsidy] = useState(false);
   const [showSubsidyInfo, setShowSubsidyInfo] = useState(false);
-  const [section20Accepted, setSection20Accepted] = useState({
-    binding: false,
-    no_guarantee: false,
-    requires_rehasport: false,
-    conditions_when_stopped: false,
-  });
   const [saving, setSaving] = useState(false);
 
   const packageKey = getPackageKey(profile.selectedOffers);
   const packageName = getPackageName(profile.selectedOffers);
   const weeklyPrice = PACKAGE_PRICES[packageKey];
-  const subsidyWeeklyPrice = 6.98;
-  const section20Fee = 199;
-
   const hasSubsidyOption = profile.selectedOffers?.includes('five') || profile.selectedOffers?.includes('milon');
+  const hasFive = profile.selectedOffers?.includes('five');
+  const hasMilon = profile.selectedOffers?.includes('milon');
   const mainWish = profile.wishes?.[0];
-  const headlineText = WISH_HEADLINES[mainWish] || 'Dein Paket für Rehasport';
+  const headline = WISH_HEADLINES[mainWish] || 'DEIN PAKET FÜR REHASPORT';
+  const whyText = WISH_WHY[mainWish] || 'Dieses Paket wurde für deinen Start zusammengestellt';
 
-  const getIncludedItems = () => {
-    const items = ['Rehasport+'];
-    if (profile.selectedOffers?.includes('five')) items.push('FIVE Beweglichkeitstraining');
-    if (profile.selectedOffers?.includes('milon')) items.push('Milon Krafttraining');
-    return items;
-  };
-
-  const getBenefits = () => {
-    const benefits = [];
-    if (mainWish && WISH_BENEFITS[mainWish]) benefits.push(WISH_BENEFITS[mainWish]);
-    if (profile.selectedOffers?.includes('five')) benefits.push(ADDON_BENEFITS.five);
-    if (profile.selectedOffers?.includes('milon')) benefits.push(ADDON_BENEFITS.milon);
-    return benefits.slice(0, 3);
-  };
-
-  const canProceedSubsidy = Object.values(section20Accepted).every(v => v);
-
-  const handleStartNormal = async () => {
+  const handleStart = async (withSubsidy = false) => {
     setSaving(true);
     try {
       update({
-        subsidyActive: false,
-        subsidy_variant: 'none',
+        subsidyActive: withSubsidy,
+        subsidy_variant: withSubsidy ? '1_course' : 'none',
         weekly_price: weeklyPrice,
       });
       onNext();
@@ -97,111 +72,138 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
       setSaving(false);
     }
   };
-
-  const handleStartWithSubsidy = async () => {
-    if (!canProceedSubsidy) return;
-    setSaving(true);
-    try {
-      update({
-        subsidyActive: true,
-        subsidy_variant: '1_course',
-        weekly_price: weeklyPrice,
-      });
-      onNext();
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const includedItems = getIncludedItems();
-  const benefits = getBenefits();
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-40 px-4 md:px-8 py-4 border-b border-border/50 bg-background/95 backdrop-blur-sm flex items-center gap-4">
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
+      <div className="w-full max-w-4xl">
+
+        {/* Back */}
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4" />
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
+          <ArrowLeft className="w-4 h-4" /> Zurück
         </button>
-        <img
-          src="https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/96b390eb9_AlbGymLogomark.png"
-          alt="AlbGym"
-          className="h-8 object-contain"
-        />
-      </div>
 
-      {/* HERO - KOMPAKT */}
-      <div className="relative h-72 md:h-80 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1400&q=80"
-          alt="Paket"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70" />
-
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center text-white">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}>
-            <p className="text-xs font-black uppercase tracking-widest text-primary mb-3">Dein Weg zu ...</p>
-            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight leading-tight mb-4">
-              {headlineText}
-            </h1>
-            <h2 className="text-2xl md:text-3xl font-black text-primary">{packageName}</h2>
-          </motion.div>
+        {/* HEADER */}
+        <div className="text-center mb-8">
+          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2">
+            Dein Weg zu ...
+          </p>
+          <h1 className="text-3xl md:text-5xl font-black text-foreground uppercase tracking-tight leading-tight">
+            {headline}
+          </h1>
+          <h2 className="text-2xl md:text-3xl font-black text-primary mt-2">{packageName}</h2>
         </div>
-      </div>
 
-      {/* CONTENT - KOMPAKT */}
-      <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto space-y-10">
-        {/* INHALT DES PAKETS */}
+        {/* REHASPORT+ KARTE – immer drin */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}>
-          <h2 className="text-lg font-black text-foreground uppercase mb-4">Das ist in deinem Paket</h2>
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-3xl h-52 w-full mb-5">
+          <img
+            src="https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=900&q=80"
+            alt="Rehasport+"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/95 to-black/30" />
 
-          <div className="space-y-2">
-            {includedItems.map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <Check className="w-3 h-3 text-primary" />
-                </div>
-                <span className="text-base font-semibold text-foreground">{item}</span>
-              </div>
-            ))}
+          {/* Included Badge */}
+          <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-primary flex items-center justify-center z-10">
+            <Check className="w-5 h-5 text-primary-foreground" />
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+            <p className="text-xs font-black uppercase tracking-widest mb-2 text-primary">
+              {whyText}
+            </p>
+            <h3 className="text-3xl font-black uppercase leading-tight text-primary">
+              REHASPORT+
+            </h3>
+            <p className="text-sm text-white/70 mt-1.5 leading-snug">
+              Eigenständig trainieren neben dem Kurs – gezielter üben und unabhängiger von Kurszeiten.
+            </p>
           </div>
         </motion.div>
 
-        {/* NUTZEN */}
-        {benefits.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}>
-            <h2 className="text-lg font-black text-foreground uppercase mb-4">Das bringt dir dein Paket</h2>
+        {/* ADDONS GRID */}
+        {(hasFive || hasMilon) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+            {hasFive && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="relative overflow-hidden rounded-3xl h-72">
+                <img
+                  src="https://images.unsplash.com/photo-1518611012118-696072aa579a?w=700&q=80"
+                  alt="FIVE"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-orange-900/90 to-black/40" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {benefits.map((benefit, i) => (
-                <div
-                  key={i}
-                  className="bg-secondary/50 border border-border rounded-2xl px-5 py-4">
-                  <p className="font-bold text-foreground text-sm">{benefit}</p>
+                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center z-10">
+                  <Check className="w-5 h-5 text-white" />
                 </div>
-              ))}
-            </div>
-          </motion.div>
+                <div className="absolute top-4 left-4 z-10 h-8">
+                  <img src={FIVE_LOGO} alt="FIVE" className="h-full object-contain" />
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+                  <p className="text-xs font-black uppercase tracking-widest mb-2 text-orange-300">
+                    Weil du mehr Beweglichkeit willst
+                  </p>
+                  <h3 className="text-2xl font-black uppercase leading-tight text-orange-400">
+                    FIVE TRAINING
+                  </h3>
+                  <p className="text-sm text-white/70 mt-1.5 leading-snug">
+                    Mehr Beweglichkeit, bessere Körperhaltung und gezieltes Arbeiten an muskulären Schwachstellen.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {hasMilon && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="relative overflow-hidden rounded-3xl h-72">
+                <img
+                  src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=700&q=80"
+                  alt="Milon"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 to-black/40" />
+
+                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center z-10">
+                  <Check className="w-5 h-5 text-white" />
+                </div>
+                <div className="absolute top-4 left-4 z-10 h-8">
+                  <img src={MILON_LOGO} alt="Milon" className="h-full object-contain" />
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+                  <p className="text-xs font-black uppercase tracking-widest mb-2 text-blue-200">
+                    Weil dir Führung und Unterstützung wichtig ist
+                  </p>
+                  <h3 className="text-2xl font-black uppercase leading-tight text-blue-400">
+                    MILON TRAINING
+                  </h3>
+                  <p className="text-sm text-white/70 mt-1.5 leading-snug">
+                    Geführtes Krafttraining mit automatischer Einstellung, klarer Führung und dokumentiertem Fortschritt.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </div>
         )}
 
-        {/* PREIS SECTION */}
+        {/* PREIS + BUTTONS */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-card border border-border rounded-3xl p-8 md:p-10">
-          <p className="text-xs font-black text-primary uppercase tracking-widest mb-3">Dein Preis</p>
+          className="bg-card border border-border rounded-3xl p-8 mb-6">
 
           <AnimatePresence mode="wait">
             {!showSubsidy ? (
@@ -209,31 +211,20 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 key="normal"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-6">
-                <div>
-                  <p className="text-5xl md:text-6xl font-black text-foreground">
-                    {weeklyPrice.toFixed(2)}€
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">pro Woche</p>
-                </div>
-
-                <div className="space-y-3">
+                exit={{ opacity: 0 }}>
+                <div className="flex items-end justify-between mb-6">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">Dein Preis</p>
+                    <p className="text-5xl font-black text-foreground">{weeklyPrice.toFixed(2).replace('.', ',')}€</p>
+                    <p className="text-sm text-muted-foreground mt-1">pro Woche</p>
+                  </div>
                   {hasSubsidyOption && (
                     <button
                       onClick={() => setShowSubsidy(true)}
-                      className="w-full h-12 rounded-2xl border-2 border-primary text-primary font-black uppercase text-sm tracking-widest hover:bg-primary/5 transition-all">
-                      Zuschuss nutzen
+                      className="text-xs font-black text-primary uppercase tracking-widest hover:underline">
+                      Zuschuss möglich →
                     </button>
                   )}
-
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    onClick={handleStartNormal}
-                    disabled={saving}
-                    className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-base hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Jetzt starten'}
-                  </motion.button>
                 </div>
               </motion.div>
             ) : (
@@ -241,190 +232,99 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 key="subsidy"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-6">
-                {/* Alter Preis durchgestrichen */}
-                <div>
-                  <p className="text-sm text-muted-foreground line-through mb-3">
-                    Normalpreis: {weeklyPrice.toFixed(2)}€ / Woche
-                  </p>
-
-                  {/* Neuer Preis + Pauschale */}
-                  <div className="space-y-2">
-                    <p className="text-5xl md:text-6xl font-black text-primary">
-                      {subsidyWeeklyPrice.toFixed(2)}€
+                exit={{ opacity: 0 }}>
+                <div className="flex items-end justify-between mb-2">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">Dein Preis mit Zuschuss</p>
+                    {/* Alter Preis durchgestrichen */}
+                    <p className="text-base text-muted-foreground line-through mb-1">
+                      {weeklyPrice.toFixed(2).replace('.', ',')}€ / Woche
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      pro Woche + {section20Fee}€ §20-Pauschale
-                    </p>
+                    {/* Neuer Preis groß */}
+                    <p className="text-5xl font-black text-primary">6,98€</p>
+                    <p className="text-sm text-muted-foreground mt-1">pro Woche</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">+ 199€ §20-Pauschale</p>
                   </div>
+                  <button
+                    onClick={() => setShowSubsidy(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest font-bold">
+                    Zurück
+                  </button>
                 </div>
 
-                {/* Zuschuss Info */}
-                <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4">
-                  <p className="text-sm font-bold text-foreground mb-1">
-                    💰 Dein Zuschuss
+                {/* Zuschuss Hinweis */}
+                <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 mt-4 mb-2">
+                  <p className="text-sm font-black text-foreground mb-0.5">
+                    Voraussichtlicher Zuschuss: bis zu 80 %
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Voraussichtlich bis zu 80 % der §20-Pauschale, abhängig von deiner Krankenkasse und regelmäßiger Teilnahme.
+                    Abhängig von Krankenkasse, Anspruch und regelmäßiger Teilnahme. Nicht garantiert.
                   </p>
                 </div>
 
-                {/* Info Button */}
                 <button
                   onClick={() => setShowSubsidyInfo(true)}
-                  className="text-xs text-primary font-bold uppercase tracking-widest hover:underline flex items-center gap-1">
-                  <Info className="w-3 h-3" /> Wie funktioniert der Zuschuss?
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-2 mb-4">
+                  <Info className="w-3 h-3" /> Wie funktioniert das?
                 </button>
-
-                {/* §20 Bedingungen */}
-                <div className="bg-secondary/30 border border-border rounded-2xl p-4 space-y-3">
-                  <p className="text-xs font-bold text-foreground uppercase">§20-Bedingungen</p>
-                  {[
-                    { key: 'binding', text: 'Ich melde mich verbindlich zum §20-Angebot an.' },
-                    { key: 'no_guarantee', text: 'Zuschuss nicht garantiert, abhängig von Anspruch und Teilnahme.' },
-                    { key: 'requires_rehasport', text: 'Gilt nur mit aktiver Rehasport+ Teilnahme.' },
-                    { key: 'conditions_when_stopped', text: 'Bei Beendigung gelten die Standardkonditionen.' },
-                  ].map(({ key, text }) => (
-                    <label key={key} className="flex items-start gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={section20Accepted[key]}
-                        onChange={e => setSection20Accepted({ ...section20Accepted, [key]: e.target.checked })}
-                        className="w-4 h-4 rounded mt-0.5 accent-primary cursor-pointer"
-                      />
-                      <span className="text-xs text-foreground">{text}</span>
-                    </label>
-                  ))}
-                </div>
-
-                {/* Buttons */}
-                <div className="space-y-3">
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => setShowSubsidy(false)}
-                    className="w-full h-12 rounded-2xl border-2 border-border text-foreground font-black uppercase text-sm tracking-widest hover:bg-secondary transition-all">
-                    Zurück zu Normalpreis
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    onClick={handleStartWithSubsidy}
-                    disabled={saving || !canProceedSubsidy}
-                    className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-base hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Mit Zuschuss starten'}
-                  </motion.button>
-                </div>
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* CTA Buttons */}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => handleStart(showSubsidy)}
+            disabled={saving}
+            className="w-full h-16 rounded-2xl bg-primary text-primary-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : showSubsidy ? 'Mit Zuschuss starten →' : 'Jetzt starten →'}
+          </motion.button>
         </motion.div>
 
-        {/* LEISTUNGSKARTEN */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Rehasport+ */}
-            <div className="relative overflow-hidden rounded-2xl h-40 group">
-              <img
-                src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&q=80"
-                alt="Rehasport+"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                <p className="text-xs font-black uppercase leading-tight">Rehasport+</p>
-              </div>
-            </div>
-
-            {/* FIVE */}
-            {profile.selectedOffers?.includes('five') && (
-              <div className="relative overflow-hidden rounded-2xl h-40 group">
-                <img
-                  src="https://images.unsplash.com/photo-1518611012118-696072aa579a?w=300&q=80"
-                  alt="FIVE"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-orange-900/80 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                  <p className="text-xs font-black uppercase leading-tight">FIVE</p>
-                </div>
-              </div>
-            )}
-
-            {/* Milon */}
-            {profile.selectedOffers?.includes('milon') && (
-              <div className="relative overflow-hidden rounded-2xl h-40 group">
-                <img
-                  src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=300&q=80"
-                  alt="Milon"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                  <p className="text-xs font-black uppercase leading-tight">Milon</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Zuschuss Info Modal */}
-      <AnimatePresence>
-        {showSubsidyInfo && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        {/* Subsidy Info Modal */}
+        <AnimatePresence>
+          {showSubsidyInfo && (
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-black text-foreground uppercase">Zuschuss erklärt</h2>
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-card border border-border rounded-3xl p-8 max-w-sm w-full">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-xl font-black text-foreground uppercase">Zuschuss erklärt</h2>
+                  <button onClick={() => setShowSubsidyInfo(false)} className="p-2 hover:bg-secondary rounded-lg">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-sm text-muted-foreground leading-relaxed mb-6">
+                  <p>Viele gesetzliche Krankenkassen unterstützen zertifizierte Präventionsangebote nach §20 SGB V.</p>
+                  <p className="font-bold text-foreground">Wenn dein Paket FIVE und/oder Milon enthält:</p>
+                  <ul className="space-y-1.5 list-disc list-inside">
+                    <li>Rehasport+ läuft zum Basispreis von 6,98€ / Woche</li>
+                    <li>Zusätzlich fällt eine §20-Pauschale von 199€ an</li>
+                    <li>Ein Teil kommt voraussichtlich von deiner Krankenkasse zurück</li>
+                  </ul>
+                  <p className="bg-secondary/60 border border-border rounded-xl p-3 text-xs">
+                    ⚠️ Der Zuschuss ist nicht garantiert und hängt von deiner Krankenkasse, deinem Anspruch und regelmäßiger Teilnahme ab.
+                  </p>
+                </div>
+
                 <button
                   onClick={() => setShowSubsidyInfo(false)}
-                  className="p-2 hover:bg-secondary rounded-lg transition-colors">
-                  <X className="w-4 h-4" />
+                  className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-black uppercase text-sm tracking-widest hover:bg-primary/90 transition-all">
+                  Verstanden
                 </button>
-              </div>
-
-              <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-                <p>
-                  Viele gesetzliche Krankenkassen unterstützen zertifizierte Präventionsangebote nach §20 SGB V.
-                </p>
-
-                <p className="font-bold text-foreground">
-                  Wenn dein Paket FIVE und/oder Milon enthält:
-                </p>
-
-                <ul className="space-y-2 list-disc list-inside">
-                  <li>Rehasport+ läuft zum Basispreis von 6,98 € / Woche</li>
-                  <li>Zusätzlich fällt eine §20-Pauschale von 199 € an</li>
-                  <li>Ein Teil davon kommt voraussichtlich von deiner Krankenkasse zurück</li>
-                </ul>
-
-                <p className="bg-secondary/50 border border-border rounded-xl p-3 text-xs font-bold">
-                  ⚠️ Der Zuschuss ist nicht garantiert und hängt von deiner Krankenkasse, deinem persönlichen Anspruch und deiner regelmäßigen Teilnahme ab.
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowSubsidyInfo(false)}
-                className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-black uppercase text-sm tracking-widest hover:bg-primary/90 transition-all mt-6">
-                Verstanden
-              </button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <div className="h-10" />
+      </div>
     </div>
   );
 }
