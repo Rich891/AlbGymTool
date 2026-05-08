@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut, Plus } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut, Plus, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeilnahmebescheinigungDownload from './TeilnahmebescheinigungDownload';
 import CustomerDetail from './CustomerDetail';
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
 ];
 
 export default function RehasportAdvisorDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('customers');
   const [searchTerm, setSearchTerm] = useState('');
   const [bescheinigungFor, setBescheinigungFor] = useState(null);
@@ -63,6 +65,11 @@ export default function RehasportAdvisorDashboard() {
             );
           })}
         </nav>
+        <button onClick={() => navigate('/')}
+          className="w-full px-4 py-3 rounded-2xl flex items-center gap-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all uppercase tracking-wide mb-2">
+          <ArrowLeft className="w-4 h-4" />
+          Zurück
+        </button>
         <button className="w-full px-4 py-3 rounded-2xl flex items-center gap-3 text-sm font-bold text-destructive hover:bg-destructive/10 transition-all uppercase tracking-wide">
           <LogOut className="w-4 h-4" />
           Abmelden
