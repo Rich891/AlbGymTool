@@ -165,38 +165,37 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
   }
 
   return (
-    <div>
-      {/* Back + label */}
-      <div className="flex items-center gap-3 mb-5">
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Floating Back Button */}
+      {step !== 'done' && (
         <button
           onClick={step === 'week' ? onBack : () => setStep('week')}
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-          <ChevronLeft className="w-4 h-4" />
+          className="fixed top-6 left-6 z-40 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+          <ChevronLeft className="w-6 h-6" />
         </button>
-        <div>
-          <p className="text-xs text-primary uppercase tracking-widest font-bold">{SERVICE_LABELS[serviceType]}</p>
-          <p className="text-sm text-foreground font-semibold">{step === 'week' ? 'Termin wählen' : 'Bestätigen'}</p>
-        </div>
-      </div>
-
-      {error && <p className="text-destructive text-sm mb-4">{error}</p>}
+      )}
 
       {/* WEEK VIEW */}
       {step === 'week' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-          {/* LEFT: Hero image */}
-          <div className="hidden md:flex relative overflow-hidden rounded-3xl">
-            <img src={SERVICE_IMAGES[serviceType]} alt={SERVICE_LABELS[serviceType]} className="w-full h-80 object-cover object-center" />
+        <div className="flex flex-col flex-1">
+          {/* Hero Header */}
+          <div className="relative h-64 md:h-80 overflow-hidden">
+            <img src={SERVICE_IMAGES[serviceType]} alt={SERVICE_LABELS[serviceType]} className="w-full h-full object-cover" />
             <div className={`absolute inset-0 bg-gradient-to-t ${style.gradient} to-transparent`} />
             {SERVICE_LOGOS[serviceType] && (
-              <div className="absolute top-4 left-4 z-10 h-10">
+              <div className="absolute top-6 right-6 z-10 h-12">
                 <img src={SERVICE_LOGOS[serviceType]} alt="" className="h-full object-contain" />
               </div>
             )}
+            {/* Title overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+              <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight mb-1">Termin wählen</h1>
+              <p className="text-lg md:text-xl font-bold text-white/90">{SERVICE_LABELS[serviceType]}</p>
+            </div>
           </div>
 
-          {/* RIGHT: Week nav + slots */}
-          <div className="flex flex-col">
+          {/* Content */}
+          <div className="flex-1 px-4 md:px-8 py-8 max-w-6xl mx-auto w-full">
             {/* Week navigation */}
             <div className="flex items-center justify-between mb-8 gap-4">
               <button onClick={() => setWeekStart(addDays(weekStart, -7))} disabled={addDays(weekStart, -1) < today} className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
@@ -210,45 +209,43 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
               </button>
             </div>
 
+            {error && <p className="text-destructive text-sm mb-4">{error}</p>}
+
             {loadingDays || (anyLoading && daysWithSlots.length === 0) ? (
-              <div className="flex flex-col items-center justify-center flex-1 gap-3">
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <Loader2 className="w-7 h-7 animate-spin text-primary" />
                 <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Termine werden geladen…</p>
               </div>
             ) : daysWithSlots.length === 0 ? (
-              <div className="flex flex-col items-center justify-center flex-1">
+              <div className="flex flex-col items-center justify-center py-16">
                 <p className="text-muted-foreground text-sm mb-4">Keine freien Termine diese Woche.</p>
                 <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-1 text-xs text-primary font-black uppercase tracking-wide hover:underline">
                   Nächste Woche <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {daysWithSlots.map((d) => {
                   const key = fmtDate(d);
                   const daySlots = slotsByDate[key] || [];
                   const dayName = WEEKDAYS_SHORT[d.getDay()];
                   const monthName = MONTHS_SHORT[d.getMonth()];
-                  return (
-                    <div key={key}>
-                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-4">{dayName}, {d.getDate()}. {monthName}</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        {daySlots.map((slot) => (
-                          <motion.button key={slot} whileTap={{ scale: 0.95 }} onClick={() => { setSelectedDate(key); setSelectedTime(slot); setStep('confirm'); }} className="group relative overflow-hidden rounded-3xl p-5 text-left focus:outline-none transition-all duration-300 cursor-pointer border border-border bg-card hover:border-primary/50">
-                            <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3">{d.getDate()}. {monthName.slice(0, 3)}</p>
-                            <div>
-                              <p className="text-lg font-black text-foreground uppercase leading-tight">{dayName}</p>
-                              <p className="text-4xl font-black text-primary leading-none">{slot.slice(0, 5)}</p>
-                              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Uhr</p>
-                            </div>
-                            <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <span className="text-primary-foreground text-sm font-black uppercase tracking-wide">Jetzt buchen</span>
-                            </div>
-                          </motion.button>
-                        ))}
+                  return daySlots.map((slot) => (
+                    <motion.button
+                      key={`${key}-${slot}`}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => { setSelectedDate(key); setSelectedTime(slot); setStep('confirm'); }}
+                      className="group relative overflow-hidden rounded-2xl p-6 text-left focus:outline-none transition-all duration-300 cursor-pointer border border-border bg-card hover:border-primary/50 hover:shadow-lg">
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">{dayName}, {d.getDate()}. {monthName}</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-3xl font-black text-primary leading-none">{slot.slice(0, 5)}</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Uhr</p>
                       </div>
-                    </div>
-                  );
+                      <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <span className="text-primary-foreground text-sm font-black uppercase tracking-wide">Buchen</span>
+                      </div>
+                    </motion.button>
+                  ));
                 })}
               </div>
             )}
@@ -258,39 +255,50 @@ function BookingFlow({ serviceType, serviceId, unitId, clientData, onConfirmed, 
 
       {/* CONFIRM */}
       {step === 'confirm' && (
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">Datum</p>
-                <p className="text-sm text-foreground font-black">{selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
-                <Clock className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">Uhrzeit</p>
-                <p className="text-sm text-foreground font-black">{selectedTime && selectedTime.slice(0, 5)} Uhr</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">Name</p>
-                <p className="text-sm text-foreground font-black">{clientData.name}</p>
-              </div>
+        <div className="flex flex-col flex-1">
+          <div className="relative h-48 overflow-hidden">
+            <img src={SERVICE_IMAGES[serviceType]} alt={SERVICE_LABELS[serviceType]} className="w-full h-full object-cover" />
+            <div className={`absolute inset-0 bg-gradient-to-t ${style.gradient} to-transparent`} />
+            <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+              <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">Bestätigen</h1>
+              <p className="text-lg font-bold text-white/90">{SERVICE_LABELS[serviceType]}</p>
             </div>
           </div>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={handleBook} disabled={booking} className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide text-sm hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,230,80,0.3)]">
-            {booking ? <><Loader2 className="w-4 h-4 animate-spin" /> Wird gebucht…</> : 'Termin jetzt buchen →'}
-          </motion.button>
+
+          <div className="flex-1 px-4 md:px-8 py-8 max-w-2xl mx-auto w-full flex flex-col">
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 space-y-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">Datum</p>
+                  <p className="text-sm text-foreground font-black">{selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">Uhrzeit</p>
+                  <p className="text-sm text-foreground font-black">{selectedTime && selectedTime.slice(0, 5)} Uhr</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                  <User className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">Name</p>
+                  <p className="text-sm text-foreground font-black">{clientData.name}</p>
+                </div>
+              </div>
+            </div>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={handleBook} disabled={booking} className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wide text-sm hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,230,80,0.3)]">
+              {booking ? <><Loader2 className="w-4 h-4 animate-spin" /> Wird gebucht…</> : 'Termin jetzt buchen →'}
+            </motion.button>
+          </div>
         </div>
       )}
     </div>
