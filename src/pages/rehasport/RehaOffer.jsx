@@ -1,70 +1,111 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, BadgePercent, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Check, BadgePercent, ChevronRight, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const FIVE_LOGO = 'https://media.base44.com/images/public/69fd9350879c9d422990f406/0291e3711_442236-five_logo_4c_weiss.png';
 const MILON_LOGO = 'https://media.base44.com/images/public/69fd9350879c9d422990f406/d9acc9839_442240-milon_logo_weiss.png';
 
-// Prices per week
-const PRICING = {
-  rehasport_plus: { label: 'Rehasport+', sub: 'Freies Training neben dem Kurs', price: 6.98, subsidized: 0, logo: null, color: 'text-primary', bg: 'bg-primary/10' },
-  five: { label: 'FIVE Training', sub: 'Beweglichkeit & Haltung verbessern', price: 2.49, subsidized: 0, logo: FIVE_LOGO, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-  milon: { label: 'Milon Training', sub: 'Geführtes Krafttraining mit Fortschrittstrack', price: 2.49, subsidized: 0, logo: MILON_LOGO, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-};
+// Full price per week with all three selected
+const FULL_PRICE_WEEK = 13.99;
+const SUBSIDY_PRICE_WEEK = 6.98;
+const SUBSIDY_ONETIME = 199;
 
-// Subsidy reduces the weekly price (example: KK covers part)
-const SUBSIDY_AMOUNT = { rehasport_plus: 3.49, five: 1.24, milon: 1.24 };
+const CARD_DATA = {
+  rehasport_plus: {
+    label: 'Rehasport+',
+    sub: 'Freies Training neben dem Kurs – mehr Flexibilität, mehr Fortschritt',
+    image: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=900&q=80',
+    gradient: 'from-emerald-900/95',
+    accentColor: 'text-primary',
+    logo: null,
+    bullets: ['Freies Gerätetraining inklusive', 'Unabhängig von Kurszeiten', 'Gezielt üben & festigen'],
+  },
+  five: {
+    label: 'FIVE Training',
+    sub: 'Beweglichkeit, Haltung und muskuläre Balance gezielt verbessern',
+    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=900&q=80',
+    gradient: 'from-orange-900/95',
+    accentColor: 'text-orange-400',
+    logo: FIVE_LOGO,
+    bullets: ['Gezielte Beweglichkeitsarbeit', 'Persönlicher Trainingsplan', 'Dokumentierter Fortschritt'],
+  },
+  milon: {
+    label: 'Milon Training',
+    sub: 'Geführtes Krafttraining mit automatischer Einstellung und Tracking',
+    image: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=900&q=80',
+    gradient: 'from-blue-900/95',
+    accentColor: 'text-blue-400',
+    logo: MILON_LOGO,
+    bullets: ['Vollautomatisch eingestellt', 'Keine Vorkenntnisse nötig', 'Klare Fortschrittsanzeige'],
+  },
+};
 
 function deriveTitle(profile) {
   const w = profile.wishes || [];
   if (w.includes('pain_free')) return 'Schmerzfrei werden';
-  if (w.includes('everyday')) return 'Den Alltag leichter meistern';
+  if (w.includes('everyday')) return 'Alltag leichter meistern';
   if (w.includes('motivation')) return 'Sicher & motiviert starten';
   if (w.includes('guidance')) return 'Mit professioneller Anleitung';
-  return 'Deinen eigenen Weg starten';
+  return 'Deinen Weg starten';
 }
 
 function fmt(n) {
   return n.toFixed(2).replace('.', ',') + ' €';
 }
 
-function PriceLine({ price, subsidized, subsidyMode, color }) {
-  const subsidizedPrice = Math.max(0, price - subsidized);
+// Visual card for each included module
+function OfferCard({ id }) {
+  const d = CARD_DATA[id];
+  if (!d) return null;
   return (
-    <div className="flex flex-col items-end">
-      <AnimatePresence mode="wait">
-        {subsidyMode ? (
-          <motion.div key="sub" className="flex flex-col items-end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <span className="text-xs text-muted-foreground line-through leading-none">{fmt(price)}</span>
-            <span className={`text-lg font-black leading-tight ${color}`}>{fmt(subsidizedPrice)}</span>
-          </motion.div>
-        ) : (
-          <motion.span key="normal" className={`text-lg font-black ${color}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {fmt(price)}
-          </motion.span>
-        )}
-      </AnimatePresence>
-      <span className="text-xs text-muted-foreground">/ Woche</span>
+    <div className={`group relative overflow-hidden rounded-3xl h-56 w-full`}>
+      <img src={d.image} alt={d.label} className="absolute inset-0 w-full h-full object-cover" />
+      <div className={`absolute inset-0 bg-gradient-to-t ${d.gradient} to-black/30`} />
+
+      {/* Logo top left */}
+      {d.logo && (
+        <div className="absolute top-4 left-4 z-10 h-7">
+          <img src={d.logo} alt={d.label} className="h-full object-contain" />
+        </div>
+      )}
+
+      {/* Check badge top right */}
+      <div className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+        <Check className="w-4 h-4 text-white" />
+      </div>
+
+      {/* Content bottom */}
+      <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
+        <h3 className={`text-xl font-black uppercase leading-tight mb-1 ${d.accentColor}`}>{d.label}</h3>
+        <p className="text-xs text-white/70 leading-snug mb-3">{d.sub}</p>
+        <div className="flex flex-wrap gap-2">
+          {d.bullets.map((b) => (
+            <span key={b} className="text-xs bg-white/10 backdrop-blur-sm text-white/90 px-2.5 py-1 rounded-full border border-white/10">{b}</span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function RehaOffer({ profile, update, onNext, onBack }) {
   const [subsidyMode, setSubsidyMode] = useState(profile.subsidyMode || false);
+  // Simulated inputs — in a real flow these come from profile or a form
+  const [kasseName, setKasseName] = useState(profile.kasseName || '');
+  const [kasseZuschuss, setKasseZuschuss] = useState(profile.kasseZuschuss || '');
 
   const selectedOffers = profile.selectedOffers || [];
   const title = deriveTitle(profile);
+  const hasOffers = selectedOffers.length > 0;
 
-  const totalPerWeek = selectedOffers.reduce((sum, id) => sum + (PRICING[id]?.price || 0), 0);
-  const totalSubsidized = selectedOffers.reduce((sum, id) => sum + Math.max(0, (PRICING[id]?.price || 0) - (SUBSIDY_AMOUNT[id] || 0)), 0);
+  // Determine which cards to show — rehasport_plus always first if present
+  const orderedOffers = ['rehasport_plus', 'five', 'milon'].filter(id => selectedOffers.includes(id));
 
   const activateSubsidy = () => {
     const next = !subsidyMode;
     setSubsidyMode(next);
     update({ subsidyMode: next });
   };
-
-  const hasOffers = selectedOffers.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
@@ -83,59 +124,113 @@ export default function RehaOffer({ profile, update, onNext, onBack }) {
 
         {hasOffers ? (
           <>
-            {/* Offer items */}
-            <div className="space-y-3 mb-6">
-              {selectedOffers.map((id) => {
-                const d = PRICING[id];
-                if (!d) return null;
-                return (
-                  <div key={id} className={`flex items-center justify-between px-5 py-4 rounded-2xl border border-border bg-card`}>
-                    <div className="flex items-center gap-3">
-                      {d.logo ? (
-                        <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 p-1.5">
-                          <img src={d.logo} alt={d.label} className="w-full h-full object-contain" />
-                        </div>
-                      ) : (
-                        <div className={`w-10 h-10 rounded-xl ${d.bg} flex items-center justify-center flex-shrink-0`}>
-                          <Check className={`w-5 h-5 ${d.color}`} />
-                        </div>
-                      )}
-                      <div>
-                        <p className={`font-black text-base ${d.color}`}>{d.label}</p>
-                        <p className="text-xs text-muted-foreground">{d.sub}</p>
-                      </div>
-                    </div>
-                    <PriceLine price={d.price} subsidized={SUBSIDY_AMOUNT[id] || 0} subsidyMode={subsidyMode} color={d.color} />
-                  </div>
-                );
-              })}
+            {/* Visual cards */}
+            <div className="flex flex-col gap-4 mb-6">
+              {orderedOffers.map((id) => (
+                <OfferCard key={id} id={id} />
+              ))}
             </div>
 
-            {/* Total */}
-            <div className="rounded-2xl bg-card border border-primary/30 px-5 py-4 mb-6">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-muted-foreground uppercase tracking-wide">Gesamt pro Woche</span>
-                <div className="flex flex-col items-end">
-                  <AnimatePresence mode="wait">
-                    {subsidyMode ? (
-                      <motion.div key="sub-total" className="flex flex-col items-end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                        <span className="text-sm text-muted-foreground line-through leading-none">{fmt(totalPerWeek)}</span>
-                        <span className="text-3xl font-black text-primary leading-tight">{fmt(totalSubsidized)}</span>
-                      </motion.div>
-                    ) : (
-                      <motion.span key="normal-total" className="text-3xl font-black text-primary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                        {fmt(totalPerWeek)}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                  <span className="text-xs text-muted-foreground">/ Woche</span>
+            {/* Price block */}
+            <div className="rounded-3xl bg-card border border-border overflow-hidden mb-4">
+              <div className="px-6 pt-6 pb-5">
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Dein Preis</p>
+
+                {/* Price comparison */}
+                <div className="flex items-end justify-between">
+                  <div>
+                    <AnimatePresence mode="wait">
+                      {subsidyMode ? (
+                        <motion.div key="sub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
+                          {/* Original — small, grey, strikethrough */}
+                          <span className="text-base text-muted-foreground line-through leading-none mb-1">
+                            {fmt(FULL_PRICE_WEEK)} / Woche
+                          </span>
+                          {/* Subsidized — big, white */}
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-5xl font-black text-foreground leading-none">{fmt(SUBSIDY_PRICE_WEEK)}</span>
+                            <span className="text-base text-muted-foreground font-semibold">/ Woche</span>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div key="normal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-baseline gap-2">
+                          <span className="text-5xl font-black text-foreground leading-none">{fmt(FULL_PRICE_WEEK)}</span>
+                          <span className="text-base text-muted-foreground font-semibold">/ Woche</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {subsidyMode && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-primary/10 border border-primary/30 rounded-2xl px-3 py-2 text-center"
+                    >
+                      <p className="text-xs font-black text-primary uppercase tracking-wide">Ersparnis</p>
+                      <p className="text-lg font-black text-primary">{fmt(FULL_PRICE_WEEK - SUBSIDY_PRICE_WEEK)}</p>
+                      <p className="text-xs text-muted-foreground">pro Woche</p>
+                    </motion.div>
+                  )}
                 </div>
+
+                {/* Subsidy one-time package */}
+                <AnimatePresence>
+                  {subsidyMode && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 20 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-sm font-black text-foreground">Krankenkassen-Paket</p>
+                              <span className="text-base font-black text-primary">{fmt(SUBSIDY_ONETIME)}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-3">Einmalig – umfasst FIVE + Milon Einweisung, Betreuung & Dokumentation</p>
+
+                            {/* KK name + Zuschuss inputs */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-2">
+                                <span className="text-xs text-muted-foreground flex-shrink-0">Krankenkasse:</span>
+                                <input
+                                  type="text"
+                                  value={kasseName}
+                                  onChange={e => { setKasseName(e.target.value); update({ kasseName: e.target.value }); }}
+                                  placeholder="z. B. AOK Bayern"
+                                  className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none font-semibold"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-2">
+                                <span className="text-xs text-muted-foreground flex-shrink-0">KK-Zuschuss:</span>
+                                <input
+                                  type="text"
+                                  value={kasseZuschuss}
+                                  onChange={e => { setKasseZuschuss(e.target.value); update({ kasseZuschuss: e.target.value }); }}
+                                  placeholder="z. B. 150,00 €"
+                                  className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none font-semibold"
+                                />
+                              </div>
+                            </div>
+
+                            {kasseName && kasseZuschuss && (
+                              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 text-xs text-primary font-semibold">
+                                {kasseName} übernimmt {kasseZuschuss} → du zahlst {fmt(SUBSIDY_ONETIME - parseFloat(kasseZuschuss.replace(',', '.').replace(' €', '')) || SUBSIDY_ONETIME)}
+                              </motion.p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              {subsidyMode && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 text-xs text-muted-foreground">
-                  * Endpreis abhängig von deiner Krankenkasse und persönlichem Anspruch.
-                </motion.p>
-              )}
             </div>
 
             {/* Subsidy toggle */}
@@ -161,7 +256,7 @@ export default function RehaOffer({ profile, update, onNext, onBack }) {
             </motion.button>
           </>
         ) : (
-          /* No selection — just Rehasport Kurs */
+          /* No selection — just base Rehasport Kurs */
           <div className="rounded-2xl border border-border bg-card px-6 py-8 text-center mb-6">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Check className="w-7 h-7 text-primary" />
