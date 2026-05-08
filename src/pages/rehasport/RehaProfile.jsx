@@ -12,13 +12,23 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
     bank: false,
   });
   const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    address: profile.address || '',
+    email: profile.email || '',
+    phone: profile.phone || '',
+    health_insurance: profile.health_insurance || '',
+    insurance_number: profile.insurance_number || '',
+    account_holder: profile.account_holder || '',
+    iban: profile.iban || '',
+    bic: profile.bic || '',
+  });
 
-  const hasExtendedData = profile.address || profile.email || profile.phone;
-  const hasBankData = profile.iban;
-  const canProceedWithoutMore = !expanded && !hasExtendedData;
+  const hasExtendedData = formData.address || formData.email || formData.phone;
+  const hasBankData = formData.iban;
+  const canProceedWithMore = expanded && hasExtendedData;
 
   const handleConfirm = () => {
-    if (expanded && hasExtendedData) {
+    if (canProceedWithMore) {
       setShowConsent(true);
       return;
     }
@@ -36,14 +46,14 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
         customer_name: profile.name,
         birthdate: profile.birthdate,
         gender: profile.gender,
-        address: profile.address || '',
-        email: profile.email || '',
-        phone: profile.phone || '',
-        health_insurance: profile.health_insurance || '',
-        insurance_number: profile.insurance_number || '',
-        account_holder: profile.account_holder || '',
-        iban: profile.iban || '',
-        bic: profile.bic || '',
+        address: formData.address,
+        email: formData.email,
+        phone: formData.phone,
+        health_insurance: formData.health_insurance,
+        insurance_number: formData.insurance_number,
+        account_holder: formData.account_holder,
+        iban: formData.iban,
+        bic: formData.bic,
         reasons: profile.reasons || [],
         complaints: profile.complaints || [],
         wishes: profile.wishes || [],
@@ -121,9 +131,9 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Adresse</p>
                   <input
-                    type="text"
-                    value={profile.address || ''}
-                    onChange={e => onConfirm({ ...profile, address: e.target.value })}
+                     type="text"
+                     value={formData.address}
+                     onChange={e => setFormData({ ...formData, address: e.target.value })}
                     placeholder="z. B. Musterstr. 1, 70178 Stuttgart"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -133,8 +143,8 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">E-Mail</p>
                   <input
                     type="email"
-                    value={profile.email || ''}
-                    onChange={e => onConfirm({ ...profile, email: e.target.value })}
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
                     placeholder="deine.email@example.com"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -144,8 +154,8 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Telefon</p>
                   <input
                     type="tel"
-                    value={profile.phone || ''}
-                    onChange={e => onConfirm({ ...profile, phone: e.target.value })}
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+49 ..."
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -155,8 +165,8 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Krankenkasse</p>
                   <input
                     type="text"
-                    value={profile.health_insurance || ''}
-                    onChange={e => onConfirm({ ...profile, health_insurance: e.target.value })}
+                    value={formData.health_insurance}
+                    onChange={e => setFormData({ ...formData, health_insurance: e.target.value })}
                     placeholder="z. B. AOK Bayern"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -166,8 +176,8 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Krankenkassennummer</p>
                   <input
                     type="text"
-                    value={profile.insurance_number || ''}
-                    onChange={e => onConfirm({ ...profile, insurance_number: e.target.value })}
+                    value={formData.insurance_number}
+                    onChange={e => setFormData({ ...formData, insurance_number: e.target.value })}
                     placeholder="xxxxxxxxxxxxxx"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -177,8 +187,8 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">Kontoinhaber</p>
                   <input
                     type="text"
-                    value={profile.account_holder || ''}
-                    onChange={e => onConfirm({ ...profile, account_holder: e.target.value })}
+                    value={formData.account_holder}
+                    onChange={e => setFormData({ ...formData, account_holder: e.target.value })}
                     placeholder="Name"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -188,8 +198,8 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">IBAN</p>
                   <input
                     type="text"
-                    value={profile.iban || ''}
-                    onChange={e => onConfirm({ ...profile, iban: e.target.value })}
+                    value={formData.iban}
+                    onChange={e => setFormData({ ...formData, iban: e.target.value })}
                     placeholder="DE..."
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
@@ -199,8 +209,8 @@ export default function RehaProfile({ profile, onConfirm, onChange }) {
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">BIC (optional)</p>
                   <input
                     type="text"
-                    value={profile.bic || ''}
-                    onChange={e => onConfirm({ ...profile, bic: e.target.value })}
+                    value={formData.bic}
+                    onChange={e => setFormData({ ...formData, bic: e.target.value })}
                     placeholder="XXXXYY"
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary"
                   />
