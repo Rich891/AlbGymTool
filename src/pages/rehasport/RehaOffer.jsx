@@ -58,7 +58,7 @@ function OfferCard({ id, tall }) {
   const d = CARD_DATA[id];
   if (!d) return null;
   return (
-    <div className={`group relative overflow-hidden rounded-3xl w-full ${tall ? 'h-52' : 'h-56'}`}>
+    <div className={`group relative overflow-hidden rounded-3xl w-full h-72`}>
       <img src={d.image} alt={d.label} className="absolute inset-0 w-full h-full object-cover" />
       <div className={`absolute inset-0 bg-gradient-to-t ${d.gradient} to-black/30`} />
 
@@ -109,7 +109,7 @@ export default function RehaOffer({ profile, update, onNext, onBack }) {
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
-      <div className="w-full max-w-xl">
+      <div className="w-full max-w-5xl">
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="w-4 h-4" /> Zurück
         </button>
@@ -124,24 +124,11 @@ export default function RehaOffer({ profile, update, onNext, onBack }) {
 
         {hasOffers ? (
           <>
-            {/* Visual cards */}
-            <div className={`mb-6 ${orderedOffers.length === 1 ? 'flex flex-col gap-4' : orderedOffers.length === 2 ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}`}>
-              {orderedOffers.length === 3 ? (
-                <>
-                  {/* Rehasport+ full width on top */}
-                  <OfferCard key="rehasport_plus" id="rehasport_plus" tall />
-                  {/* FIVE + Milon side by side */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {orderedOffers.filter(id => id !== 'rehasport_plus').map(id => (
-                      <OfferCard key={id} id={id} />
-                    ))}
-                  </div>
-                </>
-              ) : (
-                orderedOffers.map((id) => (
-                  <OfferCard key={id} id={id} />
-                ))
-              )}
+            {/* Visual cards — always side by side */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {orderedOffers.map((id) => (
+                <OfferCard key={id} id={id} />
+              ))}
             </div>
 
             {/* Price block */}
