@@ -11,8 +11,8 @@ const SERVICE_COLORS = {
   five: { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/30' },
   milon: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/30' }
 };
-const SERVICE_IDS = { geraete: '7769942', five: '7769943', milon: '7769941' };
-const UNIT_IDS = { geraete: null, five: null, milon: null };
+const SERVICE_IDS = { geraete: 24, five: 26, milon: 25 };
+const UNIT_IDS = { geraete: 9, five: 11, milon: 10 };
 
 export default function RehaBooking({ profile, onBack, onDone }) {
   const [services, setServices] = useState([]);
