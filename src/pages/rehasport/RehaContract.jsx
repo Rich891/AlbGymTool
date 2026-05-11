@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Download, Check, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
+import { generateLaufschuleVertrag } from './generateLaufschuleVertrag';
 
 const LOGO_URL = 'https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/0137b7bb4_AlbGymLogo.png';
 const COMPANY_ADDRESS = {
@@ -246,14 +247,27 @@ function generateContract(profile) {
 
 export default function RehaContract({ profile, onDone }) {
   const [downloading, setDownloading] = useState(false);
+  const [showLaufschule, setShowLaufschule] = useState(false);
 
-  const handleDownload = async () => {
+  const handleDownloadVertrag = async () => {
     setDownloading(true);
     try {
-      console.log('Download gestartet, Profil:', profile);
-      console.log('Signature vorhanden?', !!profile.signature);
       const doc = generateContract(profile);
       doc.save(`AlbGym-Vertrag-${profile.name?.replace(/\s/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      setTimeout(() => onDone?.(), 500);
+    } catch (err) {
+      console.error('Fehler beim Download:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDownloadLaufschule = async () => {
+    setDownloading(true);
+    try {
+      const doc = generateLaufschuleVertrag(profile);
+      doc.save(`Laufschule-Vertrag-${profile.name?.replace(/\s/g, '-')}.pdf`);
+      setTimeout(() => onDone?.(), 500);
     } catch (err) {
       console.error('Fehler beim Download:', err);
     } finally {
@@ -354,28 +368,48 @@ export default function RehaContract({ profile, onDone }) {
         </motion.div>
 
         {/* Action Buttons */}
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={handleDownload}
-          disabled={downloading}
-          className="w-full h-16 rounded-2xl bg-primary text-primary-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg mb-3">
-          {downloading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-              Wird vorbereitet...
-            </>
-          ) : (
-            <>
-              <Download className="w-5 h-5" />
-              Vertrag herunterladen (PDF)
-            </>
-          )}
-        </motion.button>
+        <div className="space-y-3 mb-6">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleDownloadVertrag}
+            disabled={downloading}
+            className="w-full h-16 rounded-2xl bg-primary text-primary-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg">
+            {downloading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Wird vorbereitet...
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5" />
+                Rehasport-Vertrag (PDF)
+              </>
+            )}
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleDownloadLaufschule}
+            disabled={downloading}
+            className="w-full h-16 rounded-2xl border-2 border-primary bg-primary/10 text-primary font-black text-lg uppercase tracking-wide hover:bg-primary hover:text-primary-foreground transition-all disabled:opacity-50 flex items-center justify-center gap-3">
+            {downloading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                Wird vorbereitet...
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5" />
+                Laufschule-Anmeldung (PDF)
+              </>
+            )}
+          </motion.button>
+        </div>
 
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onDone}
-          className="w-full h-16 rounded-2xl border-2 border-primary text-primary font-black text-lg uppercase tracking-wide hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-3">
+          className="w-full h-14 rounded-2xl border-2 border-border text-foreground font-bold text-base uppercase tracking-wide hover:bg-secondary transition-all flex items-center justify-center gap-3">
           <Home className="w-5 h-5" />
           Zur Startseite
         </motion.button>
