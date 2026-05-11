@@ -3,10 +3,10 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const COMPLAINTS = [
-  { id: 'back', label: 'Rücken & Nacken', sub: 'Verspannungen, Rückenschmerzen oder Haltung.', image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=700&q=80', color: 'from-orange-700/70' },
-  { id: 'joints', label: 'Knie, Hüfte & Gelenke', sub: 'Belastung, Bewegungseinschränkung oder Unsicherheit.', image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=700&q=80', color: 'from-red-700/70' },
-  { id: 'strength', label: 'Kraft & Stabilität', sub: 'Ich fühle mich schwach, instabil oder unsicher.', image: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=700&q=80', color: 'from-blue-700/70' },
-  { id: 'everyday', label: 'Beweglichkeit & Alltag', sub: 'Bücken, Aufstehen oder Treppen fallen schwer.', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=700&q=80', color: 'from-teal-700/70' },
+  { id: 'back', label: 'Rücken & Nacken', sub: 'Verspannungen, Rückenschmerzen oder Haltung.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/73f1f0734_generated_image.png', color: 'from-orange-700/70' },
+  { id: 'joints', label: 'Knie, Hüfte & Gelenke', sub: 'Belastung, Bewegungseinschränkung oder Unsicherheit.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/d4e6106bd_generated_image.png', color: 'from-red-700/70' },
+  { id: 'strength', label: 'Kraft & Stabilität', sub: 'Ich fühle mich schwach, instabil oder unsicher.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/92bbe4f13_generated_image.png', color: 'from-blue-700/70' },
+  { id: 'everyday', label: 'Beweglichkeit & Alltag', sub: 'Bücken, Aufstehen oder Treppen fallen schwer.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/eeecbe382_generated_image.png', color: 'from-teal-700/70' },
 ];
 
 export default function RehaComplaints({ profile, update, onNext, onBack }) {

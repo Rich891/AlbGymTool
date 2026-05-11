@@ -3,10 +3,10 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const REASONS = [
-  { id: 'pain', label: 'Schmerzen reduzieren', sub: 'Ich möchte Beschwerden besser in den Griff bekommen.', image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=700&q=80', color: 'from-red-600/70' },
-  { id: 'mobility', label: 'Wieder beweglicher werden', sub: 'Ich möchte mich freier und sicherer bewegen.', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=700&q=80', color: 'from-teal-600/70' },
-  { id: 'recovery', label: 'Nach Krankheit oder Verletzung', sub: 'Ich brauche einen sicheren Wiedereinstieg.', image: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=700&q=80', color: 'from-blue-600/70' },
-  { id: 'stability', label: 'Mehr Stabilität im Alltag', sub: 'Ich möchte mich belastbarer fühlen.', image: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=700&q=80', color: 'from-orange-600/70' },
+  { id: 'pain', label: 'Schmerzen reduzieren', sub: 'Ich möchte Beschwerden besser in den Griff bekommen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/e1d017c59_generated_image.png', color: 'from-red-600/70' },
+  { id: 'mobility', label: 'Wieder beweglicher werden', sub: 'Ich möchte mich freier und sicherer bewegen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/6f27ebd51_generated_image.png', color: 'from-teal-600/70' },
+  { id: 'recovery', label: 'Nach Krankheit oder Verletzung', sub: 'Ich brauche einen sicheren Wiedereinstieg.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/d179286da_generated_image.png', color: 'from-blue-600/70' },
+  { id: 'stability', label: 'Mehr Stabilität im Alltag', sub: 'Ich möchte mich belastbarer fühlen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/558af6c63_generated_image.png', color: 'from-orange-600/70' },
 ];
 
 export default function RehaReason({ profile, update, onNext, onBack }) {

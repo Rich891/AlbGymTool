@@ -3,10 +3,10 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const WISHES = [
-  { id: 'pain_free', label: 'Schmerzfreier werden', sub: 'Ich möchte Beschwerden gezielter angehen.', image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=700&q=80', color: 'from-red-600/70' },
-  { id: 'everyday', label: 'Alltag besser meistern', sub: 'Sicherer, stabiler und belastbarer fühlen.', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=700&q=80', color: 'from-blue-600/70' },
-  { id: 'motivation', label: 'Motivation & Gruppe', sub: 'Dranbleiben und gut aufgehoben fühlen.', image: 'https://images.unsplash.com/photo-1571731956672-f2b94d7dd0cb?w=700&q=80', color: 'from-purple-600/70' },
-  { id: 'guidance', label: 'Anleitung & Sicherheit', sub: 'Wissen, was für mich wirklich sinnvoll ist.', image: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=700&q=80', color: 'from-teal-600/70' },
+  { id: 'pain_free', label: 'Schmerzfreier werden', sub: 'Ich möchte Beschwerden gezielter angehen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/1f47df7c7_generated_image.png', color: 'from-red-600/70' },
+  { id: 'everyday', label: 'Alltag besser meistern', sub: 'Sicherer, stabiler und belastbarer fühlen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/4e49b1ac7_generated_image.png', color: 'from-blue-600/70' },
+  { id: 'motivation', label: 'Motivation & Gruppe', sub: 'Dranbleiben und gut aufgehoben fühlen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/50551ca1e_generated_image.png', color: 'from-purple-600/70' },
+  { id: 'guidance', label: 'Anleitung & Sicherheit', sub: 'Wissen, was für mich wirklich sinnvoll ist.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/42a1de823_generated_image.png', color: 'from-teal-600/70' },
 ];
 
 export default function RehaUpsellBridge({ profile, update, onNext, onBack }) {

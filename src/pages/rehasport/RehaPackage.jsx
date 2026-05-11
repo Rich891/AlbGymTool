@@ -130,7 +130,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
           animate={{ opacity: 1, y: 0 }}
           className="relative overflow-hidden rounded-3xl h-52 w-full mb-5">
           <img
-            src="https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=900&q=80"
+            src="https://media.base44.com/images/public/69fd9350879c9d422990f406/cd81f0c3a_generated_image.png"
             alt="Rehasport+"
             className="absolute inset-0 w-full h-full object-cover"
           />
@@ -159,7 +159,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 transition={{ delay: 0.1 }}
                 className="relative overflow-hidden rounded-3xl h-72">
                 <img
-                  src="https://images.unsplash.com/photo-1518611012118-696072aa579a?w=700&q=80"
+                  src="https://media.base44.com/images/public/69fd9350879c9d422990f406/e6dae839e_generated_image.png"
                   alt="FIVE"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
@@ -190,7 +190,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 transition={{ delay: 0.15 }}
                 className="relative overflow-hidden rounded-3xl h-72">
                 <img
-                  src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=700&q=80"
+                  src="https://media.base44.com/images/public/69fd9350879c9d422990f406/f864abc42_generated_image.png"
                   alt="Milon"
                   className="absolute inset-0 w-full h-full object-cover"
                 />

@@ -11,7 +11,7 @@ const ADDONS = [
     label: 'FIVE Training',
     whyText: 'Weil du mehr Beweglichkeit willst',
     text: 'Mehr Beweglichkeit, bessere Körperhaltung und gezieltes Arbeiten an muskulären Schwachstellen.',
-    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=700&q=80',
+    image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/e6dae839e_generated_image.png',
     gradient: 'from-orange-900/90',
     accentColor: 'orange',
     logo: FIVE_LOGO,
@@ -22,7 +22,7 @@ const ADDONS = [
     label: 'Milon Training',
     whyText: 'Weil dir Führung und Unterstützung wichtig ist',
     text: 'Geführtes Krafttraining mit automatischer Einstellung, klarer Führung und dokumentiertem Fortschritt.',
-    image: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=700&q=80',
+    image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/f864abc42_generated_image.png',
     gradient: 'from-blue-900/90',
     accentColor: 'blue',
     logo: MILON_LOGO,
@@ -127,7 +127,7 @@ export default function RehaUpsell({ profile, update, onNext, onBack }) {
             }`}
         >
           <img
-            src="https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=900&q=80"
+            src="https://media.base44.com/images/public/69fd9350879c9d422990f406/cd81f0c3a_generated_image.png"
             alt="Rehasport+"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
