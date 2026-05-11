@@ -51,7 +51,11 @@ function ServiceCard({ service, onEdit, onDelete, viewMode }) {
     return (
       <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-4 p-4 bg-card border border-border rounded-2xl hover:border-primary/30 transition-all group">
-        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cat.dot}`} />
+        {service.image_url ? (
+          <img src={service.image_url} alt={service.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+        ) : (
+          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cat.dot}`} />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-bold text-foreground text-sm">{service.name}</h3>
@@ -80,13 +84,25 @@ function ServiceCard({ service, onEdit, onDelete, viewMode }) {
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-      className={`bg-card border rounded-2xl p-5 hover:border-primary/30 transition-all group flex flex-col ${service.is_active ? 'border-border' : 'border-border opacity-60'}`}>
+      className={`bg-card border rounded-2xl overflow-hidden hover:border-primary/30 transition-all group flex flex-col ${service.is_active ? 'border-border' : 'border-border opacity-60'}`}>
+      {service.image_url && (
+        <div className="relative h-40 w-full overflow-hidden">
+          <img src={service.image_url} alt={service.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent" />
+          <span className={`absolute bottom-2 left-3 text-xs font-semibold px-2.5 py-1 rounded-full ${cat.bg} ${cat.text}`}>
+            {service.category}
+          </span>
+        </div>
+      )}
+      <div className="p-5 flex flex-col flex-1">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0 pr-2">
           <h3 className="font-bold text-foreground leading-tight">{service.name}</h3>
-          <span className={`inline-block mt-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${cat.bg} ${cat.text}`}>
-            {service.category}
-          </span>
+          {!service.image_url && (
+            <span className={`inline-block mt-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${cat.bg} ${cat.text}`}>
+              {service.category}
+            </span>
+          )}
         </div>
         <div className="flex gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onEdit(service)}>
@@ -139,6 +155,7 @@ function ServiceCard({ service, onEdit, onDelete, viewMode }) {
             ))}
           </div>
         )}
+      </div>
       </div>
     </motion.div>
   );
