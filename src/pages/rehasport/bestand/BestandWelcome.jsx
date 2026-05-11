@@ -15,6 +15,7 @@ const OPTIONS = [
     description: 'Du möchtest deinen Rehasport gezielt ergänzen und mehr aus deinem Training machen.',
     image: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&q=80',
     color: 'from-blue-900/90',
+    active: true,
   },
 ];
 
@@ -58,11 +59,7 @@ export default function BestandWelcome({ customer, onSelect, onBack }) {
                 <p className="text-sm text-white/70 leading-snug">{opt.description}</p>
               </div>
 
-              {opt.id === 'more' && (
-                <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/40 border border-white/20 text-xs text-white/60 font-bold">
-                  Bald verfügbar
-                </div>
-              )}
+
             </motion.button>
           ))}
         </div>

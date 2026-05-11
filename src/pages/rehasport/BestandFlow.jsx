@@ -11,6 +11,7 @@ import BestandUsedMeasures from './bestand/BestandUsedMeasures';
 import BestandAnalysis from './bestand/BestandAnalysis';
 import BestandEvaluation from './bestand/BestandEvaluation';
 import BestandRecommendation from './bestand/BestandRecommendation';
+import MehrFlow from './mehr/MehrFlow';
 import RehaPackage from './RehaPackage';
 import RehaBeforeClosing from './RehaBeforeClosing';
 import RehaSignature from './RehaSignature';
@@ -39,6 +40,7 @@ const STEPS = [
 export default function BestandFlow({ onBack }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [customer, setCustomer] = useState(null);
+  const [showMehrFlow, setShowMehrFlow] = useState(false);
   const [bestandState, setBestandState] = useState({
     prescriptionHistory: null,
     initialDeficits: [],
@@ -115,9 +117,8 @@ export default function BestandFlow({ onBack }) {
   const handleWelcomeSelect = (option) => {
     if (option === 'renew') {
       next(); // → prescription
-    } else {
-      // "Ich möchte mehr tun" → Placeholder
-      alert('Dieser Bereich wird bald verfügbar sein.');
+    } else if (option === 'more') {
+      setShowMehrFlow(true);
     }
   };
 
@@ -138,6 +139,11 @@ export default function BestandFlow({ onBack }) {
     const allFilled = required.every(f => profile[f]?.trim?.());
     go(allFilled ? 12 : 11);
   };
+
+  // MehrFlow overlay
+  if (showMehrFlow) {
+    return <MehrFlow customer={customer} onBack={() => setShowMehrFlow(false)} />;
+  }
 
   const currentStep = STEPS[stepIndex];
 
