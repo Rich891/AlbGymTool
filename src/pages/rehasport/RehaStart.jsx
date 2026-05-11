@@ -23,9 +23,7 @@ function BigCard({ title, sub, image, color, onClick, disabled }) {
   );
 }
 
-export default function RehaStart({ onNew, onBack }) {
-  const [existingPlaceholder, setExistingPlaceholder] = useState(false);
-
+export default function RehaStart({ onNew, onExisting, onBack }) {
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-8 pt-8 pb-10">
       <div className="w-full max-w-4xl">
@@ -50,22 +48,16 @@ export default function RehaStart({ onNew, onBack }) {
             color="from-primary/70"
             onClick={onNew}
           />
-          <BigCard
-            title="Ich bin schon dabei"
-            sub="Ich bin bereits im Rehasport und möchte wissen, wie es weitergeht."
-            image="https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&q=80"
-            color="from-blue-600/70"
-            onClick={() => setExistingPlaceholder(true)}
-          />
-        </div>
-
-        {existingPlaceholder && (
-          <div className="mt-8 p-6 rounded-2xl border border-primary/30 bg-primary/5 text-center">
-            <p className="text-foreground font-semibold">Dieser Bereich wird in Kürze ergänzt.</p>
-            <p className="text-muted-foreground text-sm mt-1">Bitte wende dich direkt an das AlbGym-Team vor Ort.</p>
-            <button onClick={() => setExistingPlaceholder(false)} className="mt-3 text-sm text-primary hover:underline">Schließen</button>
+          <div className="relative group">
+            <BigCard
+              title="Ich bin schon dabei"
+              sub="Ich nehme bereits am Rehasport teil und möchte meinen nächsten Schritt klären."
+              image="https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&q=80"
+              color="from-blue-600/70"
+              onClick={onExisting}
+            />
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

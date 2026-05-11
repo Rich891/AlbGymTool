@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 
 import RehaStart from './RehaStart';
+import BestandFlow from './BestandFlow';
 import RehaCustomer from './RehaCustomer';
 import RehaReason from './RehaReason';
 import RehaComplaints from './RehaComplaints';
@@ -20,6 +21,7 @@ import RehaContract from './RehaContract';
 export default function RehasportFlow() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [showBestand, setShowBestand] = useState(false);
   const [testMode, setTestMode] = useState(false);
   const [profile, setProfile] = useState({
     name: '', first_name: '', last_name: '', birthdate: '', gender: '',
@@ -31,8 +33,12 @@ export default function RehasportFlow() {
 
   const update = (data) => setProfile(prev => ({ ...prev, ...data }));
 
+  if (showBestand) {
+    return <BestandFlow onBack={() => setShowBestand(false)} />;
+  }
+
   const steps = [
-    <RehaStart key="start" onNew={() => setStep(1)} onBack={() => navigate('/')} />,
+    <RehaStart key="start" onNew={() => setStep(1)} onExisting={() => setShowBestand(true)} onBack={() => navigate('/')} />,
     <RehaCustomer key="customer" profile={profile} update={update} onNext={() => setStep(2)} onBack={() => setStep(0)} testMode={testMode} />,
     <RehaReason key="reason" profile={profile} update={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />,
     <RehaComplaints key="complaints" profile={profile} update={update} onNext={() => setStep(4)} onBack={() => setStep(2)} />,
