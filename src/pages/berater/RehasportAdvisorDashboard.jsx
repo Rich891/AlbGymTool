@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut, Plus, ArrowLeft } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut, Plus, ArrowLeft, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeilnahmebescheinigungDownload from './TeilnahmebescheinigungDownload';
 import CustomerDetail from './CustomerDetail';
 import InsuranceManager from './InsuranceManager';
 import NewCustomerModal from './NewCustomerModal';
+import ServiceCatalog from '@/pages/ServiceCatalog';
 
 const NAV_ITEMS = [
   { id: 'customers', label: 'Kundenkatalog', icon: Users },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'insurance', label: 'Krankenkassen-DB', icon: FileText },
   { id: 'tariffs', label: 'Tarifverwaltung', icon: TrendingUp },
+  { id: 'services', label: 'Leistungskatalog', icon: BookOpen },
   { id: 'admin', label: 'Admin', icon: Settings },
 ];
 
@@ -210,6 +212,8 @@ export default function RehasportAdvisorDashboard() {
             </div>
           </div>
         )}
+
+        {activeTab === 'services' && <ServiceCatalog />}
 
         {activeTab === 'admin' && (
           <div>
