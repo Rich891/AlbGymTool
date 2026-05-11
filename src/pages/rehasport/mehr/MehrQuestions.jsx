@@ -65,14 +65,15 @@ const QUESTIONS = [
 
 export default function MehrQuestions({ answers, onAnswer, onNext, onBack }) {
   const [currentQ, setCurrentQ] = useState(0);
-  const question = QUESTIONS[currentQ];
-  const isLast = currentQ === QUESTIONS.length - 1;
-  const canContinue = answers[question.id] !== undefined;
+  const safeQ = Math.min(currentQ, QUESTIONS.length - 1);
+  const question = QUESTIONS[safeQ];
+  const isLast = safeQ === QUESTIONS.length - 1;
+  const canContinue = answers[question?.id] !== undefined;
 
   const handleSelect = (optionId) => {
     onAnswer(question.id, optionId);
     if (!isLast) {
-      setTimeout(() => setCurrentQ(q => q + 1), 350);
+      setTimeout(() => setCurrentQ(q => Math.min(q + 1, QUESTIONS.length - 1)), 350);
     }
   };
 
