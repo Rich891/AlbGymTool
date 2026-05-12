@@ -18,11 +18,23 @@ import RehaBeforeClosing from './RehaBeforeClosing';
 import RehaBooking from './RehaBooking';
 import RehaContract from './RehaContract';
 
+function loadAdvisorOptions() {
+  try {
+    const raw = localStorage.getItem('alb_advisor_options');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function RehasportFlow() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [showBestand, setShowBestand] = useState(false);
   const [testMode, setTestMode] = useState(false);
+  const advisorOpts = loadAdvisorOptions();
+  const signatureRequired = advisorOpts.signature_required !== false; // default true
+  const signatureSkipAllowed = advisorOpts.signature_skip_allowed === true;
   const [profile, setProfile] = useState({
     name: '', first_name: '', last_name: '', birthdate: '', gender: '',
     reasons: [], complaints: [],
@@ -50,7 +62,7 @@ export default function RehasportFlow() {
     <RehaUpsellBridge key="bridge" profile={profile} update={update} onNext={() => setStep(7)} onBack={() => setStep(5)} />,
     <RehaUpsell key="upsell" profile={profile} update={update} onNext={() => setStep(8)} onBack={() => setStep(6)} />,
     <RehaPackage key="package" profile={profile} update={update} onNext={() => setStep(9)} onBack={() => setStep(7)} />,
-    <RehaSignature key="signature" profile={profile} update={update} onNext={() => {
+    <RehaSignature key="signature" profile={profile} update={update} skipAllowed={signatureSkipAllowed || !signatureRequired} onNext={() => {
       const required = ['address', 'email', 'phone', 'health_insurance', 'insurance_number', 'account_holder', 'iban'];
       const allFilled = required.every(f => profile[f]?.trim?.());
       setStep(allFilled ? 11 : 10);

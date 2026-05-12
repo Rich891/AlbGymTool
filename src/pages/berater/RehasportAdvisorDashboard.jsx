@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut, Plus, ArrowLeft, BookOpen } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, FileText, Settings, LogOut, Plus, ArrowLeft, BookOpen, SlidersHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeilnahmebescheinigungDownload from './TeilnahmebescheinigungDownload';
@@ -9,6 +9,7 @@ import CustomerDetail from './CustomerDetail';
 import InsuranceManager from './InsuranceManager';
 import NewCustomerModal from './NewCustomerModal';
 import ServiceCatalog from '@/pages/ServiceCatalog';
+import AdvisorOptions from './AdvisorOptions';
 
 const NAV_ITEMS = [
   { id: 'customers', label: 'Kundenkatalog', icon: Users },
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { id: 'tariffs', label: 'Tarifverwaltung', icon: TrendingUp },
   { id: 'services', label: 'Leistungskatalog', icon: BookOpen },
   { id: 'admin', label: 'Admin', icon: Settings },
+  { id: 'options', label: 'Optionen', icon: SlidersHorizontal },
 ];
 
 export default function RehasportAdvisorDashboard() {
@@ -221,6 +223,8 @@ export default function RehasportAdvisorDashboard() {
             <p className="text-muted-foreground">Admin-Funktionen folgen...</p>
           </div>
         )}
+
+        {activeTab === 'options' && <AdvisorOptions />}
       </div>
 
       {/* Overlays */}

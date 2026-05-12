@@ -130,7 +130,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
           animate={{ opacity: 1, y: 0 }}
           className="relative overflow-hidden rounded-3xl h-52 w-full mb-5">
           <img
-            src="https://media.base44.com/images/public/69fd9350879c9d422990f406/cd81f0c3a_generated_image.png"
+            src="https://media.base44.com/images/public/69fd9350879c9d422990f406/662997de5_generated_image.png"
             alt="Rehasport+"
             className="absolute inset-0 w-full h-full object-cover"
           />
@@ -159,7 +159,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 transition={{ delay: 0.1 }}
                 className="relative overflow-hidden rounded-3xl h-72">
                 <img
-                  src="https://media.base44.com/images/public/69fd9350879c9d422990f406/e6dae839e_generated_image.png"
+                  src="https://media.base44.com/images/public/69fd9350879c9d422990f406/30d9c1d13_generated_image.png"
                   alt="FIVE"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
@@ -190,7 +190,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 transition={{ delay: 0.15 }}
                 className="relative overflow-hidden rounded-3xl h-72">
                 <img
-                  src="https://media.base44.com/images/public/69fd9350879c9d422990f406/f864abc42_generated_image.png"
+                  src="https://media.base44.com/images/public/69fd9350879c9d422990f406/73428bdcf_generated_image.png"
                   alt="Milon"
                   className="absolute inset-0 w-full h-full object-cover"
                 />

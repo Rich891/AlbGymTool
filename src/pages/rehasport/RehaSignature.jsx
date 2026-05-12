@@ -3,9 +3,14 @@ import { ChevronLeft, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SignaturePad from '@/components/shared/SignaturePad';
 
-export default function RehaSignature({ profile, update, onNext, onBack }) {
+export default function RehaSignature({ profile, update, onNext, onBack, skipAllowed = false }) {
   const [signature, setSignature] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const handleSkip = () => {
+    update({ signature: null });
+    onNext();
+  };
 
   const handleProceed = async () => {
     if (!signature) return;
@@ -67,6 +72,16 @@ export default function RehaSignature({ profile, update, onNext, onBack }) {
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Bestätigen & fortfahren →'}
             </motion.button>
           </div>
+
+          {skipAllowed && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={handleSkip}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
+                Unterschrift überspringen (Berater-Modus)
+              </button>
+            </div>
+          )}
         </motion.div>
       </div>
     </div>
