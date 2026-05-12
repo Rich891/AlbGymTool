@@ -1,299 +1,443 @@
 import { jsPDF } from 'jspdf';
 
-const LOGO_URL = 'https://media.base44.com/images/public/user_69ebb5f9878e5267e7fcc9b3/96b390eb9_AlbGymLogomark.png';
+const PACKAGE_PRICES = {
+  'rehasport': 6.98,
+  'rehasport-five': 11.98,
+  'rehasport-milon': 11.98,
+  'rehasport-five-milon': 13.98,
+};
+
+function getPackageKey(addons) {
+  const has5 = addons?.includes('five');
+  const hasMilon = addons?.includes('milon');
+  if (has5 && hasMilon) return 'rehasport-five-milon';
+  if (has5) return 'rehasport-five';
+  if (hasMilon) return 'rehasport-milon';
+  return 'rehasport';
+}
+
+function getPackageName(addons) {
+  const has5 = addons?.includes('five');
+  const hasMilon = addons?.includes('milon');
+  if (has5 && hasMilon) return 'Rehasport+ inkl. FIVE & Milon';
+  if (has5) return 'Rehasport+ inkl. FIVE';
+  if (hasMilon) return 'Rehasport+ inkl. Milon';
+  return 'Rehasport+';
+}
+
+function formatEur(amount) {
+  return amount.toFixed(2).replace('.', ',') + ' €';
+}
+
+function formatDate(date) {
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
 export function generateLaufschuleVertrag(profile) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'A4' });
   const W = 210;
-  const ML = 15;
-  const MR = 15;
+  const H = 297;
+  const ML = 18;
+  const MR = 18;
   const CW = W - ML - MR;
 
-  // Helpers
-  const t = (str, x, y, opts = {}) => doc.text(String(str ?? ''), x, y, opts);
-  const hline = (x1, y, x2, height = 0.5) => {
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(height);
-    doc.line(x1, y, x2, y);
+  const addons = profile.selectedOffers || [];
+  const packageKey = getPackageKey(addons);
+  const packageName = getPackageName(addons);
+  const weeklyPrice = PACKAGE_PRICES[packageKey];
+  const monthlyPrice = weeklyPrice * 4.33;
+  const hasSubsidy = profile.subsidyActive;
+  const hasFive = addons.includes('five');
+  const hasMilon = addons.includes('milon');
+  const today = new Date();
+  const payment2Date = new Date(today); payment2Date.setMonth(payment2Date.getMonth() + 6);
+  const subsidy1Date = new Date(today); subsidy1Date.setMonth(subsidy1Date.getMonth() + 2);
+  const subsidy2Date = new Date(payment2Date); subsidy2Date.setMonth(subsidy2Date.getMonth() + 2);
+
+  // ─── COLOR PALETTE ──────────────────────────────────────
+  const GREEN = [28, 140, 70];
+  const DARK = [20, 20, 20];
+  const GRAY = [100, 100, 100];
+  const LIGHTGRAY = [200, 200, 200];
+  const BGLIGHT = [245, 250, 247];
+
+  // ─── HELPERS ────────────────────────────────────────────
+  let y = 0;
+  const rgb = (arr) => arr;
+
+  const setFont = (style = 'normal', size = 10, color = DARK) => {
+    doc.setFont('helvetica', style);
+    doc.setFontSize(size);
+    doc.setTextColor(...color);
   };
-  const bold = () => doc.setFont('helvetica', 'bold');
-  const normal = () => doc.setFont('helvetica', 'normal');
-  const sz = (s) => doc.setFontSize(s);
-  const col = (r, g, b) => doc.setTextColor(r, g, b);
-  const black = () => col(0, 0, 0);
-  const gray = () => col(100, 100, 100);
-  const primaryGreen = () => col(40, 150, 80);
 
-  // ─── HEADER ────────────────────────────────────────────
-  // Green header background
-  doc.setFillColor(40, 150, 80);
-  doc.rect(0, 0, W, 35, 'F');
+  const row = (label, value, yPos, labelW = 40) => {
+    setFont('bold', 9, GRAY);
+    doc.text(label, ML, yPos);
+    setFont('normal', 10, DARK);
+    doc.text(String(value || '—'), ML + labelW, yPos);
+  };
 
-  // White text on green
-  col(255, 255, 255);
-  sz(16);
-  bold();
-  t('WO AUS BEWEGUNG', ML, 12);
-  t('GESUNDHEIT WIRD', ML, 18);
+  const hline = (yPos, x1 = ML, x2 = W - MR, color = LIGHTGRAY, w = 0.3) => {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(w);
+    doc.line(x1, yPos, x2, yPos);
+  };
 
-  // Contact info on right
-  normal();
-  sz(9);
-  t('📞 07381 - 93 86 510', W - ML - 50, 8);
-  t('✉ info@alb-gym.de', W - ML - 50, 14);
-  t('🌐 www.alb-gym.de', W - ML - 50, 20);
-  t('📍 Auingerweg 39, 72525 Münsingen', W - ML - 50, 26);
+  const sectionTitle = (title, yPos) => {
+    doc.setFillColor(...GREEN);
+    doc.rect(ML, yPos, CW, 7, 'F');
+    setFont('bold', 9.5, [255, 255, 255]);
+    doc.text(title.toUpperCase(), ML + 4, yPos + 5);
+    return yPos + 12;
+  };
 
-  // Logo placeholder
+  const checkMark = (x, y, checked) => {
+    doc.setDrawColor(...GRAY);
+    doc.setLineWidth(0.4);
+    doc.rect(x, y - 3.5, 4, 4);
+    if (checked) {
+      doc.setFillColor(...GREEN);
+      doc.rect(x, y - 3.5, 4, 4, 'F');
+      setFont('bold', 7, [255, 255, 255]);
+      doc.text('✓', x + 0.8, y - 0.2);
+    }
+  };
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 1
+  // ════════════════════════════════════════════════════════
+
+  // ─── GREEN HEADER ───────────────────────────────────────
+  doc.setFillColor(...GREEN);
+  doc.rect(0, 0, W, 42, 'F');
+
+  // Logo area (white box)
   doc.setFillColor(255, 255, 255);
-  doc.rect(W - ML - 25, 3, 22, 22, 'F');
-  sz(20);
-  black();
-  t('A', W - ML - 22, 20, { align: 'center' });
+  doc.roundedRect(ML, 6, 32, 30, 3, 3, 'F');
+  setFont('bold', 14, GREEN);
+  doc.text('A', ML + 13, 24, { align: 'center' });
+  setFont('bold', 6, GREEN);
+  doc.text('ALB GYM', ML + 16, 29, { align: 'center' });
 
-  // ─── FORM HEADER ───────────────────────────────────────
-  let y = 42;
-  sz(9);
-  gray();
-  t('(BITTE LESERLICH UND IN DRUCKBUCHSTABEN SCHREIBEN)', ML, y);
-  y += 8;
+  // Header text
+  setFont('bold', 18, [255, 255, 255]);
+  doc.text('MITGLIEDSCHAFTSVERTRAG', ML + 38, 16);
+  setFont('bold', 11, [200, 240, 210]);
+  doc.text('REHASPORT+', ML + 38, 24);
+  setFont('normal', 8, [200, 240, 210]);
+  doc.text('AlbGym GmbH  ·  Auingerweg 39  ·  72525 Münsingen', ML + 38, 30);
+  doc.text('Tel: 07381 - 93 86 510  ·  info@alb-gym.de  ·  www.alb-gym.de', ML + 38, 35);
 
-  black();
-  normal();
-  sz(10);
-  
-  // Vorname & Name row
-  t('Vorname:', ML, y);
-  hline(ML + 25, y + 1, ML + 80);
-  t('Name:', ML + 85, y);
-  hline(ML + 100, y + 1, W - MR);
-  
-  sz(9);
-  gray();
-  t(profile.name?.split(' ')[0] || '', ML + 27, y - 1);
-  t(profile.last_name || profile.name?.split(' ').slice(1).join(' ') || '', ML + 102, y - 1);
-  
-  y += 8;
-  
-  // Straße & Ort row
-  black();
-  normal();
-  sz(10);
-  t('Straße & Haus Nr.:', ML, y);
-  hline(ML + 35, y + 1, ML + 85);
-  t('PLZ, Ort:', ML + 88, y);
-  hline(ML + 110, y + 1, W - MR);
-  
-  sz(9);
-  gray();
-  t(profile.address || '', ML + 36, y - 1);
-  const plzOrt = profile.address ? '' : '';
-  t(plzOrt, ML + 111, y - 1);
-  
-  y += 8;
-  
-  // Telefon & Email row
-  black();
-  normal();
-  sz(10);
-  t('Telefon:', ML, y);
-  hline(ML + 18, y + 1, ML + 80);
-  t('E-Mail:', ML + 85, y);
-  hline(ML + 105, y + 1, W - MR);
-  
-  sz(9);
-  gray();
-  t(profile.phone || '', ML + 20, y - 1);
-  t(profile.email || '', ML + 107, y - 1);
-  
-  y += 8;
-  
-  // Handy & Geburtsdatum row
-  black();
-  normal();
-  sz(10);
-  t('Handy:', ML, y);
-  hline(ML + 15, y + 1, ML + 80);
-  t('Geburtsdatum:', ML + 85, y);
-  hline(ML + 115, y + 1, W - MR);
-  
-  sz(9);
-  gray();
-  t(profile.phone || '', ML + 17, y - 1);
-  t(profile.birthdate || '', ML + 117, y - 1);
-  
-  y += 8;
-  
-  // Krankenkasse & Vers. Nr row
-  black();
-  normal();
-  sz(10);
-  t('Krankenkasse:', ML, y);
-  hline(ML + 30, y + 1, ML + 80);
-  t('Vers. Nr.:', ML + 85, y);
-  hline(ML + 105, y + 1, W - MR);
-  
-  sz(9);
-  gray();
-  t(profile.health_insurance || '', ML + 32, y - 1);
-  t(profile.insurance_number || '', ML + 107, y - 1);
-  
-  y += 12;
+  // Document date right-aligned
+  setFont('normal', 8, [200, 240, 210]);
+  doc.text(`Datum: ${formatDate(today)}`, W - MR, 38, { align: 'right' });
 
-  // ─── COURSES SECTION ───────────────────────────────────
-  black();
-  bold();
-  sz(11);
-  t('VERFÜGBARE KURSE', ML, y);
-  y += 10;
+  y = 52;
 
-  const courses = [
-    { id: 'laufschule_300', label: 'LAUFSCHULE', price: '300 €', cols: 2 },
-    { id: 'laufschule_450', label: 'LAUFSCHULE', price: '450 €', cols: 2 },
-    { id: 'five', label: 'FIVE - BEWEGLICHKEIT', price: '129 €', cols: 1 },
-    { id: 'milon', label: 'MILON - KRÄFTIGUNG', price: '129 €', cols: 1 },
-    { id: 'fitness', label: 'FITNESS FÜHRERSCHEIN', price: '139 €', cols: 1 },
-    { id: 'skillcourt', label: 'SKILLCOURT - KOORDINATION', price: '129 €', cols: 1 },
+  // ─── SECTION 1: MITGLIEDSDATEN ─────────────────────────
+  y = sectionTitle('1.  Persönliche Daten des Mitglieds', y);
+
+  // Two-column personal data
+  const col1x = ML;
+  const col2x = ML + CW / 2 + 4;
+  const colW = CW / 2 - 6;
+
+  const personalRows = [
+    ['Name, Vorname', profile.name || ''],
+    ['Geburtsdatum', profile.birthdate || ''],
+    ['Geschlecht', profile.gender || ''],
+    ['Adresse', profile.address || ''],
+    ['E-Mail', profile.email || ''],
+    ['Telefon / Handy', profile.phone || ''],
   ];
 
-  const selectedOffers = profile.selectedOffers || [];
-  let x = ML;
-  let courseY = y;
-
-  courses.forEach((course, idx) => {
-    const isSelected = selectedOffers.includes(course.id);
-    
-    // Checkbox
-    const checkSize = 5;
-    doc.setDrawColor(100, 100, 100);
-    doc.rect(x - 2, courseY - 3, checkSize, checkSize);
-    
-    if (isSelected) {
-      doc.setFillColor(40, 150, 80);
-      doc.rect(x - 2, courseY - 3, checkSize, checkSize, 'F');
-      black();
-      sz(4);
-      bold();
-      t('✓', x + 0.5, courseY - 0.5, { align: 'center' });
-      normal();
-    }
-    
-    // Course label
-    black();
-    normal();
-    sz(9);
-    bold();
-    t(course.label, x + 8, courseY);
-    sz(8);
-    normal();
-    gray();
-    t(course.price, x + 8, courseY + 5);
-    
-    if (course.cols === 1) {
-      courseY += 12;
-    } else {
-      x = W / 2;
-      if (idx === 1) {
-        courseY += 12;
-        x = ML;
-      }
-    }
+  personalRows.forEach((r, i) => {
+    const isEven = i % 2 === 0;
+    const xPos = isEven ? col1x : col2x;
+    const rowY = y + Math.floor(i / 2) * 10;
+    setFont('bold', 7.5, GRAY);
+    doc.text(r[0], xPos, rowY);
+    setFont('normal', 9.5, DARK);
+    doc.text(String(r[1] || '—'), xPos, rowY + 4.5);
+    hline(rowY + 6.5, xPos, xPos + colW, LIGHTGRAY, 0.2);
   });
 
-  y = courseY + 15;
+  y += Math.ceil(personalRows.length / 2) * 10 + 6;
 
-  // ─── PAYMENT & SIGNATURE ───────────────────────────────
-  black();
-  normal();
-  sz(9);
-  const paymentText = 'Ich nehme am gewählten Präventionskurs teil, stimme der Abbuchung der Kursgebühr zu und bin darüber informiert,\ndass eine Erstattung durch gesetzliche Krankenkassen nur bei 100 % Teilnahme erfolgt.';
-  doc.text(paymentText, ML, y);
-  y += 10;
+  // ─── SECTION 2: KRANKENKASSE ───────────────────────────
+  y = sectionTitle('2.  Krankenkasse & Versicherung', y);
 
-  // IBAN
-  sz(10);
-  black();
-  t('IBAN: D E', ML, y);
-  const ibanBoxes = 'D E   _   _   _   /   _   _   _   _   _   /   _   _   _   _   _   /   _   _   _   _   _   /   _   _';
-  hline(ML + 18, y + 1, W - MR);
-  
-  sz(8);
-  gray();
-  if (profile.iban) {
-    t(profile.iban, ML + 20, y - 1);
+  const insuranceRows = [
+    ['Krankenkasse', profile.health_insurance || ''],
+    ['Versichertennummer', profile.insurance_number || ''],
+  ];
+
+  insuranceRows.forEach((r, i) => {
+    const xPos = i % 2 === 0 ? col1x : col2x;
+    const rowY = y + Math.floor(i / 2) * 10;
+    setFont('bold', 7.5, GRAY);
+    doc.text(r[0], xPos, rowY);
+    setFont('normal', 9.5, DARK);
+    doc.text(String(r[1] || '—'), xPos, rowY + 4.5);
+    hline(rowY + 6.5, xPos, xPos + colW, LIGHTGRAY, 0.2);
+  });
+
+  y += 14;
+
+  // ─── SECTION 3: PAKET ──────────────────────────────────
+  y = sectionTitle('3.  Vereinbartes Paket', y);
+
+  // Package box
+  doc.setFillColor(...BGLIGHT);
+  doc.setDrawColor(...GREEN);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(ML, y, CW, 32, 3, 3, 'FD');
+
+  setFont('bold', 13, GREEN);
+  doc.text(packageName, ML + 5, y + 9);
+
+  setFont('normal', 8.5, GRAY);
+  doc.text('Beinhaltet: Rehasport-Training + freies Studiozugang', ML + 5, y + 16);
+  if (hasFive) doc.text('+ FIVE Beweglichkeitstraining (gerätegestützt)', ML + 5, y + 21.5);
+  if (hasMilon) doc.text('+ Milon Kraftzirkel (geführtes Training)', ML + 5, hasFive ? y + 27 : y + 21.5);
+
+  // Price badge right side
+  setFont('bold', 18, GREEN);
+  doc.text(formatEur(weeklyPrice), W - MR - 4, y + 10, { align: 'right' });
+  setFont('normal', 8, GRAY);
+  doc.text('pro Woche', W - MR - 4, y + 16, { align: 'right' });
+  setFont('normal', 8, GRAY);
+  doc.text(`≈ ${formatEur(monthlyPrice)} / Monat`, W - MR - 4, y + 22, { align: 'right' });
+
+  y += 38;
+
+  // ─── SECTION 4: ZUSCHUSS §20 ───────────────────────────
+  y = sectionTitle('4.  §20 SGB V Präventionszuschuss', y);
+
+  if (hasSubsidy) {
+    // Subsidy enabled – show full breakdown
+    doc.setFillColor(...BGLIGHT);
+    doc.roundedRect(ML, y, CW, 50, 3, 3, 'F');
+
+    setFont('bold', 9, GREEN);
+    doc.text('Zuschuss aktiviert – §20 SGB V Kursgebühr-Modell', ML + 5, y + 7);
+
+    const subRows = [
+      { label: '1. §20-Pauschale', sub: `fällig ab ${formatDate(today)}`, value: '99,00 €', subval: `Zuschuss beantragen ab: ${formatDate(subsidy1Date)}` },
+      { label: '2. §20-Pauschale', sub: `fällig ab ${formatDate(payment2Date)}`, value: '100,00 €', subval: `Zuschuss beantragen ab: ${formatDate(subsidy2Date)}` },
+    ];
+
+    subRows.forEach((r, i) => {
+      const rowY = y + 13 + i * 17;
+      doc.setFillColor(230, 250, 237);
+      doc.roundedRect(ML + 4, rowY, CW - 8, 13, 2, 2, 'F');
+      setFont('bold', 9, DARK);
+      doc.text(r.label, ML + 8, rowY + 5.5);
+      setFont('normal', 7.5, GRAY);
+      doc.text(r.sub, ML + 8, rowY + 10);
+      setFont('bold', 10, GREEN);
+      doc.text(r.value, W - MR - 6, rowY + 5.5, { align: 'right' });
+      setFont('normal', 7, GRAY);
+      doc.text(r.subval, W - MR - 6, rowY + 10, { align: 'right' });
+    });
+
+    // Summary row
+    const sumY = y + 13 + 2 * 17 + 2;
+    hline(sumY, ML + 4, W - MR - 4, GREEN, 0.4);
+    setFont('bold', 8.5, GRAY);
+    doc.text('Gesamt §20-Pauschalen', ML + 8, sumY + 5);
+    doc.text('199,00 €', W - MR - 6, sumY + 5, { align: 'right' });
+    setFont('bold', 8.5, [0, 140, 70]);
+    doc.text('Voraussichtlicher Zuschuss (KK)', ML + 8, sumY + 10);
+    doc.text('− 159,00 €', W - MR - 6, sumY + 10, { align: 'right' });
+
+    y += 56;
+  } else {
+    // No subsidy
+    setFont('normal', 9, GRAY);
+    doc.text('Kein §20-Präventionszuschuss gewählt.', ML + 4, y + 6);
+    y += 12;
   }
+
+  // ─── SECTION 5: BANKDATEN ──────────────────────────────
+  y = sectionTitle('5.  Bankverbindung (SEPA-Lastschrift)', y);
+
+  const bankRows = [
+    ['Kontoinhaber', profile.account_holder || ''],
+    ['IBAN', profile.iban || ''],
+    ['BIC', profile.bic || ''],
+    ['Bank', profile.bank || ''],
+  ];
+
+  bankRows.forEach((r, i) => {
+    const xPos = i % 2 === 0 ? col1x : col2x;
+    const rowY = y + Math.floor(i / 2) * 10;
+    setFont('bold', 7.5, GRAY);
+    doc.text(r[0], xPos, rowY);
+    setFont('normal', 9.5, DARK);
+    doc.text(String(r[1] || '—'), xPos, rowY + 4.5);
+    hline(rowY + 6.5, xPos, xPos + colW, LIGHTGRAY, 0.2);
+  });
+
+  y += 24;
+
+  // ─── SECTION 6: ZIELE & WÜNSCHE ────────────────────────
+  y = sectionTitle('6.  Persönliche Ziele & Beschwerden', y);
+
+  const goalsText = (profile.reasons || []).join(' · ') || '—';
+  const complaintsText = (profile.complaints || []).join(' · ') || '—';
+  const wishesText = (profile.wishes || []).join(' · ') || '—';
+
+  const goalRows = [
+    ['Rehaziele', goalsText],
+    ['Beschwerden', complaintsText],
+    ['Wünsche', wishesText],
+  ];
+
+  goalRows.forEach((r, i) => {
+    const rowY = y + i * 9;
+    setFont('bold', 7.5, GRAY);
+    doc.text(r[0], ML, rowY);
+    setFont('normal', 8.5, DARK);
+    const wrapped = doc.splitTextToSize(r[1], CW - 40);
+    doc.text(wrapped, ML + 36, rowY);
+    hline(rowY + 5, ML, W - MR, LIGHTGRAY, 0.2);
+    y += (wrapped.length - 1) * 4;
+  });
+
+  y += goalRows.length * 9 + 4;
+
+  // ─── SECTION 7: EINWILLIGUNGEN ─────────────────────────
+  y = sectionTitle('7.  Einwilligungen & Bestätigungen', y);
+
+  const consents = [
+    { label: 'Trainings- und Hausregeln des AlbGym', checked: profile.rules_accepted },
+    { label: 'Einwilligung in die Verarbeitung von Beratungsdaten', checked: profile.consent_counseling },
+    { label: 'Einwilligung in die Verarbeitung von Gesundheitsdaten', checked: profile.consent_health },
+    { label: 'Einwilligung in die Verarbeitung von Bankdaten (SEPA)', checked: profile.consent_bank },
+  ];
+
+  consents.forEach((c, i) => {
+    const rowY = y + i * 8;
+    checkMark(ML, rowY, c.checked);
+    setFont('normal', 8.5, DARK);
+    doc.text(c.label, ML + 7, rowY);
+  });
+
+  y += consents.length * 8 + 8;
+
+  // ─── SIGNATURE SECTION ──────────────────────────────────
+  if (y > H - 55) {
+    doc.addPage();
+    y = 20;
+  }
+
+  hline(y, ML, W - MR, GREEN, 0.6);
   y += 8;
 
-  // Bank & Kontoinhaber
-  black();
-  normal();
-  sz(10);
-  t('Bank:', ML, y);
-  hline(ML + 12, y + 1, ML + 70);
-  t('Kontoinhaber:', ML + 75, y);
-  hline(ML + 105, y + 1, W - MR);
-  
-  sz(9);
-  gray();
-  t(profile.bank || '', ML + 14, y - 1);
-  t(profile.account_holder || '', ML + 107, y - 1);
-  y += 8;
+  setFont('bold', 9, GRAY);
+  doc.text('Ort, Datum', ML, y);
+  doc.text('Unterschrift Mitglied', W / 2 + 10, y);
+  hline(y + 1, ML, ML + 60, DARK, 0.4);
+  hline(y + 1, W / 2 + 10, W - MR, DARK, 0.4);
 
-  // Ort & Unterschrift
-  black();
-  normal();
-  sz(10);
-  t('Ort, Datum:', ML, y);
-  hline(ML + 22, y + 1, ML + 70);
-  t('Unterschrift:', ML + 75, y);
-  hline(ML + 105, y + 1, W - MR);
-  
-  sz(9);
-  gray();
-  const today = new Date().toLocaleDateString('de-DE');
-  t(today, ML + 24, y - 1);
-  
+  setFont('normal', 9, DARK);
+  doc.text(formatDate(today), ML, y + 7);
+
   if (profile.signature) {
     try {
-      doc.addImage(profile.signature, 'PNG', ML + 107, y - 8, 25, 10);
+      doc.addImage(profile.signature, 'PNG', W / 2 + 10, y - 8, 40, 14);
     } catch (e) { /* skip */ }
   }
 
-  y += 12;
+  y += 16;
 
-  // ─── CONSENT ───────────────────────────────────────────
-  sz(8);
-  black();
-  normal();
-  const consentText = 'Ich bestätige mit meiner Unterschrift, dass ich die Allgemeinen Geschäftsbedingungen, das SEPA-Lastschriftmandat\nsowie die Datenschutzhinweise (Rückseite) gelesen habe und ihnen zustimme.';
-  doc.text(consentText, ML, y);
+  setFont('bold', 9, GRAY);
+  doc.text('Für AlbGym GmbH', ML, y);
+  hline(y + 1, ML, ML + 60, DARK, 0.4);
+  y += 6;
 
-  // Add page 2 with AGB & Datenschutz
+  // ─── FOOTER ────────────────────────────────────────────
+  setFont('normal', 7, GRAY);
+  doc.text('AlbGym GmbH · Auingerweg 39 · 72525 Münsingen · Tel: 07381 - 93 86 510 · info@alb-gym.de', W / 2, H - 10, { align: 'center' });
+  hline(H - 13, ML, W - MR, LIGHTGRAY, 0.3);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 2 – AGB
+  // ════════════════════════════════════════════════════════
   doc.addPage();
-  
-  // Add the AGB & Datenschutz text (simplified version)
-  sz(10);
-  bold();
-  black();
-  t('Allgemeine Geschäftsbedingungen & Datenschutzhinweise', ML, 15);
-  
-  normal();
-  sz(8);
-  gray();
-  const agbText = `AlbGym GmbH, Auinger Weg 39, 72525 Münsingen
 
-ALLGEMEINE GESCHÄFTSBEDINGUNGEN
-Die Anmeldung zu Kursen ist verbindlich. Der Trainingsbetrieb ist an Öffnungszeiten und Verfügbarkeit gebunden.
-Abmeldungen müssen schriftlich erfolgen. Bei Stornierung innerhalb von 14 Tagen wird eine Bearbeitungsgebühr
-von 25€ erhoben. Nach Kursbeginn erfolgt keine Rückerstattung.
+  // Green mini header
+  doc.setFillColor(...GREEN);
+  doc.rect(0, 0, W, 16, 'F');
+  setFont('bold', 10, [255, 255, 255]);
+  doc.text('ALLGEMEINE GESCHÄFTSBEDINGUNGEN & DATENSCHUTZHINWEISE – AlbGym GmbH, Stand 01.03.2026', W / 2, 10, { align: 'center' });
 
-DATENSCHUTZHINWEIS
-Die erhobenen Daten werden zur Verwaltung Ihrer Anmeldung verwendet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. a)
-DS-GVO (Ihre Einwilligung). Ihre Daten werden nicht an Dritte weitergegeben. Sie haben das Recht auf Auskunft,
-Berichtigung und Löschung Ihrer Daten. Kontakt: info@alb-gym.de`;
-  
-  const agbLines = doc.splitTextToSize(agbText, CW);
-  doc.text(agbLines, ML, 25);
+  let p2y = 24;
+
+  const agbParagraphs = [
+    ['§1 Geltungsbereich', 'Diese Allgemeinen Geschäftsbedingungen gelten für sämtliche Mitgliedschaftsverträge der AlbGym GmbH. Mit Abschluss des Vertrages erkennt das Mitglied diese AGB als verbindlich an.'],
+    ['§2 Vertragsabschluss', 'Der Vertrag kommt durch Bestätigung der AlbGym GmbH in Textform oder durch Aufnahme der Trainingsaktivität zustande. Im Regelfall per E-Mail.'],
+    ['§3 Zutrittssystem', 'Jedes Mitglied erhält ein persönliches Zutrittsmittel (Chip, Transponder oder App). Missbrauch kann mit einer Vertragsstrafe von bis zu 250 € belegt werden.'],
+    ['§4 Leistungsumfang', 'Das Studio ist grundsätzlich rund um die Uhr geöffnet. Trainingszeiten werden bekanntgegeben. AlbGym behält sich das Recht vor, Geräte vorübergehend zu schließen oder Kurszeiten anzupassen.'],
+    ['§5 Mitgliedsbeiträge', 'Der Mitgliedsbeitrag wird wöchentlich per Lastschrift eingezogen. Jede Woche erhöht sich der Beitrag automatisch um 0,13 €. Zusätzlich wird eine Service- und Hygienegebühr von 15 € pro Quartal erhoben.'],
+    ['§6 Zahlungsverzug', 'Bei Rückstand von mehr als einem Monatsbeitrag ist AlbGym berechtigt, den Zugang zu sperren und den Vertrag zu kündigen.'],
+    ['§7 Vertragslaufzeit', 'Die Vertragslaufzeit richtet sich nach dem vereinbarten Tarif. Nach Ablauf der Mindestlaufzeit verlängert sich der Vertrag automatisch auf unbestimmte Zeit und kann monatlich gekündigt werden. Kündigung bedarf der Textform.'],
+    ['§8 Ruhepause', 'Das Mitglied kann seinen Vertrag aus wichtigem Grund für maximal 3 Monate ruhen lassen. Für die Bearbeitung einer Stilllegung wird eine Gebühr von 20 € erhoben.'],
+    ['§9 Sonderkündigungsrecht', 'Bei dauerhafter Krankheit, Schwangerschaft oder Umzug in eine neue Wohnung > 5 km vom Studio entfernt besteht ein Sonderkündigungsrecht. Entsprechende Nachweise sind beizulegen.'],
+    ['§10 Nutzung', 'Geräte und Einrichtungen werden auf eigene Verantwortung genutzt. Bei gesundheitlichen Beschwerden wird empfohlen, ärztlichen Rat einzuholen.'],
+    ['§11 Haftung', 'AlbGym haftet nur für vorsätzlich oder grob fahrlässig verursachte Schäden. Haftung für Schäden durch unsachgemäße Nutzung der Geräte ist ausgeschlossen, soweit gesetzlich zulässig.'],
+    ['§15 Hausrecht', 'AlbGym kann bei schwerwiegendem oder wiederholtem Verstoß gegen die Hausordnung das Hausverbot erteilen oder den Vertrag kündigen.'],
+    ['§17 Streitbeilegung', 'AlbGym ist nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen. Es gilt das Recht der Bundesrepublik Deutschland.'],
+  ];
+
+  agbParagraphs.forEach(([title, text]) => {
+    if (p2y > H - 25) {
+      doc.addPage();
+      p2y = 20;
+    }
+    setFont('bold', 8, DARK);
+    doc.text(title, ML, p2y);
+    p2y += 4;
+    setFont('normal', 7.5, GRAY);
+    const wrapped = doc.splitTextToSize(text, CW);
+    doc.text(wrapped, ML, p2y);
+    p2y += wrapped.length * 3.8 + 4;
+  });
+
+  // Datenschutz heading
+  if (p2y > H - 60) { doc.addPage(); p2y = 20; }
+  doc.setFillColor(...GREEN);
+  doc.rect(ML, p2y, CW, 7, 'F');
+  setFont('bold', 9.5, [255, 255, 255]);
+  doc.text('DATENSCHUTZHINWEISE', ML + 4, p2y + 5);
+  p2y += 12;
+
+  const datenschutz = 'Die AlbGym GmbH, Auingerweg 39, 72525 Münsingen, verarbeitet personenbezogene Daten im Rahmen des Mitgliedschaftsvertrages insbesondere gemäß DSGVO und BDSG. Die Verarbeitung erfolgt zur Vertragsdurchführung (Art. 6 Abs. 1 lit. b DSGVO), zur Zahlungsabwicklung sowie zur Kommunikation mit dem Mitglied. Zur Identifikation des Mitglieds beim Zugang kann ein Mitgliederfoto gespeichert werden. Die Bankdaten werden ausschließlich zur SEPA-Lastschrift verarbeitet. Das Mitglied hat das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch gegen die Verarbeitung. Beschwerderecht bei der zuständigen Datenschutzaufsichtsbehörde. Die Bereitstellung der Daten ist für den Abschluss und die Durchführung des Vertrages erforderlich.';
+  setFont('normal', 7.5, GRAY);
+  const dsWrapped = doc.splitTextToSize(datenschutz, CW);
+  doc.text(dsWrapped, ML, p2y);
+  p2y += dsWrapped.length * 3.8 + 10;
+
+  // Signature line on page 2
+  hline(p2y, ML, W - MR, GREEN, 0.5);
+  p2y += 6;
+  setFont('bold', 8, GRAY);
+  doc.text('Ich habe die AGB und Datenschutzhinweise gelesen und stimme ihnen zu.', ML, p2y);
+  p2y += 8;
+  setFont('normal', 8, GRAY);
+  doc.text('Ort, Datum: ____________________________', ML, p2y);
+  doc.text('Unterschrift: ____________________________', ML + 90, p2y);
+
+  // Footer every page
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    setFont('normal', 7, GRAY);
+    doc.text(`Seite ${i} von ${totalPages}`, W - MR, H - 7, { align: 'right' });
+    doc.text('AlbGym GmbH · Auingerweg 39 · 72525 Münsingen · Tel: 07381 - 93 86 510 · info@alb-gym.de', W / 2, H - 10, { align: 'center' });
+  }
 
   return doc;
 }
