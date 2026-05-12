@@ -31,6 +31,7 @@ function loadAdvisorOptions() {
 export default function RehasportFlow() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [history, setHistory] = useState([]);
   const [showBestand, setShowBestand] = useState(false);
   const [testMode, setTestMode] = useState(false);
   const advisorOpts = loadAdvisorOptions();
@@ -65,30 +66,45 @@ export default function RehasportFlow() {
 
   const update = (data) => setProfile(prev => ({ ...prev, ...data }));
 
+  const goTo = (nextStep) => {
+    setHistory(h => [...h, step]);
+    setStep(nextStep);
+  };
+
+  const goBack = () => {
+    if (history.length > 0) {
+      const prev = history[history.length - 1];
+      setHistory(h => h.slice(0, -1));
+      setStep(prev);
+    } else {
+      navigate('/');
+    }
+  };
+
   if (showBestand) {
     return <BestandFlow onBack={() => setShowBestand(false)} />;
   }
 
   const steps = [
-    <RehaStart key="start" onNew={() => setStep(1)} onExisting={() => setShowBestand(true)} onBack={() => navigate('/')} />,
-    <RehaCustomer key="customer" profile={profile} update={update} onNext={() => setStep(2)} onBack={() => setStep(0)} testMode={testMode} />,
-    <RehaReason key="reason" profile={profile} update={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />,
-    <RehaComplaints key="complaints" profile={profile} update={update} onNext={() => setStep(4)} onBack={() => setStep(2)} />,
+    <RehaStart key="start" onNew={() => goTo(1)} onExisting={() => setShowBestand(true)} onBack={() => navigate('/')} />,
+    <RehaCustomer key="customer" profile={profile} update={update} onNext={() => goTo(2)} onBack={goBack} testMode={testMode} />,
+    <RehaReason key="reason" profile={profile} update={update} onNext={() => goTo(3)} onBack={goBack} />,
+    <RehaComplaints key="complaints" profile={profile} update={update} onNext={() => goTo(4)} onBack={goBack} />,
     <RehaProfile key="profile" profile={profile} update={update} onConfirm={(data) => {
       update(data);
-      setStep(5);
-    }} onChange={() => setStep(1)} testMode={testMode} />,
-    <RehaRules key="rules" profile={profile} update={update} onNext={() => setStep(6)} onBack={() => setStep(4)} />,
-    <RehaUpsellBridge key="bridge" profile={profile} update={update} onNext={() => setStep(7)} onBack={() => setStep(5)} />,
-    <RehaUpsell key="upsell" profile={profile} update={update} onNext={() => setStep(8)} onBack={() => setStep(6)} />,
-    <RehaPackage key="package" profile={profile} update={update} onNext={() => setStep(9)} onBack={() => setStep(7)} />,
+      goTo(5);
+    }} onChange={() => goTo(1)} testMode={testMode} />,
+    <RehaRules key="rules" profile={profile} update={update} onNext={() => goTo(6)} onBack={goBack} />,
+    <RehaUpsellBridge key="bridge" profile={profile} update={update} onNext={() => goTo(7)} onBack={goBack} />,
+    <RehaUpsell key="upsell" profile={profile} update={update} onNext={() => goTo(8)} onBack={goBack} />,
+    <RehaPackage key="package" profile={profile} update={update} onNext={() => goTo(9)} onBack={goBack} />,
     <RehaSignature key="signature" profile={profile} update={update} skipAllowed={signatureSkipAllowed || !signatureRequired} onNext={() => {
       const required = ['address', 'email', 'phone', 'health_insurance', 'insurance_number', 'account_holder', 'iban'];
       const allFilled = required.every(f => profile[f]?.trim?.());
-      setStep(allFilled ? 11 : 10);
-    }} onBack={() => setStep(8)} />,
-    <RehaBeforeClosing key="before-closing" profile={profile} update={update} onNext={() => setStep(11)} onBack={() => setStep(9)} testMode={testMode} />,
-    <RehaBooking key="booking" profile={profile} onBack={() => setStep(10)} onDone={() => { update({ bookingDone: true }); setStep(12); }} />,
+      goTo(allFilled ? 11 : 10);
+    }} onBack={goBack} />,
+    <RehaBeforeClosing key="before-closing" profile={profile} update={update} onNext={() => goTo(11)} onBack={goBack} testMode={testMode} />,
+    <RehaBooking key="booking" profile={profile} onBack={goBack} onDone={() => { update({ bookingDone: true }); goTo(12); }} />,
     <RehaContract key="contract" profile={profile} onDone={async () => {
       try {
         await base44.entities.RehasportConsultation.create({
