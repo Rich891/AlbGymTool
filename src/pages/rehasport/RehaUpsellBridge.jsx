@@ -3,10 +3,10 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const WISHES = [
-  { id: 'pain_free', label: 'Schmerzfreier werden', sub: 'Ich möchte Beschwerden gezielter angehen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/8f13a4eef_generated_image.png', color: 'from-red-600/70' },
-  { id: 'everyday', label: 'Alltag besser meistern', sub: 'Sicherer, stabiler und belastbarer fühlen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/ccbc2b18b_generated_image.png', color: 'from-blue-600/70' },
-  { id: 'motivation', label: 'Motivation & Gruppe', sub: 'Dranbleiben und gut aufgehoben fühlen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/130202911_generated_image.png', color: 'from-purple-600/70' },
-  { id: 'guidance', label: 'Anleitung & Sicherheit', sub: 'Wissen, was für mich wirklich sinnvoll ist.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/b1cdff29f_generated_image.png', color: 'from-teal-600/70' },
+  { id: 'pain_free', label: 'Schmerzfreier werden', sub: 'Ich möchte Beschwerden gezielter angehen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/70a6a019b_generated_image.png', color: 'from-red-600/70' },
+  { id: 'everyday', label: 'Alltag besser meistern', sub: 'Sicherer, stabiler und belastbarer fühlen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/677b02582_generated_image.png', color: 'from-blue-600/70' },
+  { id: 'motivation', label: 'Motivation & Gruppe', sub: 'Dranbleiben und gut aufgehoben fühlen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/d5f62fb61_generated_image.png', color: 'from-purple-600/70' },
+  { id: 'guidance', label: 'Anleitung & Sicherheit', sub: 'Wissen, was für mich wirklich sinnvoll ist.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/e51a780d2_generated_image.png', color: 'from-teal-600/70' },
 ];
 
 export default function RehaUpsellBridge({ profile, update, onNext, onBack }) {

@@ -44,7 +44,7 @@ export default function RehaStart({ onNew, onExisting, onBack }) {
           <BigCard
             title="Ich starte neu"
             sub="Ich möchte mit Rehasport beginnen."
-            image="https://media.base44.com/images/public/69fd9350879c9d422990f406/61cdf00b5_generated_image.png"
+            image="https://media.base44.com/images/public/69fd9350879c9d422990f406/1055c2bc6_generated_image.png"
             color="from-primary/70"
             onClick={onNew}
           />
@@ -52,7 +52,7 @@ export default function RehaStart({ onNew, onExisting, onBack }) {
             <BigCard
               title="Ich bin schon dabei"
               sub="Ich nehme bereits am Rehasport teil und möchte meinen nächsten Schritt klären."
-              image="https://media.base44.com/images/public/69fd9350879c9d422990f406/09eade203_generated_image.png"
+              image="https://media.base44.com/images/public/69fd9350879c9d422990f406/b921ba852_generated_image.png"
               color="from-blue-600/70"
               onClick={onExisting}
             />
