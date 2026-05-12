@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { Maximize, Minimize } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 import RehaStart from './RehaStart';
@@ -35,6 +36,25 @@ export default function RehasportFlow() {
   const advisorOpts = loadAdvisorOptions();
   const signatureRequired = advisorOpts.signature_required !== false; // default true
   const signatureSkipAllowed = advisorOpts.signature_skip_allowed === true;
+  const fullscreenEnabled = advisorOpts.fullscreen_mode === true;
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (fullscreenEnabled) {
+      document.documentElement.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {});
+    }
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen?.().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
   const [profile, setProfile] = useState({
     name: '', first_name: '', last_name: '', birthdate: '', gender: '',
     reasons: [], complaints: [],
@@ -105,6 +125,15 @@ export default function RehasportFlow() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Fullscreen Toggle */}
+      <button
+        onClick={toggleFullscreen}
+        className="fixed top-3 left-3 z-50 p-2 rounded-full bg-card border border-border text-muted-foreground/40 hover:text-muted-foreground transition-all"
+        title={isFullscreen ? 'Vollbild beenden' : 'Vollbild'}
+      >
+        {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+      </button>
+
       {/* Test-Mode Toggle – nur für Berater sichtbar */}
       <div className="fixed top-3 right-3 z-50 flex flex-col gap-1 items-end">
         <button

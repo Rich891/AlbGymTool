@@ -104,6 +104,12 @@ const OPTION_GROUPS = [
         description: 'Der ⚙ Test-Modus-Button ist im Flow sichtbar (nur für Berater).',
         defaultValue: true,
       },
+      {
+        key: 'fullscreen_mode',
+        label: 'Vollbild-Modus beim Flow',
+        description: 'Der Rehasport-Flow startet automatisch im Vollbild (ideal für Tablet-Präsentationen am Counter).',
+        defaultValue: false,
+      },
     ],
   },
 ];
