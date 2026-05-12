@@ -59,9 +59,9 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
   const goal = WISH_GOALS[mainWish] || 'DEIN REHASPORT-PAKET';
   const whyText = WISH_WHY[mainWish] || 'Dieses Paket wurde für deinen Start zusammengestellt';
 
-  const SUBSIDY_AMOUNT = 159; // voraussichtlicher Zuschuss
-  const section20Fee = 199;
-  const netFee = section20Fee - SUBSIDY_AMOUNT; // 40€ Eigenanteil
+  const SUBSIDY_AMOUNT = 160; // voraussichtlicher Zuschuss
+  const section20Fee = 198;
+  const netFee = section20Fee - SUBSIDY_AMOUNT; // 38€ Eigenanteil
 
   // Datum-Berechnung für die 2 Zahlungen & Zuschuss-Anspruch
   const dates = useMemo(() => {
@@ -293,7 +293,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                 <div className="bg-secondary/50 border border-border rounded-2xl p-4 mb-3 space-y-2 text-sm">
                   <div className="flex justify-between text-muted-foreground">
                     <span>§20-Pauschale</span>
-                    <span className="font-bold">199,00€</span>
+                    <span className="font-bold">198,00€</span>
                   </div>
                   <div className="flex justify-between text-primary">
                     <span>Voraussichtlicher Zuschuss*</span>
@@ -401,7 +401,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Betrag</span>
-                          <span className="font-bold text-foreground">100,00€</span>
+                          <span className="font-bold text-foreground">99,00€</span>
                         </div>
                         <div className="flex justify-between text-primary">
                           <span>Zuschuss beantragen ab</span>
@@ -416,7 +416,7 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
                     <p className="text-xs font-black uppercase tracking-widest text-primary mb-3">Gesamtrechnung</p>
                     <div className="flex justify-between text-muted-foreground">
                       <span>2 × §20-Pauschale gesamt</span>
-                      <span className="font-bold">199,00€</span>
+                      <span className="font-bold">198,00€</span>
                     </div>
                     <div className="flex justify-between text-primary">
                       <span>Voraussichtlicher Zuschuss</span>
