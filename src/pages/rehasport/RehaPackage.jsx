@@ -314,6 +314,11 @@ export default function RehaPackage({ profile, update, onNext, onBack }) {
             )}
           </AnimatePresence>
 
+          {/* Service-Pauschale Hinweis */}
+          <p className="text-xs text-muted-foreground mb-4">
+            zzgl. <span className="font-semibold text-foreground">15,00€ / Quartal</span> Service-, Reinigungs- & Wartungspauschale
+          </p>
+
           {/* CTA Buttons */}
           <motion.button
             whileTap={{ scale: 0.97 }}
