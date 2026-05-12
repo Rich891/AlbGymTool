@@ -3,10 +3,10 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const REASONS = [
-  { id: 'pain', label: 'Schmerzen reduzieren', sub: 'Ich möchte Beschwerden besser in den Griff bekommen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/e1d017c59_generated_image.png', color: 'from-red-600/70' },
-  { id: 'mobility', label: 'Wieder beweglicher werden', sub: 'Ich möchte mich freier und sicherer bewegen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/6f27ebd51_generated_image.png', color: 'from-teal-600/70' },
-  { id: 'recovery', label: 'Nach Krankheit oder Verletzung', sub: 'Ich brauche einen sicheren Wiedereinstieg.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/d179286da_generated_image.png', color: 'from-blue-600/70' },
-  { id: 'stability', label: 'Mehr Stabilität im Alltag', sub: 'Ich möchte mich belastbarer fühlen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/558af6c63_generated_image.png', color: 'from-orange-600/70' },
+  { id: 'pain', label: 'Schmerzen reduzieren', sub: 'Ich möchte Beschwerden besser in den Griff bekommen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/8f13a4eef_generated_image.png', color: 'from-red-600/70' },
+  { id: 'mobility', label: 'Wieder beweglicher werden', sub: 'Ich möchte mich freier und sicherer bewegen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/af827b05a_generated_image.png', color: 'from-teal-600/70' },
+  { id: 'recovery', label: 'Nach Krankheit oder Verletzung', sub: 'Ich brauche einen sicheren Wiedereinstieg.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/901bd0e54_generated_image.png', color: 'from-blue-600/70' },
+  { id: 'stability', label: 'Mehr Stabilität im Alltag', sub: 'Ich möchte mich belastbarer fühlen.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/5f8f2d302_generated_image.png', color: 'from-orange-600/70' },
 ];
 
 export default function RehaReason({ profile, update, onNext, onBack }) {

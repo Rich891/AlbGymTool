@@ -3,10 +3,10 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const COMPLAINTS = [
-  { id: 'back', label: 'Rücken & Nacken', sub: 'Verspannungen, Rückenschmerzen oder Haltung.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/73f1f0734_generated_image.png', color: 'from-orange-700/70' },
-  { id: 'joints', label: 'Knie, Hüfte & Gelenke', sub: 'Belastung, Bewegungseinschränkung oder Unsicherheit.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/d4e6106bd_generated_image.png', color: 'from-red-700/70' },
-  { id: 'strength', label: 'Kraft & Stabilität', sub: 'Ich fühle mich schwach, instabil oder unsicher.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/92bbe4f13_generated_image.png', color: 'from-blue-700/70' },
-  { id: 'everyday', label: 'Beweglichkeit & Alltag', sub: 'Bücken, Aufstehen oder Treppen fallen schwer.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/eeecbe382_generated_image.png', color: 'from-teal-700/70' },
+  { id: 'back', label: 'Rücken & Nacken', sub: 'Verspannungen, Rückenschmerzen oder Haltung.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/8aa95614e_generated_image.png', color: 'from-orange-700/70' },
+  { id: 'joints', label: 'Knie, Hüfte & Gelenke', sub: 'Belastung, Bewegungseinschränkung oder Unsicherheit.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/6611609bc_generated_image.png', color: 'from-red-700/70' },
+  { id: 'strength', label: 'Kraft & Stabilität', sub: 'Ich fühle mich schwach, instabil oder unsicher.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/9b94c2772_generated_image.png', color: 'from-blue-700/70' },
+  { id: 'everyday', label: 'Beweglichkeit & Alltag', sub: 'Bücken, Aufstehen oder Treppen fallen schwer.', image: 'https://media.base44.com/images/public/69fd9350879c9d422990f406/ccbc2b18b_generated_image.png', color: 'from-teal-700/70' },
 ];
 
 export default function RehaComplaints({ profile, update, onNext, onBack }) {
