@@ -46,12 +46,19 @@ function normalizeArray(value) {
   return Array.isArray(value) ? value : [value];
 }
 
-function getSelectedGoalTerms(selectedGoals) {
+function getSelectedGoalProfiles(selectedGoals) {
   return GOALS
     .filter(goal => selectedGoals.includes(goal.id))
-    .flatMap(goal => [goal.id, goal.label, ...(GOAL_SYNONYMS[goal.id] || [])])
-    .map(normalizeText)
-    .filter(Boolean);
+    .map(goal => ({
+      ...goal,
+      terms: [goal.id, goal.label, ...(GOAL_SYNONYMS[goal.id] || [])]
+        .map(normalizeText)
+        .filter(Boolean),
+    }));
+}
+
+function getSelectedGoalTerms(selectedGoalProfiles) {
+  return selectedGoalProfiles.flatMap(goal => goal.terms);
 }
 
 function hasLooseMatch(candidate, targets) {
@@ -97,7 +104,8 @@ function hasComplaint(complaints, terms) {
  * Calculates a fit-score (0-100) for each service based on customer profile.
  */
 export function calculateScores(services, customerProfile, anamnesis, selectedGoals, rules) {
-  const selectedGoalTerms = getSelectedGoalTerms(selectedGoals);
+  const selectedGoalProfiles = getSelectedGoalProfiles(selectedGoals);
+  const selectedGoalTerms = getSelectedGoalTerms(selectedGoalProfiles);
   const customerExperience = getExperienceLevel(customerProfile, anamnesis);
   const schedule = getSchedule(anamnesis);
   const lifestyle = getLifestyle(anamnesis);
@@ -116,8 +124,8 @@ export function calculateScores(services, customerProfile, anamnesis, selectedGo
         service.benefit_argument,
       ].map(normalizeText).filter(Boolean);
 
-      const goalMatches = selectedGoalTerms.filter(goal => hasLooseMatch(goal, goalAreas));
-      const goalScore = Math.min(40, (goalMatches.length / Math.max(selectedGoalTerms.length, 1)) * 40);
+      const goalMatches = selectedGoalProfiles.filter(goal => goal.terms.some(term => hasLooseMatch(term, goalAreas)));
+      const goalScore = Math.min(40, (goalMatches.length / Math.max(selectedGoalProfiles.length, 1)) * 40);
       score += goalScore;
       if (goalMatches.length > 0) reasons.push('Passt zu den gewaehlten Zielen');
 
@@ -207,7 +215,7 @@ export function calculateScores(services, customerProfile, anamnesis, selectedGo
  * Find best matching tariff based on scored services and goals.
  */
 export function findBestTariff(tariffs, selectedGoals, scoredServices = []) {
-  const selectedGoalTerms = getSelectedGoalTerms(selectedGoals);
+  const selectedGoalProfiles = getSelectedGoalProfiles(selectedGoals);
   const topServiceNames = scoredServices.slice(0, 5).map(service => normalizeText(service.name));
 
   return tariffs
@@ -220,9 +228,9 @@ export function findBestTariff(tariffs, selectedGoals, scoredServices = []) {
         ...normalizeArray(tariff.included_service_names),
       ].map(normalizeText).filter(Boolean);
 
-      const matches = selectedGoalTerms.filter(goal => hasLooseMatch(goal, tariffGoals));
+      const goalMatches = selectedGoalProfiles.filter(goal => goal.terms.some(term => hasLooseMatch(term, tariffGoals)));
       const serviceMatches = topServiceNames.filter(serviceName => hasLooseMatch(serviceName, tariffGoals));
-      const goalScore = (matches.length / Math.max(selectedGoalTerms.length, 1)) * 80;
+      const goalScore = (goalMatches.length / Math.max(selectedGoalProfiles.length, 1)) * 80;
       const serviceScore = Math.min(20, serviceMatches.length * 5);
 
       return { ...tariff, score: Math.round(goalScore + serviceScore) };
