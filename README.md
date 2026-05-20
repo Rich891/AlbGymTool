@@ -6,6 +6,28 @@ View and Edit  your app on [Base44.com](http://Base44.com)
 
 This project contains everything you need to run your app locally.
 
+**AlbGym Empfehlungsnavigator 2.0**
+
+This branch starts the CRM-MVP described in the project documentation:
+
+- Advisor access no longer uses a hardcoded frontend password. Internal routes are protected by the Base44 session and advisor/admin/trainer/service roles.
+- `/berater/leads` adds the first Lead Cockpit for pipeline status, next action, appointment context, and trainer briefings.
+- Consultation closing now writes CRM-adjacent artifacts when the corresponding Base44 entities exist: `Lead`, `ActivityLog`, `FollowUpTask`, and `ContractDraft`.
+- The scoring engine now maps the current anamnesis answers (`experience`, `schedule`, `complaints`, `lifestyle`) instead of the older field names.
+
+Before using the CRM modules in production, create or verify these Base44 entities and permissions:
+
+```text
+Lead
+Appointment
+ActivityLog
+FollowUpTask
+ContractDraft
+Consent (optional, if consent history is split out from Customer)
+```
+
+Advisor users need one of these role keys on the Base44 user object: `admin`, `administrator`, `berater`, `advisor`, `trainer`, `coach`, `service`, or `sales`.
+
 **Edit the code in your local development environment**
 
 Any change pushed to the repo will also be reflected in the Base44 Builder.
