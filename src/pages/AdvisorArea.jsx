@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Users, BookOpen, Package, Target, History, BarChart3, Settings, ArrowLeft
+  Users, BookOpen, Package, Target, History, BarChart3, Settings, ArrowLeft, UserPlus
 } from 'lucide-react';
 
 const SECTIONS = [
+  { label: 'Lead Cockpit', description: 'Pipeline, Status und naechste Aktionen', icon: UserPlus, path: '/berater/leads', color: 'text-primary', bg: 'bg-primary/10' },
   { label: 'Beratungsverlauf', description: 'Alle vergangenen Beratungen', icon: History, path: '/berater/verlauf', color: 'text-purple-400', bg: 'bg-purple-400/10' },
   { label: 'Kundenverwaltung', description: 'Kundenprofile anzeigen', icon: Users, path: '/berater/kunden', color: 'text-blue-400', bg: 'bg-blue-400/10' },
   { label: 'Leistungskatalog', description: 'Alle Leistungen verwalten', icon: BookOpen, path: '/berater/leistungen', color: 'text-primary', bg: 'bg-primary/10' },
@@ -20,11 +21,11 @@ export default function AdvisorArea() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-10">
           <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Zurück
+            <ArrowLeft className="w-4 h-4" /> Zurueck
           </Link>
           <div>
             <h1 className="text-2xl font-black text-foreground uppercase tracking-tight">Beraterbereich</h1>
-            <p className="text-sm text-muted-foreground">Interne Verwaltung – nicht für Kunden</p>
+            <p className="text-sm text-muted-foreground">Interne Verwaltung - nicht fuer Kunden</p>
           </div>
         </div>
 
