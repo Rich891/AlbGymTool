@@ -1,41 +1,135 @@
 import { GOALS } from './goalConfig';
 
+const EXPERIENCE_LEVELS = {
+  keine: 0,
+  none: 0,
+  einsteiger: 0,
+  wenig: 1,
+  some: 1,
+  gelegentlich: 1,
+  mittel: 2,
+  regular: 2,
+  regelmaessig: 2,
+  viel: 3,
+  advanced: 3,
+  fortgeschritten: 3,
+};
+
+const GOAL_SYNONYMS = {
+  abnehmen: ['figur', 'aussehen', 'stoffwechsel', 'gewicht'],
+  muskelaufbau: ['kraft', 'staerke', 'muskel', 'strength'],
+  ruecken: ['ruecken', 'nacken', 'beweglichkeit', 'haltung'],
+  beweglichkeit: ['beweglichkeit', 'mobilitaet', 'ruecken'],
+  gesundheit: ['gesundheit', 'praevention', 'wohlbefinden', 'health'],
+  reha: ['reha', 'recovery', 'beschwerden', 'wiedereinstieg'],
+  performance: ['performance', 'leistung', 'athletik', 'energie'],
+  stress: ['stress', 'schlaf', 'energie', 'regeneration'],
+  einfach: ['einfach', 'start', 'selfguided', 'infrastruktur'],
+  community: ['community', 'kurse', 'social', 'spass'],
+};
+
+function normalizeText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/×/g, 'x')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function normalizeArray(value) {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function getSelectedGoalTerms(selectedGoals) {
+  return GOALS
+    .filter(goal => selectedGoals.includes(goal.id))
+    .flatMap(goal => [goal.id, goal.label, ...(GOAL_SYNONYMS[goal.id] || [])])
+    .map(normalizeText)
+    .filter(Boolean);
+}
+
+function hasLooseMatch(candidate, targets) {
+  const normalized = normalizeText(candidate);
+  if (!normalized) return false;
+  return targets.some(target => normalized.includes(target) || target.includes(normalized));
+}
+
+function getExperienceLevel(customerProfile, anamnesis) {
+  const raw = customerProfile?.training_experience || customerProfile?.experience || anamnesis?.experience;
+  const normalized = normalizeText(raw);
+
+  if (normalized.includes('fort')) return 3;
+  if (normalized.includes('regular') || normalized.includes('regelmaessig')) return 2;
+  if (normalized.includes('some') || normalized.includes('gelegentlich')) return 1;
+  if (normalized.includes('none') || normalized.includes('einsteiger')) return 0;
+
+  return EXPERIENCE_LEVELS[normalized] ?? 0;
+}
+
+function getRequiredExperienceLevel(service) {
+  const normalized = normalizeText(service?.experience_required);
+  return EXPERIENCE_LEVELS[normalized] ?? 0;
+}
+
+function getSchedule(anamnesis) {
+  return normalizeText(anamnesis?.schedule || anamnesis?.frequency);
+}
+
+function getLifestyle(anamnesis) {
+  return normalizeText(anamnesis?.lifestyle || anamnesis?.training_style);
+}
+
+function getComplaints(anamnesis) {
+  return normalizeArray(anamnesis?.complaints).map(normalizeText);
+}
+
+function hasComplaint(complaints, terms) {
+  return complaints.some(complaint => terms.some(term => complaint.includes(term)));
+}
+
 /**
- * Calculates a fit-score (0-100) for each service based on customer profile
+ * Calculates a fit-score (0-100) for each service based on customer profile.
  */
 export function calculateScores(services, customerProfile, anamnesis, selectedGoals, rules) {
-  const selectedGoalLabels = GOALS
-    .filter(g => selectedGoals.includes(g.id))
-    .map(g => g.label.toLowerCase());
+  const selectedGoalTerms = getSelectedGoalTerms(selectedGoals);
+  const customerExperience = getExperienceLevel(customerProfile, anamnesis);
+  const schedule = getSchedule(anamnesis);
+  const lifestyle = getLifestyle(anamnesis);
+  const complaints = getComplaints(anamnesis);
 
   return services
-    .filter(s => s.is_active !== false)
+    .filter(service => service.is_active !== false)
     .map(service => {
       let score = 0;
       const reasons = [];
 
-      // 1. Goal matching (0-40 points)
-      const goalAreas = (service.goal_areas || []).map(g => g.toLowerCase());
-      const goalMatches = selectedGoalLabels.filter(g => 
-        goalAreas.some(ga => ga.includes(g) || g.includes(ga))
-      );
-      const goalScore = Math.min(40, (goalMatches.length / Math.max(selectedGoals.length, 1)) * 40);
-      score += goalScore;
-      if (goalMatches.length > 0) reasons.push(`Passt zu: ${goalMatches.join(', ')}`);
+      const goalAreas = [
+        ...normalizeArray(service.goal_areas),
+        service.category,
+        service.short_description,
+        service.benefit_argument,
+      ].map(normalizeText).filter(Boolean);
 
-      // 2. Experience match (0-15 points)
-      const expLevels = { 'keine': 0, 'wenig': 1, 'mittel': 2, 'viel': 3 };
-      const custExp = expLevels[customerProfile.training_experience] || 0;
-      const reqExp = expLevels[service.experience_required] || 0;
-      if (custExp >= reqExp) {
+      const goalMatches = selectedGoalTerms.filter(goal => hasLooseMatch(goal, goalAreas));
+      const goalScore = Math.min(40, (goalMatches.length / Math.max(selectedGoalTerms.length, 1)) * 40);
+      score += goalScore;
+      if (goalMatches.length > 0) reasons.push('Passt zu den gewaehlten Zielen');
+
+      const requiredExperience = getRequiredExperienceLevel(service);
+      if (customerExperience >= requiredExperience) {
         score += 15;
       } else {
-        score += Math.max(0, 15 - (reqExp - custExp) * 5);
-        if (reqExp > custExp) reasons.push('Etwas Erfahrung empfohlen');
+        score += Math.max(0, 15 - (requiredExperience - customerExperience) * 5);
+        reasons.push('Etwas Erfahrung empfohlen');
       }
 
-      // 3. Time efficiency (0-10 points)
-      const wantsEfficient = anamnesis?.frequency === '1× pro Woche' || anamnesis?.frequency === '2× pro Woche';
+      const wantsEfficient = schedule.includes('1x') || schedule.includes('2') || lifestyle.includes('efficient') || lifestyle.includes('kurz');
       if (wantsEfficient && service.time_efficient) {
         score += 10;
         reasons.push('Zeiteffizient');
@@ -43,9 +137,7 @@ export function calculateScores(services, customerProfile, anamnesis, selectedGo
         score += 5;
       }
 
-      // 4. Coaching need (0-10 points)
-      const needsCoaching = anamnesis?.confidence === 'Gar nicht – brauche Anleitung' || 
-                           anamnesis?.training_style === 'Geführt – ich brauche Struktur';
+      const needsCoaching = customerExperience === 0 || lifestyle.includes('coached') || lifestyle.includes('betreut') || lifestyle.includes('gefuehrt');
       if (needsCoaching && service.needs_coaching) {
         score += 10;
         reasons.push('Passende Betreuung');
@@ -53,49 +145,51 @@ export function calculateScores(services, customerProfile, anamnesis, selectedGo
         score += 7;
       }
 
-      // 5. Wellness interest (0-10 points)
-      const wantsWellness = anamnesis?.wellness === 'Ja, sehr!' || anamnesis?.wellness === 'Wäre schön';
-      if (wantsWellness && service.category === 'Wellness & Regeneration') {
+      const wantsWellness = lifestyle.includes('wellness') || lifestyle.includes('erholung') || normalizeText(anamnesis?.motivation).includes('energy');
+      if (wantsWellness && normalizeText(service.category).includes('wellness')) {
         score += 10;
         reasons.push('Wellness-Interesse');
       }
 
-      // 6. Budget consideration (0-10 points)
-      const budgetFeel = customerProfile.budget_feeling;
+      const budgetFeel = normalizeText(customerProfile?.budget_feeling);
       if (budgetFeel === 'sparsam' && service.price_monthly > 30) {
         score -= 5;
       } else if (budgetFeel === 'egal') {
         score += 5;
       }
 
-      // 7. Complaints match (0-5 points)
-      const complaints = anamnesis?.complaints || [];
-      if (complaints.includes('Rücken') && goalAreas.some(g => g.includes('rücken') || g.includes('beweglichkeit'))) {
-        score += 5;
-        reasons.push('Hilft bei Rückenbeschwerden');
+      if (hasComplaint(complaints, ['back', 'ruecken', 'nacken']) && goalAreas.some(area => area.includes('ruecken') || area.includes('beweglichkeit') || area.includes('gesundheit'))) {
+        score += 7;
+        reasons.push('Beruecksichtigt Ruecken/Nacken');
       }
-      if (complaints.includes('Knie/Hüfte') && goalAreas.some(g => g.includes('reha') || g.includes('gesundheit'))) {
+      if (hasComplaint(complaints, ['joints', 'knie', 'huefte']) && goalAreas.some(area => area.includes('reha') || area.includes('gesundheit') || area.includes('mobilitaet'))) {
+        score += 6;
+        reasons.push('Gelenkschonende Ausrichtung');
+      }
+      if (hasComplaint(complaints, ['cardio', 'herz', 'kreislauf']) && goalAreas.some(area => area.includes('gesundheit') || area.includes('praevention'))) {
         score += 5;
+        reasons.push('Gesundheitlicher Fokus');
       }
 
-      // 8. Apply recommendation rules
-      (rules || []).filter(r => r.is_active !== false).forEach(rule => {
+      (rules || []).filter(rule => rule.is_active !== false).forEach(rule => {
         const boostServices = rule.boost_services || [];
-        if (boostServices.some(bs => bs.toLowerCase() === service.name.toLowerCase())) {
-          let ruleApplies = false;
-          
-          if (rule.condition_goal) {
-            const ruleGoal = rule.condition_goal.toLowerCase();
-            ruleApplies = selectedGoalLabels.some(g => g.includes(ruleGoal) || ruleGoal.includes(g));
-          }
-          if (rule.condition_experience) {
-            ruleApplies = ruleApplies && customerProfile.training_experience === rule.condition_experience;
-          }
-          
-          if (ruleApplies) {
-            score += rule.boost_amount || 10;
-            reasons.push(rule.name);
-          }
+        if (!boostServices.some(boosted => normalizeText(boosted) === normalizeText(service.name))) return;
+
+        let ruleApplies = true;
+
+        if (rule.condition_goal) {
+          const ruleGoal = normalizeText(rule.condition_goal);
+          ruleApplies = selectedGoalTerms.some(goal => goal.includes(ruleGoal) || ruleGoal.includes(goal));
+        }
+
+        if (rule.condition_experience) {
+          const requiredRuleExperience = getRequiredExperienceLevel({ experience_required: rule.condition_experience });
+          ruleApplies = ruleApplies && customerExperience === requiredRuleExperience;
+        }
+
+        if (ruleApplies) {
+          score += rule.boost_amount || 10;
+          reasons.push(rule.name);
         }
       });
 
@@ -110,23 +204,28 @@ export function calculateScores(services, customerProfile, anamnesis, selectedGo
 }
 
 /**
- * Find best matching tariff based on scored services and goals
+ * Find best matching tariff based on scored services and goals.
  */
-export function findBestTariff(tariffs, selectedGoals, scoredServices) {
-  const selectedGoalLabels = GOALS
-    .filter(g => selectedGoals.includes(g.id))
-    .map(g => g.label.toLowerCase());
+export function findBestTariff(tariffs, selectedGoals, scoredServices = []) {
+  const selectedGoalTerms = getSelectedGoalTerms(selectedGoals);
+  const topServiceNames = scoredServices.slice(0, 5).map(service => normalizeText(service.name));
 
   return tariffs
-    .filter(t => t.is_active !== false)
-    .map(t => {
-      let score = 0;
-      const tariffGoals = (t.goal_areas || []).map(g => g.toLowerCase());
-      const matches = selectedGoalLabels.filter(g => 
-        tariffGoals.some(tg => tg.includes(g) || g.includes(tg))
-      );
-      score = (matches.length / Math.max(selectedGoals.length, 1)) * 100;
-      return { ...t, score: Math.round(score) };
+    .filter(tariff => tariff.is_active !== false)
+    .map(tariff => {
+      const tariffGoals = [
+        ...normalizeArray(tariff.goal_areas),
+        tariff.description,
+        tariff.ideal_for,
+        ...normalizeArray(tariff.included_service_names),
+      ].map(normalizeText).filter(Boolean);
+
+      const matches = selectedGoalTerms.filter(goal => hasLooseMatch(goal, tariffGoals));
+      const serviceMatches = topServiceNames.filter(serviceName => hasLooseMatch(serviceName, tariffGoals));
+      const goalScore = (matches.length / Math.max(selectedGoalTerms.length, 1)) * 80;
+      const serviceScore = Math.min(20, serviceMatches.length * 5);
+
+      return { ...tariff, score: Math.round(goalScore + serviceScore) };
     })
     .sort((a, b) => b.score - a.score);
 }
