@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -12,9 +12,12 @@ import GoalStep from './consultation/GoalStep';
 import AnalysisScreen from './consultation/AnalysisScreen';
 import RecommendationStep from './consultation/RecommendationStep';
 import ClosingStep from './consultation/ClosingStep';
+import { syncConsultationCrmArtifacts } from '@/lib/crmAutomation';
+import { enrichCustomerWithConsentSnapshot } from '@/lib/crmModel';
 
 export default function ConsultationFlow() {
   const { type } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -39,34 +42,66 @@ export default function ConsultationFlow() {
   });
 
   const totalMonthly = (selectedTariff?.monthly_price || 0) +
-    selectedAddons.reduce((sum, a) => sum + (a.price_monthly || 0), 0);
+    selectedAddons.reduce((sum, addon) => sum + (addon.price_monthly || 0), 0);
 
   const handleClose = async (outcome, notes) => {
-    let customerId = customer.id;
+    const customerPayload = enrichCustomerWithConsentSnapshot(customer, {
+      source: `consultation_${type || 'neukunde'}`,
+    });
+
+    let customerId = customerPayload.id;
     if (!customerId) {
-      const saved = await base44.entities.Customer.create(customer);
+      const saved = await base44.entities.Customer.create(customerPayload);
       customerId = saved.id;
     } else {
-      await base44.entities.Customer.update(customerId, customer);
+      await base44.entities.Customer.update(customerId, customerPayload);
     }
-    await base44.entities.Consultation.create({
+
+    const consultationPayload = {
       customer_id: customerId,
-      customer_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim(),
+      customer_name: `${customerPayload.first_name || ''} ${customerPayload.last_name || ''}`.trim(),
       consultation_type: type || 'neukunde',
       status: outcome === 'abschluss' ? 'abgeschlossen' : outcome === 'testphase' ? 'testphase' : 'angebot_gespeichert',
       anamnesis,
       selected_goals: selectedGoals,
       selected_tariff: selectedTariff?.name,
-      selected_addons: selectedAddons.map(a => a.name),
+      selected_addons: selectedAddons.map(addon => addon.name),
       monthly_price: totalMonthly,
       start_costs: selectedTariff?.start_fee || 0,
       contract_duration: `${selectedTariff?.duration_months || 12} Monate`,
       trial_period: outcome === 'testphase',
       outcome,
       notes,
-      upsells_accepted: selectedAddons.map(a => a.name),
+      upsells_accepted: selectedAddons.map(addon => addon.name),
+      recommendation_result: {
+        selected_tariff_id: selectedTariff?.id || null,
+        selected_tariff_name: selectedTariff?.name || null,
+        selected_addon_ids: selectedAddons.map(addon => addon.id),
+        total_monthly: totalMonthly,
+      },
+    };
+
+    const savedConsultation = await base44.entities.Consultation.create(consultationPayload);
+
+    await syncConsultationCrmArtifacts({
+      base44,
+      customer: customerPayload,
+      customerId,
+      consultation: savedConsultation,
+      selectedGoals,
+      selectedTariff,
+      selectedAddons,
+      totalMonthly,
+      outcome,
+      notes,
+      type,
+      leadId: searchParams.get('lead'),
     });
+
     queryClient.invalidateQueries({ queryKey: ['consultations-recent'] });
+    queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+    queryClient.invalidateQueries({ queryKey: ['crm-appointments'] });
+
     toast.success(
       outcome === 'abschluss' ? '🎉 Vertrag abgeschlossen!' :
       outcome === 'testphase' ? '✅ 14-Tage-Test gestartet!' :
@@ -85,7 +120,7 @@ export default function ConsultationFlow() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
         {/* Progress dots */}
         <div className="flex items-center gap-2">
-          {[0, 1, 2, 4, 5].map((s, i) => (
+          {[0, 1, 2, 4, 5].map((s) => (
             <div
               key={s}
               className={`rounded-full transition-all duration-300 ${
