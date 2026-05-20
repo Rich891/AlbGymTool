@@ -76,7 +76,7 @@ export default function AdvisorLogin() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               type="button"
-              onClick={navigateToLogin}
+              onClick={() => navigateToLogin()}
               className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black text-lg uppercase tracking-wide hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
             >
               <LogIn className="w-5 h-5" /> Mit Base44 anmelden
