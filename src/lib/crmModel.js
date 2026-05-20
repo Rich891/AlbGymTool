@@ -92,31 +92,20 @@ export const PRIMARY_GOALS = [
   { id: 'zuschuss', label: 'Zuschuss' },
 ];
 
-const STAGE_BY_ID = PIPELINE_STAGES.reduce((acc, stage) => {
-  acc[stage.id] = stage;
-  return acc;
-}, {});
-
-const SOURCE_BY_ID = LEAD_SOURCES.reduce((acc, source) => {
-  acc[source.id] = source;
-  return acc;
-}, {});
-
-const GOAL_BY_ID = PRIMARY_GOALS.reduce((acc, goal) => {
-  acc[goal.id] = goal;
-  return acc;
-}, {});
+const STAGE_BY_ID = new Map(PIPELINE_STAGES.map(stage => [stage.id, stage]));
+const SOURCE_BY_ID = new Map(LEAD_SOURCES.map(source => [source.id, source]));
+const GOAL_BY_ID = new Map(PRIMARY_GOALS.map(goal => [goal.id, goal]));
 
 export function getStageMeta(status) {
-  return STAGE_BY_ID[status] || STAGE_BY_ID.NEW_LEAD;
+  return STAGE_BY_ID.get(status) || PIPELINE_STAGES[0];
 }
 
 export function getSourceLabel(source) {
-  return SOURCE_BY_ID[source]?.label || source || 'Unbekannt';
+  return SOURCE_BY_ID.get(source)?.label || source || 'Unbekannt';
 }
 
 export function getGoalLabel(goal) {
-  return GOAL_BY_ID[goal]?.label || goal || 'Noch offen';
+  return GOAL_BY_ID.get(goal)?.label || goal || 'Noch offen';
 }
 
 export function addDaysIso(days, fromDate = new Date()) {

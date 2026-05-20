@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Activity,
@@ -55,6 +55,8 @@ export default function LeadCockpit() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(EMPTY_LEAD);
+  const [creatingLead, setCreatingLead] = useState(false);
+  const [updatingLeadId, setUpdatingLeadId] = useState(null);
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['crm-leads'],
@@ -74,8 +76,9 @@ export default function LeadCockpit() {
     retry: false,
   });
 
-  const createLead = useMutation({
-    mutationFn: async (payload) => {
+  const handleCreateLead = async (payload) => {
+    setCreatingLead(true);
+    try {
       const created = await base44.entities.Lead.create({
         ...payload,
         selected_goals: [payload.primary_goal],
@@ -97,30 +100,37 @@ export default function LeadCockpit() {
       }
 
       return created;
-    },
-    onSuccess: () => {
-      toast.success('Lead wurde angelegt.');
-      setForm(EMPTY_LEAD);
-      setShowCreate(false);
-      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
-    },
-    onError: () => {
+    } catch (error) {
+      console.error('Lead create failed', error);
       toast.error('Lead konnte nicht gespeichert werden. Ist die Base44-Entity Lead angelegt?');
-    },
-  });
+      return null;
+    } finally {
+      setCreatingLead(false);
+    }
+  };
 
-  const updateStatus = useMutation({
-    mutationFn: ({ id, status }) => base44.entities.Lead.update(id, {
-      status,
-      last_contact_at: new Date().toISOString(),
-    }),
-    onSuccess: () => {
+  const handleCreateSuccess = () => {
+    toast.success('Lead wurde angelegt.');
+    setForm(EMPTY_LEAD);
+    setShowCreate(false);
+    queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+  };
+
+  const handleUpdateStatus = async (id, status) => {
+    setUpdatingLeadId(id);
+    try {
+      await base44.entities.Lead.update(id, {
+        status,
+        last_contact_at: new Date().toISOString(),
+      });
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
-    },
-    onError: () => {
+    } catch (error) {
+      console.error('Lead status update failed', error);
       toast.error('Status konnte nicht aktualisiert werden.');
-    },
-  });
+    } finally {
+      setUpdatingLeadId(null);
+    }
+  };
 
   const leadCards = useMemo(() => {
     const sourceRecords = leads.length > 0 ? leads : consultations.map(consultationToLeadCard);
@@ -164,13 +174,14 @@ export default function LeadCockpit() {
     ];
   }, [leadCards]);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.first_name.trim() || !form.last_name.trim()) {
       toast.error('Vorname und Nachname sind Pflichtfelder.');
       return;
     }
-    createLead.mutate(form);
+    const created = await handleCreateLead(form);
+    if (created) handleCreateSuccess();
   };
 
   return (
@@ -257,10 +268,10 @@ export default function LeadCockpit() {
               </button>
               <button
                 type="submit"
-                disabled={createLead.isPending}
+                disabled={creatingLead}
                 className="h-11 flex-1 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {createLead.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                {creatingLead && <Loader2 className="w-4 h-4 animate-spin" />}
                 Speichern
               </button>
             </div>
@@ -360,8 +371,8 @@ export default function LeadCockpit() {
                   <div className="flex flex-col sm:flex-row lg:flex-col gap-2">
                     <select
                       value={lead.status || 'NEW_LEAD'}
-                      disabled={lead.isDerived || updateStatus.isPending}
-                      onChange={event => updateStatus.mutate({ id: lead.id, status: event.target.value })}
+                      disabled={lead.isDerived || updatingLeadId === lead.id}
+                      onChange={event => handleUpdateStatus(lead.id, event.target.value)}
                       className="h-11 rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                     >
                       {PIPELINE_STAGES.map(stageOption => <option key={stageOption.id} value={stageOption.id}>{stageOption.label}</option>)}
