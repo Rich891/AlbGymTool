@@ -63,6 +63,7 @@ export async function syncConsultationCrmArtifacts({
 
   if (leadId && customerId && !customer?.active_lead_id) {
     results.push(await safeEntityAction(base44, 'Customer', 'update', customerId, {
+      ...customer,
       active_lead_id: leadId,
       last_pipeline_status: status,
     }));
