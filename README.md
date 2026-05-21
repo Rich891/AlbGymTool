@@ -31,6 +31,19 @@ Consent (optional, if consent history is split out from Customer)
 
 Advisor users need one of these role keys on the Base44 user object: `admin`, `administrator`, `berater`, `advisor`, `trainer`, `coach`, `service`, or `sales`.
 
+**AZH / myYOLO myConnect**
+
+The myConnect API is not connected through a public OAuth button. AZH/myYOLO provides tenant-specific Basic Auth credentials for the myConnect endpoint. Store them as Base44 backend function secrets, never in frontend env vars:
+
+```text
+AZH_MYCONNECT_BASE_URL=https://myconnect.azh-myyolo.info
+AZH_MYCONNECT_VERSION=1
+AZH_MYCONNECT_USERNAME=...
+AZH_MYCONNECT_PASSWORD=...
+```
+
+The `azhMyConnect` backend function supports `configStatus`, `queryPersons`, `findCustomer`, `upsertPerson`, and `syncCustomer`. It maps the canonical `Customer` record to myConnect `Person` fields and stores the returned myYOLO/AZH `Guid` back in `Customer.azh_person_guid`.
+
 **Edit the code in your local development environment**
 
 Any change pushed to the repo will also be reflected in the Base44 Builder.
