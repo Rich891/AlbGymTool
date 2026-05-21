@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import AdvisorModal from '@/components/advisor/AdvisorModal';
 
 const TILES = [
   {
@@ -26,7 +25,6 @@ const TILES = [
 
 export default function HeroPage() {
   const navigate = useNavigate();
-  const [advisorOpen, setAdvisorOpen] = useState(false);
   const [trainingMsg, setTrainingMsg] = useState(false);
 
   const handleTile = (tile) => {
@@ -139,8 +137,6 @@ export default function HeroPage() {
           </motion.div>
         )}
       </div>
-
-      <AdvisorModal open={advisorOpen} onClose={() => setAdvisorOpen(false)} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   BarChart3,
   BookOpen,
   History,
+  LayoutDashboard,
   LogOut,
   Package,
   Settings,
@@ -16,9 +17,10 @@ import { useAuth } from '@/lib/AuthContext';
 import { getAdvisorRoleLabel } from '@/lib/advisorAccess';
 
 const NAV = [
+  { label: 'Dashboard', path: '/berater/dashboard', icon: LayoutDashboard },
   { label: 'Leads', path: '/berater/leads', icon: UserPlus },
   { label: 'Verlauf', path: '/berater/verlauf', icon: History },
-  { label: 'Kunden', path: '/berater/kunden', icon: Users },
+  { label: 'CRM-Kunden', path: '/berater/kunden', icon: Users },
   { label: 'Leistungen', path: '/berater/leistungen', icon: BookOpen },
   { label: 'Tarife', path: '/berater/tarife', icon: Package },
   { label: 'Regeln', path: '/berater/regeln', icon: Target },

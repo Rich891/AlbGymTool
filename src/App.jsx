@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -17,7 +17,6 @@ import AdvisorLogin from '@/pages/berater/AdvisorLogin';
 import RehasportAdvisorDashboard from '@/pages/berater/RehasportAdvisorDashboard';
 
 // Advisor area (protected)
-import AdvisorArea from '@/pages/AdvisorArea';
 import AdvisorLayout from '@/components/layout/AdvisorLayout';
 import LeadCockpit from '@/pages/LeadCockpit';
 import CustomerList from '@/pages/CustomerList';
@@ -64,9 +63,9 @@ const AuthenticatedApp = () => {
 
       {/* Advisor area */}
       <Route element={<ProtectedAdvisorRoute />}>
-        <Route path="/berater/dashboard" element={<RehasportAdvisorDashboard />} />
-        <Route path="/berater" element={<AdvisorArea />} />
         <Route element={<AdvisorLayout />}>
+          <Route path="/berater" element={<Navigate to="/berater/dashboard" replace />} />
+          <Route path="/berater/dashboard" element={<RehasportAdvisorDashboard />} />
           <Route path="/berater/leads" element={<LeadCockpit />} />
           <Route path="/berater/kunden" element={<CustomerList />} />
           <Route path="/berater/leistungen" element={<ServiceCatalog />} />
