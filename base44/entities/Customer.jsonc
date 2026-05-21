@@ -68,6 +68,10 @@
       "type": "string",
       "description": "Kostentraegernummer / IK"
     },
+    "insured_status": {
+      "type": "string",
+      "description": "Versichertenstatus aus dem Rezept/KVK-Feld"
+    },
     "customer_status": {
       "type": "string",
       "enum": [

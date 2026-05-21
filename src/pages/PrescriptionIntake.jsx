@@ -23,7 +23,7 @@ import {
 import {
   EMPTY_PRESCRIPTION_FORM,
   createExtractionUrl,
-  extractPrescriptionData,
+  extractPrescriptionDataWithRetry,
   uploadPrescriptionFile,
 } from '@/lib/prescriptionExtraction';
 
@@ -135,10 +135,20 @@ export default function PrescriptionIntake() {
         setExtractionUrl(nextExtractionUrl || '');
       }
 
-      const result = await extractPrescriptionData(base44, nextExtractionUrl);
+      const result = await extractPrescriptionDataWithRetry(base44, {
+        extractionUrl: nextExtractionUrl,
+        file,
+        fileMeta: upload.fileMeta,
+      });
+      if (result.fileMeta) setFileMeta(result.fileMeta);
+      if (result.extractionUrl) setExtractionUrl(result.extractionUrl);
       setExtraction(result.extraction);
       setForm(prev => ({ ...prev, ...result.form }));
-      toast.success('Rezept wurde ausgelesen. Bitte die Daten pruefen.');
+      if (result.extraction.status === 'extracted') {
+        toast.success('Rezept wurde ausgelesen. Bitte die Daten pruefen.');
+      } else {
+        toast.warning('OCR lief durch, hat aber keine verwertbaren Felder erkannt. Bitte manuell pruefen.');
+      }
       return { ...upload, ...result };
     } catch (error) {
       console.error('Prescription extraction failed', error);
@@ -400,6 +410,9 @@ export default function PrescriptionIntake() {
               <Field label="Kostentraegernummer">
                 <input value={form.cost_carrier_number} onChange={event => set('cost_carrier_number', event.target.value)} className={inputCls} />
               </Field>
+              <Field label="Status">
+                <input value={form.insured_status} onChange={event => set('insured_status', event.target.value)} className={inputCls} />
+              </Field>
               <Field label="Ausstellungsdatum">
                 <input type="date" value={form.prescription_date} onChange={event => set('prescription_date', event.target.value)} className={inputCls} />
               </Field>
@@ -409,14 +422,38 @@ export default function PrescriptionIntake() {
               <Field label="Gueltig bis">
                 <input type="date" value={form.valid_to} onChange={event => set('valid_to', event.target.value)} className={inputCls} />
               </Field>
+              <Field label="Formular">
+                <input value={form.form_type} onChange={event => set('form_type', event.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Muster">
+                <input value={form.form_number} onChange={event => set('form_number', event.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Version">
+                <input value={form.form_version} onChange={event => set('form_version', event.target.value)} className={inputCls} />
+              </Field>
+              <Field label="BSNR">
+                <input value={form.practice_site_number} onChange={event => set('practice_site_number', event.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Arzt-Nr.">
+                <input value={form.doctor_number} onChange={event => set('doctor_number', event.target.value)} className={inputCls} />
+              </Field>
               <Field label="Leistung">
                 <input value={form.prescribed_service} onChange={event => set('prescribed_service', event.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Rehasportart">
+                <input value={form.sport_type} onChange={event => set('sport_type', event.target.value)} className={inputCls} />
               </Field>
               <Field label="Einheiten">
                 <input type="number" value={form.prescribed_units} onChange={event => set('prescribed_units', event.target.value)} className={inputCls} />
               </Field>
+              <Field label="Dauer Monate">
+                <input type="number" value={form.duration_months} onChange={event => set('duration_months', event.target.value)} className={inputCls} />
+              </Field>
               <Field label="Frequenz">
                 <input value={form.frequency} onChange={event => set('frequency', event.target.value)} className={inputCls} />
+              </Field>
+              <Field label="PRF.NR">
+                <input value={form.prf_number} onChange={event => set('prf_number', event.target.value)} className={inputCls} />
               </Field>
               <Field label="ICD-Codes">
                 <input
@@ -425,9 +462,33 @@ export default function PrescriptionIntake() {
                   className={inputCls}
                 />
               </Field>
+              <label className="flex items-center gap-3 h-11 px-3 rounded-xl border border-border bg-background text-sm font-bold text-foreground">
+                <input
+                  type="checkbox"
+                  checked={!!form.follow_up_prescription}
+                  onChange={event => set('follow_up_prescription', event.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                Folgeverordnung
+              </label>
               <div className="md:col-span-2">
                 <Field label="Diagnose / Indikation">
                   <textarea value={form.diagnosis_text} onChange={event => set('diagnosis_text', event.target.value)} className={`${inputCls} min-h-24 py-3`} />
+                </Field>
+              </div>
+              <div className="md:col-span-2">
+                <Field label="Schaedigung / Funktionsstoerung">
+                  <textarea value={form.impairment_text} onChange={event => set('impairment_text', event.target.value)} className={`${inputCls} min-h-20 py-3`} />
+                </Field>
+              </div>
+              <div className="md:col-span-2">
+                <Field label="Rehabilitationsziel">
+                  <textarea value={form.rehab_goal} onChange={event => set('rehab_goal', event.target.value)} className={`${inputCls} min-h-20 py-3`} />
+                </Field>
+              </div>
+              <div className="md:col-span-2">
+                <Field label="Begruendung Folgeverordnung">
+                  <textarea value={form.follow_up_reason} onChange={event => set('follow_up_reason', event.target.value)} className={`${inputCls} min-h-20 py-3`} />
                 </Field>
               </div>
               <Field label="Arzt / Praxis">
@@ -464,16 +525,18 @@ function Field({ label, children }) {
 
 function StatusPanel({ fileMeta, extraction, scanError }) {
   const extractionLabel = extraction?.status === 'extracted'
-    ? 'Daten ausgelesen'
+    ? `Daten ausgelesen${extraction.retry_mode ? ' (Retry)' : ''}`
     : extraction?.status === 'failed'
     ? 'OCR fehlgeschlagen - manuelle Pruefung aktiv'
+    : extraction?.status === 'manual_review'
+    ? 'OCR ohne verwertbare Felder - manuelle Pruefung aktiv'
     : 'OCR noch offen';
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
       <StatusLine
         ok={!!fileMeta}
-        label={fileMeta ? `Scan gespeichert (${fileMeta.storage_mode})` : 'Scan noch nicht hochgeladen'}
+        label={fileMeta ? `Datei hochgeladen (${fileMeta.storage_mode}${fileMeta.extraction_mode ? `, OCR ${fileMeta.extraction_mode}` : ''})` : 'Datei noch nicht hochgeladen'}
       />
       <StatusLine
         ok={extraction?.status === 'extracted'}

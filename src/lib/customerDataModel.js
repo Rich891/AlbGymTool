@@ -58,7 +58,12 @@ export function normalizeDate(value = '') {
   if (!match) return raw;
 
   const [, day, month, year] = match;
-  const fullYear = year.length === 2 ? `20${year}` : year;
+  let fullYear = year;
+  if (year.length === 2) {
+    const yearNumber = Number(year);
+    const currentYear = new Date().getFullYear() % 100;
+    fullYear = `${yearNumber > currentYear + 5 ? 1900 + yearNumber : 2000 + yearNumber}`;
+  }
   return `${fullYear.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
@@ -116,6 +121,7 @@ export function buildUnifiedCustomerPayload(input = {}, { source = 'manual', sou
     health_insurance: cleanText(input.health_insurance),
     insurance_number: insuranceNumber,
     cost_carrier_number: cleanText(input.cost_carrier_number),
+    insured_status: cleanText(input.insured_status),
     customer_status: input.customer_status || 'lead',
     customer_source: source,
     source_systems: unique([sourceSystem, ...(input.source_systems || [])]),
@@ -151,6 +157,7 @@ export function buildCustomerPayloadFromPrescription(prescription = {}) {
     health_insurance: prescription.health_insurance,
     insurance_number: prescription.insurance_number,
     cost_carrier_number: prescription.cost_carrier_number,
+    insured_status: prescription.insured_status,
     customer_status: 'lead',
     azh_sync_status: 'not_started',
     consent_health: true,
@@ -173,15 +180,30 @@ export function buildRehasportConsultationFromPrescription({ customer, prescript
     health_insurance: customer?.health_insurance || cleanText(prescription.health_insurance),
     insurance_number: customer?.insurance_number || normalizeInsuranceNumber(prescription.insurance_number),
     cost_carrier_number: cleanText(prescription.cost_carrier_number),
+    insured_status: cleanText(prescription.insured_status),
     prescription_scan_id: prescriptionScanId,
     prescription_status: 'scan_saved',
     prescription_date: normalizeDate(prescription.prescription_date),
     prescription_valid_from: normalizeDate(prescription.valid_from),
     prescription_valid_to: normalizeDate(prescription.valid_to),
+    form_type: cleanText(prescription.form_type),
+    form_number: cleanText(prescription.form_number),
+    form_version: cleanText(prescription.form_version),
+    practice_site_number: cleanText(prescription.practice_site_number),
+    doctor_number: cleanText(prescription.doctor_number),
     prescribed_units: Number(prescription.prescribed_units) || undefined,
+    duration_months: Number(prescription.duration_months) || undefined,
     prescription_frequency: cleanText(prescription.frequency),
+    prescribed_service: cleanText(prescription.prescribed_service),
+    sport_type: cleanText(prescription.sport_type),
+    functional_training_type: cleanText(prescription.functional_training_type),
     diagnosis_text: cleanText(prescription.diagnosis_text),
     icd_codes: Array.isArray(prescription.icd_codes) ? prescription.icd_codes.filter(Boolean) : [],
+    impairment_text: cleanText(prescription.impairment_text),
+    rehab_goal: cleanText(prescription.rehab_goal),
+    follow_up_prescription: Boolean(prescription.follow_up_prescription),
+    follow_up_reason: cleanText(prescription.follow_up_reason),
+    prf_number: cleanText(prescription.prf_number),
     physician_name: cleanText(prescription.physician_name),
     physician_lanr: cleanText(prescription.physician_lanr),
     status: 'rezept_erfasst',
@@ -200,6 +222,7 @@ export function buildPrescriptionScanPayload({ customer, rehasportConsultation, 
     file_uri: fileMeta?.file_uri,
     file_url: fileMeta?.file_url,
     storage_mode: fileMeta?.storage_mode || 'private',
+    extraction_mode: extraction?.url_mode || fileMeta?.extraction_mode,
     extraction_status: extraction?.status || 'manual_review',
     extraction_confidence: extraction?.confidence || 'needs_review',
     extracted_data: prescription,
@@ -209,9 +232,24 @@ export function buildPrescriptionScanPayload({ customer, rehasportConsultation, 
     health_insurance: cleanText(prescription.health_insurance),
     insurance_number: normalizeInsuranceNumber(prescription.insurance_number),
     cost_carrier_number: cleanText(prescription.cost_carrier_number),
+    insured_status: cleanText(prescription.insured_status),
+    form_type: cleanText(prescription.form_type),
+    form_number: cleanText(prescription.form_number),
+    form_version: cleanText(prescription.form_version),
+    practice_site_number: cleanText(prescription.practice_site_number),
+    doctor_number: cleanText(prescription.doctor_number),
     diagnosis_text: cleanText(prescription.diagnosis_text),
     icd_codes: Array.isArray(prescription.icd_codes) ? prescription.icd_codes.filter(Boolean) : [],
+    impairment_text: cleanText(prescription.impairment_text),
+    rehab_goal: cleanText(prescription.rehab_goal),
     prescribed_units: Number(prescription.prescribed_units) || undefined,
+    duration_months: Number(prescription.duration_months) || undefined,
+    prescribed_service: cleanText(prescription.prescribed_service),
+    sport_type: cleanText(prescription.sport_type),
+    functional_training_type: cleanText(prescription.functional_training_type),
+    follow_up_prescription: Boolean(prescription.follow_up_prescription),
+    follow_up_reason: cleanText(prescription.follow_up_reason),
+    prf_number: cleanText(prescription.prf_number),
     azh_sync_status: 'not_started',
     status: 'verified',
   });

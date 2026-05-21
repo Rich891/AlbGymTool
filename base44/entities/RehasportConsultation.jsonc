@@ -49,6 +49,10 @@
       "type": "string",
       "description": "Kostentraegernummer / IK"
     },
+    "insured_status": {
+      "type": "string",
+      "description": "Versichertenstatus aus dem Rezept/KVK-Feld"
+    },
     "prescription_scan_id": {
       "type": "string",
       "description": "Zugehoeriger Rezeptscan"
@@ -80,9 +84,45 @@
       "format": "date",
       "description": "Rezept gueltig bis"
     },
+    "form_type": {
+      "type": "string",
+      "description": "Formulartyp"
+    },
+    "form_number": {
+      "type": "string",
+      "description": "Formular-/Musternummer"
+    },
+    "form_version": {
+      "type": "string",
+      "description": "Formularversion"
+    },
+    "practice_site_number": {
+      "type": "string",
+      "description": "Betriebsstaetten-Nr. / BSNR"
+    },
+    "doctor_number": {
+      "type": "string",
+      "description": "Arzt-Nr. / LANR aus dem Kopfbereich"
+    },
     "prescribed_units": {
       "type": "number",
       "description": "Verordnete Einheiten"
+    },
+    "duration_months": {
+      "type": "number",
+      "description": "Verordnungsdauer in Monaten"
+    },
+    "prescribed_service": {
+      "type": "string",
+      "description": "Verordnete Leistung"
+    },
+    "sport_type": {
+      "type": "string",
+      "description": "Rehasportart, z.B. Gymnastik"
+    },
+    "functional_training_type": {
+      "type": "string",
+      "description": "Funktionstrainingsart"
     },
     "prescription_frequency": {
       "type": "string",
@@ -98,6 +138,26 @@
         "type": "string"
       },
       "description": "ICD-Codes"
+    },
+    "impairment_text": {
+      "type": "string",
+      "description": "Schaedigung/Funktionsstoerung"
+    },
+    "rehab_goal": {
+      "type": "string",
+      "description": "Rehabilitationsziel"
+    },
+    "follow_up_prescription": {
+      "type": "boolean",
+      "description": "Folgeverordnung"
+    },
+    "follow_up_reason": {
+      "type": "string",
+      "description": "Begruendung der Folgeverordnung"
+    },
+    "prf_number": {
+      "type": "string",
+      "description": "PRF.NR / Pruefnummer"
     },
     "physician_name": {
       "type": "string",
