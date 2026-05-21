@@ -1,8 +1,22 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, History, Users, BookOpen, Package, Target, BarChart3, Settings } from 'lucide-react';
+import {
+  ArrowLeft,
+  BarChart3,
+  BookOpen,
+  History,
+  LogOut,
+  Package,
+  Settings,
+  Target,
+  UserPlus,
+  Users,
+} from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
+import { getAdvisorRoleLabel } from '@/lib/advisorAccess';
 
 const NAV = [
+  { label: 'Leads', path: '/berater/leads', icon: UserPlus },
   { label: 'Verlauf', path: '/berater/verlauf', icon: History },
   { label: 'Kunden', path: '/berater/kunden', icon: Users },
   { label: 'Leistungen', path: '/berater/leistungen', icon: BookOpen },
@@ -14,6 +28,7 @@ const NAV = [
 
 export default function AdvisorLayout() {
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -42,6 +57,20 @@ export default function AdvisorLayout() {
             );
           })}
         </nav>
+
+        <div className="p-2 lg:p-4 border-t border-border space-y-3">
+          <div className="hidden lg:block text-xs text-muted-foreground leading-relaxed">
+            <p className="font-bold text-foreground truncate">{user?.full_name || user?.email || 'Berater'}</p>
+            <p>{getAdvisorRoleLabel(user)}</p>
+          </div>
+          <button
+            onClick={() => logout(true)}
+            className="w-full flex items-center justify-center lg:justify-start gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden lg:block">Abmelden</span>
+          </button>
+        </div>
       </aside>
 
       {/* Content */}

@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ProtectedAdvisorRoute from '@/components/auth/ProtectedAdvisorRoute';
 
 // Customer-facing pages
 import HeroPage from '@/pages/HeroPage';
@@ -18,6 +19,7 @@ import RehasportAdvisorDashboard from '@/pages/berater/RehasportAdvisorDashboard
 // Advisor area (protected)
 import AdvisorArea from '@/pages/AdvisorArea';
 import AdvisorLayout from '@/components/layout/AdvisorLayout';
+import LeadCockpit from '@/pages/LeadCockpit';
 import CustomerList from '@/pages/CustomerList';
 import ServiceCatalog from '@/pages/ServiceCatalog';
 import TariffList from '@/pages/TariffList';
@@ -52,26 +54,29 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      {/* Customer-facing – no sidebar */}
+      {/* Customer-facing - no sidebar */}
       <Route path="/" element={<HeroPage />} />
       <Route path="/beratung/:type" element={<ConsultationFlow />} />
       <Route path="/rehasport" element={<RehasportFlow />} />
 
-      {/* Advisor area */}
+      {/* Advisor login */}
       <Route path="/berater/login" element={<AdvisorLogin />} />
-      <Route path="/berater/dashboard" element={<RehasportAdvisorDashboard />} />
 
       {/* Advisor area */}
-      <Route path="/berater" element={<AdvisorArea />} />
-      <Route element={<AdvisorLayout />}>
-        <Route path="/berater/kunden" element={<CustomerList />} />
-        <Route path="/berater/leistungen" element={<ServiceCatalog />} />
-        <Route path="/berater/tarife" element={<TariffList />} />
-        <Route path="/berater/baukasten" element={<TariffBuilder />} />
-        <Route path="/berater/verlauf" element={<ConsultationHistory />} />
-        <Route path="/berater/analytics" element={<Analytics />} />
-        <Route path="/berater/admin" element={<Admin />} />
-        <Route path="/berater/regeln" element={<RulesAdmin />} />
+      <Route element={<ProtectedAdvisorRoute />}>
+        <Route path="/berater/dashboard" element={<RehasportAdvisorDashboard />} />
+        <Route path="/berater" element={<AdvisorArea />} />
+        <Route element={<AdvisorLayout />}>
+          <Route path="/berater/leads" element={<LeadCockpit />} />
+          <Route path="/berater/kunden" element={<CustomerList />} />
+          <Route path="/berater/leistungen" element={<ServiceCatalog />} />
+          <Route path="/berater/tarife" element={<TariffList />} />
+          <Route path="/berater/baukasten" element={<TariffBuilder />} />
+          <Route path="/berater/verlauf" element={<ConsultationHistory />} />
+          <Route path="/berater/analytics" element={<Analytics />} />
+          <Route path="/berater/admin" element={<Admin />} />
+          <Route path="/berater/regeln" element={<RulesAdmin />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<PageNotFound />} />
