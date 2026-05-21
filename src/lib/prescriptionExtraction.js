@@ -122,7 +122,7 @@ export function normalizePrescriptionExtraction(result = {}) {
   };
 }
 
-export async function uploadAndExtractPrescription(base44, file) {
+export async function uploadPrescriptionFile(base44, file) {
   if (!file) throw new Error('Keine Datei ausgewaehlt.');
 
   let fileMeta = {
@@ -152,6 +152,24 @@ export async function uploadAndExtractPrescription(base44, file) {
     extractionUrl = publicUpload.file_url;
   }
 
+  return { fileMeta, extractionUrl };
+}
+
+export async function createExtractionUrl(base44, fileMeta) {
+  if (fileMeta?.file_url) return fileMeta.file_url;
+  if (fileMeta?.file_uri) {
+    const signed = await base44.integrations.Core.CreateFileSignedUrl({
+      file_uri: fileMeta.file_uri,
+      expires_in: 900,
+    });
+    return signed.signed_url;
+  }
+  return null;
+}
+
+export async function extractPrescriptionData(base44, extractionUrl) {
+  if (!extractionUrl) throw new Error('Keine Datei-URL fuer die Rezeptauslesung vorhanden.');
+
   const raw = await base44.integrations.Core.ExtractDataFromUploadedFile({
     file_url: extractionUrl,
     json_schema: PRESCRIPTION_EXTRACTION_SCHEMA,
@@ -165,5 +183,15 @@ export async function uploadAndExtractPrescription(base44, file) {
       confidence: raw?.confidence_notes ? 'needs_review' : 'review_required',
     },
     form: normalizePrescriptionExtraction(raw),
+  };
+}
+
+export async function uploadAndExtractPrescription(base44, file) {
+  const upload = await uploadPrescriptionFile(base44, file);
+  const extraction = await extractPrescriptionData(base44, upload.extractionUrl);
+
+  return {
+    ...upload,
+    ...extraction,
   };
 }

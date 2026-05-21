@@ -22,7 +22,9 @@ import {
 } from '@/lib/customerDataModel';
 import {
   EMPTY_PRESCRIPTION_FORM,
-  uploadAndExtractPrescription,
+  createExtractionUrl,
+  extractPrescriptionData,
+  uploadPrescriptionFile,
 } from '@/lib/prescriptionExtraction';
 
 export default function PrescriptionIntake() {
@@ -30,7 +32,9 @@ export default function PrescriptionIntake() {
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [fileMeta, setFileMeta] = useState(null);
+  const [extractionUrl, setExtractionUrl] = useState('');
   const [extraction, setExtraction] = useState(null);
+  const [scanError, setScanError] = useState('');
   const [form, setForm] = useState(EMPTY_PRESCRIPTION_FORM);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [extracting, setExtracting] = useState(false);
@@ -94,26 +98,58 @@ export default function PrescriptionIntake() {
     if (!nextFile) return;
     setFile(nextFile);
     setFileMeta(null);
+    setExtractionUrl('');
     setExtraction(null);
+    setScanError('');
   };
 
-  const handleExtract = async () => {
+  const ensureFileUploaded = async () => {
     if (!file) {
       toast.error('Bitte zuerst einen Rezeptscan auswaehlen.');
       return null;
     }
 
+    if (fileMeta) {
+      const nextExtractionUrl = extractionUrl || await createExtractionUrl(base44, fileMeta);
+      setExtractionUrl(nextExtractionUrl || '');
+      return { fileMeta, extractionUrl: nextExtractionUrl };
+    }
+
+    const upload = await uploadPrescriptionFile(base44, file);
+    setFileMeta(upload.fileMeta);
+    setExtractionUrl(upload.extractionUrl || '');
+    return upload;
+  };
+
+  const handleExtract = async () => {
+    setScanError('');
+
     setExtracting(true);
     try {
-      const result = await uploadAndExtractPrescription(base44, file);
-      setFileMeta(result.fileMeta);
+      const upload = await ensureFileUploaded();
+      if (!upload) return null;
+
+      let nextExtractionUrl = upload.extractionUrl;
+      if (!nextExtractionUrl) {
+        nextExtractionUrl = await createExtractionUrl(base44, upload.fileMeta);
+        setExtractionUrl(nextExtractionUrl || '');
+      }
+
+      const result = await extractPrescriptionData(base44, nextExtractionUrl);
       setExtraction(result.extraction);
       setForm(prev => ({ ...prev, ...result.form }));
       toast.success('Rezept wurde ausgelesen. Bitte die Daten pruefen.');
-      return result;
+      return { ...upload, ...result };
     } catch (error) {
       console.error('Prescription extraction failed', error);
-      toast.error('Rezept konnte nicht automatisch ausgelesen werden. Bitte Scan/Dateityp pruefen.');
+      const message = error?.message || 'Automatische Rezeptauslesung fehlgeschlagen.';
+      setScanError(message);
+      setExtraction({
+        raw: { error: message },
+        status: 'failed',
+        confidence: 'manual_entry',
+      });
+      toast.warning('Automatisches Auslesen fehlgeschlagen. Der Scan kann trotzdem mit manueller Pruefung gespeichert werden.');
       return null;
     } finally {
       setExtracting(false);
@@ -132,11 +168,16 @@ export default function PrescriptionIntake() {
       let currentExtraction = extraction;
 
       if (!currentFileMeta) {
-        const result = await handleExtract();
-        if (!result) return;
-        currentFileMeta = result.fileMeta;
-        currentExtraction = result.extraction;
+        const upload = await ensureFileUploaded();
+        if (!upload) return;
+        currentFileMeta = upload.fileMeta;
       }
+
+      currentExtraction = currentExtraction || {
+        raw: null,
+        status: 'manual_review',
+        confidence: 'manual_entry',
+      };
 
       const upsert = await upsertUnifiedCustomer(base44, customerDraft, {
         existingCustomerId: selectedCustomerId || undefined,
@@ -194,7 +235,9 @@ export default function PrescriptionIntake() {
       setFile(null);
       setPreviewUrl('');
       setFileMeta(null);
+      setExtractionUrl('');
       setExtraction(null);
+      setScanError('');
       setForm(EMPTY_PRESCRIPTION_FORM);
       setSelectedCustomerId('');
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -217,6 +260,9 @@ export default function PrescriptionIntake() {
           <h1 className="text-3xl font-black text-foreground uppercase tracking-tight">Scan & Kundendatei</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
             Rezept einlesen, Daten pruefen, zentrale Kundendatei anlegen oder aktualisieren und den Scan revisionsfaehig speichern.
+          </p>
+          <p className="text-xs text-muted-foreground mt-2 max-w-3xl">
+            Automatisches Auslesen nutzt Base44 Upload + ExtractDataFromUploadedFile. Wenn die Erkennung scheitert, bleibt der manuelle Speicherweg offen.
           </p>
         </div>
 
@@ -279,7 +325,7 @@ export default function PrescriptionIntake() {
             </div>
           )}
 
-          <StatusPanel fileMeta={fileMeta} extraction={extraction} />
+          <StatusPanel fileMeta={fileMeta} extraction={extraction} scanError={scanError} />
           <CandidatePanel
             candidates={candidateCustomers}
             selectedCustomerId={selectedCustomerId}
@@ -416,7 +462,13 @@ function Field({ label, children }) {
   );
 }
 
-function StatusPanel({ fileMeta, extraction }) {
+function StatusPanel({ fileMeta, extraction, scanError }) {
+  const extractionLabel = extraction?.status === 'extracted'
+    ? 'Daten ausgelesen'
+    : extraction?.status === 'failed'
+    ? 'OCR fehlgeschlagen - manuelle Pruefung aktiv'
+    : 'OCR noch offen';
+
   return (
     <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
       <StatusLine
@@ -425,18 +477,24 @@ function StatusPanel({ fileMeta, extraction }) {
       />
       <StatusLine
         ok={extraction?.status === 'extracted'}
-        label={extraction?.status === 'extracted' ? 'Daten ausgelesen' : 'OCR noch offen'}
+        label={extractionLabel}
+        warning={extraction?.status === 'failed'}
       />
       <StatusLine ok={false} label="AZH-Sync spaeter: not_started" neutral />
+      {scanError && (
+        <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-700">
+          {scanError}
+        </p>
+      )}
     </div>
   );
 }
 
-function StatusLine({ ok, label, neutral = false }) {
+function StatusLine({ ok, label, neutral = false, warning = false }) {
   const Icon = ok ? CheckCircle2 : neutral ? AlertTriangle : AlertTriangle;
   return (
     <div className="flex items-center gap-2 text-sm">
-      <Icon className={`w-4 h-4 ${ok ? 'text-primary' : neutral ? 'text-muted-foreground' : 'text-amber-500'}`} />
+      <Icon className={`w-4 h-4 ${ok ? 'text-primary' : neutral ? 'text-muted-foreground' : warning ? 'text-amber-500' : 'text-amber-500'}`} />
       <span className={ok ? 'text-foreground' : 'text-muted-foreground'}>{label}</span>
     </div>
   );
