@@ -98,9 +98,59 @@
       "type": "number",
       "description": "Vollstaendigkeitswert 0-100"
     },
+    "profile_status": {
+      "type": "string",
+      "enum": [
+        "lead",
+        "angebot_offen",
+        "testphase",
+        "mitglied",
+        "reha_aktiv",
+        "verloren",
+        "archiviert"
+      ],
+      "description": "Zusammenfassender Status der zentralen Personenakte"
+    },
+    "current_focus": {
+      "type": "string",
+      "description": "Aktuell wichtigste naechste Aktion fuer diese Person"
+    },
+    "next_action_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Faelligkeit der naechsten Aktion"
+    },
+    "last_contact_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Letzter Kontaktzeitpunkt"
+    },
+    "missing_required_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Fehlende Pflichtfelder fuer Beratung, Vertrag oder Sync"
+    },
     "active_lead_id": {
       "type": "string",
       "description": "Aktiver Lead"
+    },
+    "active_goal_profile_id": {
+      "type": "string",
+      "description": "Aktives Bedarfs-/Zielprofil"
+    },
+    "active_consultation_id": {
+      "type": "string",
+      "description": "Aktive oder letzte Beratung"
+    },
+    "active_reha_case_id": {
+      "type": "string",
+      "description": "Aktiver Reha-Vorgang"
+    },
+    "active_contract_draft_id": {
+      "type": "string",
+      "description": "Aktiver Vertragsentwurf"
     },
     "last_prescription_scan_id": {
       "type": "string",
@@ -109,6 +159,44 @@
     "last_rehasport_consultation_id": {
       "type": "string",
       "description": "Letzter Rehasport-Vorgang"
+    },
+    "themisoft_customer_id": {
+      "type": "string",
+      "description": "Externe ThemiSoft-Kunden-ID"
+    },
+    "themisoft_sync_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "pending",
+        "ready",
+        "blocked_missing_data",
+        "sent",
+        "synced",
+        "conflict",
+        "error"
+      ],
+      "default": "not_started",
+      "description": "Status der spaeteren ThemiSoft-Synchronisation"
+    },
+    "myyolo_person_id": {
+      "type": "string",
+      "description": "Externe myYOLO-Personen-ID"
+    },
+    "myyolo_sync_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "pending",
+        "ready",
+        "blocked_missing_data",
+        "sent",
+        "synced",
+        "conflict",
+        "error"
+      ],
+      "default": "not_started",
+      "description": "Status der spaeteren myYOLO-Synchronisation"
     },
     "azh_person_guid": {
       "type": "string",

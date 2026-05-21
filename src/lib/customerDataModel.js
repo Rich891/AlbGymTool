@@ -2,6 +2,47 @@ import { createEntity, safeFilterEntity, updateEntity } from '@/lib/entityGatewa
 
 const EMPTY_VALUES = new Set([undefined, null, '']);
 
+export const PROFILE_STATUSES = {
+  LEAD: 'lead',
+  OFFER_OPEN: 'angebot_offen',
+  TRIAL: 'testphase',
+  MEMBER: 'mitglied',
+  REHA_ACTIVE: 'reha_aktiv',
+  LOST: 'verloren',
+  ARCHIVED: 'archiviert',
+};
+
+export const CURRENT_FOCUS_TYPES = {
+  NEW_LEAD: 'lead_qualifizieren',
+  APPOINTMENT_PREP: 'termin_vorbereiten',
+  OFFER_FOLLOW_UP: 'angebot_nachfassen',
+  TRIAL_CHECK: 'testphase_pruefen',
+  CONTRACT_PREPARE: 'vertrag_vorbereiten',
+  PRESCRIPTION_REVIEW: 'rezept_pruefen',
+  SYNC_PREPARE: 'sync_vorbereiten',
+  NONE: 'none',
+};
+
+export const CUSTOMER_CONTEXT_TYPES = {
+  LEAD: 'lead',
+  GOAL_PROFILE: 'goal_profile',
+  CONSULTATION: 'consultation',
+  REHA: 'reha',
+  CONTRACT: 'contract',
+  SYNC: 'sync',
+};
+
+export const SYNC_STATUSES = {
+  NOT_STARTED: 'not_started',
+  PENDING: 'pending',
+  READY: 'ready',
+  BLOCKED_MISSING_DATA: 'blocked_missing_data',
+  SENT: 'sent',
+  SYNCED: 'synced',
+  CONFLICT: 'conflict',
+  ERROR: 'error',
+};
+
 function cleanText(value) {
   if (EMPTY_VALUES.has(value)) return '';
   return String(value).replace(/\s+/g, ' ').trim();
@@ -19,6 +60,10 @@ function compactObject(data) {
 
 function unique(items) {
   return [...new Set((items || []).filter(Boolean))];
+}
+
+function compactArray(items) {
+  return unique((items || []).map(cleanText).filter(Boolean));
 }
 
 export function splitFullName(fullName = '') {
@@ -70,7 +115,7 @@ export function normalizeDate(value = '') {
 export function normalizeGender(value = '') {
   const raw = cleanText(value).toLowerCase();
   if (!raw) return '';
-  if (['m', 'mann', 'maennlich', 'mannlich', 'm\u00e4nnlich'].includes(raw)) return 'm\u00e4nnlich';
+  if (['m', 'mann', 'maennlich', 'mannlich', 'm\u00e4nnlich', 'mã¤nnlich'].includes(raw)) return 'm\u00e4nnlich';
   if (['w', 'frau', 'weiblich'].includes(raw)) return 'weiblich';
   if (raw.includes('div')) return 'divers';
   return raw;
@@ -100,6 +145,182 @@ export function calculateDataQualityScore(customer = {}) {
   return Math.round((filled / fields.length) * 100);
 }
 
+export function calculateMissingRequiredFields(customer = {}) {
+  const requiredFields = [
+    ['first_name', 'Vorname'],
+    ['last_name', 'Nachname'],
+    ['phone', 'Telefon'],
+    ['email', 'E-Mail'],
+  ];
+
+  return requiredFields
+    .filter(([field]) => !cleanText(customer[field]))
+    .map(([, label]) => label);
+}
+
+export function deriveProfileStatus({ lead, rehaCase, consultation, contractDraft } = {}) {
+  const leadStatus = cleanText(lead?.status).toUpperCase();
+  const consultationOutcome = cleanText(consultation?.outcome);
+  const consultationStatus = cleanText(consultation?.status);
+  const contractStatus = cleanText(contractDraft?.status);
+  const rehaStatus = cleanText(rehaCase?.status || rehaCase?.prescription_status);
+
+  if (leadStatus === 'LOST' || consultationOutcome === 'kein_abschluss') return PROFILE_STATUSES.LOST;
+  if (consultationOutcome === 'abschluss' || consultationStatus === 'abgeschlossen' || contractStatus === 'ready') return PROFILE_STATUSES.MEMBER;
+  if (consultationOutcome === 'testphase' || consultationStatus === 'testphase') return PROFILE_STATUSES.TRIAL;
+  if (leadStatus === 'OFFER_OPEN' || consultationOutcome === 'angebot' || consultationStatus === 'angebot_gespeichert') return PROFILE_STATUSES.OFFER_OPEN;
+  if (rehaStatus && !['abgebrochen', 'archived'].includes(rehaStatus)) return PROFILE_STATUSES.REHA_ACTIVE;
+  if (lead || leadStatus) return PROFILE_STATUSES.LEAD;
+  return PROFILE_STATUSES.LEAD;
+}
+
+export function deriveCurrentFocus({ lead, rehaCase, syncJobs = [], followUpTasks = [] } = {}) {
+  const openFollowUp = (followUpTasks || [])
+    .filter(task => !task?.status || task.status === 'open')
+    .sort((a, b) => String(a?.due_at || '').localeCompare(String(b?.due_at || '')))[0];
+
+  if (openFollowUp) {
+    return {
+      type: CURRENT_FOCUS_TYPES.OFFER_FOLLOW_UP,
+      label: 'Follow-up bearbeiten',
+      next_action_at: openFollowUp.due_at,
+    };
+  }
+
+  const blockedSync = (syncJobs || []).find(job => job?.status === SYNC_STATUSES.BLOCKED_MISSING_DATA || job?.status === 'blocked_missing_data');
+  if (blockedSync) {
+    return {
+      type: CURRENT_FOCUS_TYPES.SYNC_PREPARE,
+      label: 'Sync-Daten vervollstaendigen',
+      next_action_at: blockedSync.created_at || null,
+    };
+  }
+
+  const rehaStatus = cleanText(rehaCase?.prescription_status || rehaCase?.status);
+  if (['missing', 'manual_review', 'scan_saved', 'rezept_erfasst'].includes(rehaStatus)) {
+    return {
+      type: CURRENT_FOCUS_TYPES.PRESCRIPTION_REVIEW,
+      label: 'Rezept pruefen',
+      next_action_at: rehaCase?.next_action_at || null,
+    };
+  }
+
+  const leadStatus = cleanText(lead?.status).toUpperCase();
+  if (leadStatus === 'OFFER_OPEN') {
+    return {
+      type: CURRENT_FOCUS_TYPES.OFFER_FOLLOW_UP,
+      label: 'Angebot nachfassen',
+      next_action_at: lead?.next_action_at || null,
+    };
+  }
+  if (leadStatus === 'TRIAL_STARTED') {
+    return {
+      type: CURRENT_FOCUS_TYPES.TRIAL_CHECK,
+      label: 'Testphase pruefen',
+      next_action_at: lead?.next_action_at || null,
+    };
+  }
+  if (leadStatus === 'CONTRACT_READY') {
+    return {
+      type: CURRENT_FOCUS_TYPES.CONTRACT_PREPARE,
+      label: 'Vertrag vorbereiten',
+      next_action_at: lead?.next_action_at || null,
+    };
+  }
+  if (leadStatus === 'APPOINTMENT_BOOKED') {
+    return {
+      type: CURRENT_FOCUS_TYPES.APPOINTMENT_PREP,
+      label: 'Termin vorbereiten',
+      next_action_at: lead?.next_action_at || null,
+    };
+  }
+  if (lead) {
+    return {
+      type: CURRENT_FOCUS_TYPES.NEW_LEAD,
+      label: 'Lead qualifizieren',
+      next_action_at: lead?.next_action_at || null,
+    };
+  }
+
+  return {
+    type: CURRENT_FOCUS_TYPES.NONE,
+    label: 'Keine offene Aktion',
+    next_action_at: null,
+  };
+}
+
+export function mergeCustomerContextSnapshot(existing = {}, incoming = {}) {
+  return compactObject({
+    ...stripEntityMetadata(existing),
+    ...compactObject(incoming),
+    source_systems: unique([...(existing.source_systems || []), ...(incoming.source_systems || [])]),
+    missing_required_fields: compactArray([
+      ...(existing.missing_required_fields || []),
+      ...(incoming.missing_required_fields || []),
+    ]),
+  });
+}
+
+export function buildCustomerSummary(customer = {}, contexts = {}) {
+  const { lead, rehaCase, consultation, contractDraft, syncJobs = [], followUpTasks = [] } = contexts;
+  const focus = deriveCurrentFocus({ lead, rehaCase, syncJobs, followUpTasks });
+  const profileStatus = customer.profile_status || deriveProfileStatus({ lead, rehaCase, consultation, contractDraft });
+  const badges = [
+    lead || customer.active_lead_id ? 'Lead aktiv' : '',
+    rehaCase || customer.active_reha_case_id || customer.last_rehasport_consultation_id ? 'Reha aktiv' : '',
+    contractDraft || customer.active_contract_draft_id ? 'Vertrag offen' : '',
+    profileStatus === PROFILE_STATUSES.OFFER_OPEN ? 'Angebot offen' : '',
+  ].filter(Boolean);
+
+  return {
+    id: customer.id,
+    customer_name: joinCustomerName(customer),
+    profile_status: profileStatus,
+    current_focus: customer.current_focus || focus.type,
+    current_focus_label: focus.label,
+    next_action_at: customer.next_action_at || focus.next_action_at,
+    badges,
+    data_quality_score: customer.data_quality_score ?? calculateDataQualityScore(customer),
+    missing_required_fields: customer.missing_required_fields || calculateMissingRequiredFields(customer),
+    themisoft_sync_status: customer.themisoft_sync_status || SYNC_STATUSES.NOT_STARTED,
+    myyolo_sync_status: customer.myyolo_sync_status || customer.azh_sync_status || SYNC_STATUSES.NOT_STARTED,
+    azh_sync_status: customer.azh_sync_status || SYNC_STATUSES.NOT_STARTED,
+  };
+}
+
+export function buildCustomerSearchText(customer = {}, contexts = {}) {
+  const summary = buildCustomerSummary(customer, contexts);
+  const contextValues = Object.values(contexts || {})
+    .flatMap(value => Array.isArray(value) ? value : [value])
+    .filter(Boolean)
+    .flatMap(value => [
+      value.customer_name,
+      value.first_name,
+      value.last_name,
+      value.phone,
+      value.email,
+      value.health_insurance,
+      value.insurance_number,
+      value.status,
+    ]);
+
+  return compactArray([
+    summary.customer_name,
+    customer.first_name,
+    customer.last_name,
+    customer.phone,
+    customer.email,
+    customer.birthdate,
+    customer.health_insurance,
+    customer.insurance_number,
+    customer.cost_carrier_number,
+    customer.profile_status,
+    customer.current_focus,
+    ...summary.badges,
+    ...contextValues,
+  ]).join(' ').toLowerCase();
+}
+
 export function buildUnifiedCustomerPayload(input = {}, { source = 'manual', sourceSystem = 'albgym' } = {}) {
   const nameParts = splitFullName(input.customer_name || input.name);
   const firstName = cleanText(input.first_name || nameParts.first_name);
@@ -111,6 +332,7 @@ export function buildUnifiedCustomerPayload(input = {}, { source = 'manual', sou
     first_name: firstName,
     last_name: lastName,
     birthdate: normalizeDate(input.birthdate || input.date_of_birth),
+    age: Number(input.age) || undefined,
     gender: normalizeGender(input.gender),
     phone: cleanText(input.phone),
     email: cleanText(input.email).toLowerCase(),
@@ -122,19 +344,45 @@ export function buildUnifiedCustomerPayload(input = {}, { source = 'manual', sou
     insurance_number: insuranceNumber,
     cost_carrier_number: cleanText(input.cost_carrier_number),
     insured_status: cleanText(input.insured_status),
+    profile_status: input.profile_status || input.customer_status || PROFILE_STATUSES.LEAD,
+    current_focus: typeof input.current_focus === 'object' ? input.current_focus?.type : input.current_focus,
+    next_action_at: input.next_action_at,
+    last_contact_at: input.last_contact_at,
+    missing_required_fields: input.missing_required_fields,
     customer_status: input.customer_status || 'lead',
     customer_source: source,
     source_systems: unique([sourceSystem, ...(input.source_systems || [])]),
     active_lead_id: input.active_lead_id,
+    active_goal_profile_id: input.active_goal_profile_id,
+    active_consultation_id: input.active_consultation_id,
+    active_reha_case_id: input.active_reha_case_id,
+    active_contract_draft_id: input.active_contract_draft_id,
     last_prescription_scan_id: input.last_prescription_scan_id,
     last_rehasport_consultation_id: input.last_rehasport_consultation_id,
+    themisoft_customer_id: input.themisoft_customer_id,
+    themisoft_sync_status: input.themisoft_sync_status || SYNC_STATUSES.NOT_STARTED,
+    myyolo_person_id: input.myyolo_person_id,
+    myyolo_sync_status: input.myyolo_sync_status || input.azh_sync_status || SYNC_STATUSES.NOT_STARTED,
     azh_person_guid: input.azh_person_guid,
-    azh_sync_status: input.azh_sync_status || 'not_started',
+    azh_sync_status: input.azh_sync_status || SYNC_STATUSES.NOT_STARTED,
     azh_last_sync_at: input.azh_last_sync_at,
+    training_goal: cleanText(input.training_goal),
+    training_experience: input.training_experience,
+    training_frequency: input.training_frequency,
+    restrictions: cleanText(input.restrictions),
+    complaints: cleanText(input.complaints),
+    budget_feeling: input.budget_feeling,
+    interest_coaching: input.interest_coaching,
+    interest_wellness: input.interest_wellness,
+    interest_courses: input.interest_courses,
+    interest_reha: input.interest_reha,
+    privacy_consent: input.privacy_consent,
+    privacy_consent_date: input.privacy_consent_date,
     consent_health: input.consent_health,
     consent_prescription_scan: input.consent_prescription_scan,
     notes: cleanText(input.notes),
   });
+  payload.missing_required_fields = input.missing_required_fields || calculateMissingRequiredFields(payload);
 
   return {
     ...payload,

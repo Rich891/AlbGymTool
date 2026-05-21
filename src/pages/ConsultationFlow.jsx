@@ -14,6 +14,13 @@ import RecommendationStep from './consultation/RecommendationStep';
 import ClosingStep from './consultation/ClosingStep';
 import { syncConsultationCrmArtifacts } from '@/lib/crmAutomation';
 import { enrichCustomerWithConsentSnapshot } from '@/lib/crmModel';
+import {
+  buildUnifiedCustomerPayload,
+  deriveCurrentFocus,
+  deriveProfileStatus,
+  mergeCustomerContextSnapshot,
+  upsertUnifiedCustomer,
+} from '@/lib/customerDataModel';
 
 export default function ConsultationFlow() {
   const { type } = useParams();
@@ -45,21 +52,44 @@ export default function ConsultationFlow() {
     selectedAddons.reduce((sum, addon) => sum + (addon.price_monthly || 0), 0);
 
   const handleClose = async (outcome, notes) => {
-    const customerPayload = enrichCustomerWithConsentSnapshot(customer, {
+    const now = new Date().toISOString();
+    const leadIdFromUrl = searchParams.get('lead');
+    const consentCustomer = enrichCustomerWithConsentSnapshot(customer, {
       source: `consultation_${type || 'neukunde'}`,
     });
+    const initialFocus = deriveCurrentFocus({
+      lead: leadIdFromUrl ? { status: 'APPOINTMENT_BOOKED' } : null,
+    });
+    const customerPayload = buildUnifiedCustomerPayload({
+      ...consentCustomer,
+      active_lead_id: leadIdFromUrl || consentCustomer.active_lead_id,
+      last_contact_at: now,
+      profile_status: deriveProfileStatus({
+        lead: leadIdFromUrl ? { status: 'APPOINTMENT_BOOKED' } : null,
+      }),
+      current_focus: initialFocus.type,
+      next_action_at: initialFocus.next_action_at,
+      training_goal: selectedGoals[0] || consentCustomer.training_goal,
+      privacy_consent: consentCustomer.privacy_consent,
+      privacy_consent_date: consentCustomer.privacy_consent_date,
+    }, {
+      source: `consultation_${type || 'neukunde'}`,
+      sourceSystem: 'navigator',
+    });
 
-    let customerId = customerPayload.id;
-    if (!customerId) {
-      const saved = await base44.entities.Customer.create(customerPayload);
-      customerId = saved.id;
-    } else {
-      await base44.entities.Customer.update(customerId, customerPayload);
-    }
+    const upsert = await upsertUnifiedCustomer(base44, customerPayload, {
+      existingCustomerId: customer.id || undefined,
+    });
+    const customerId = upsert.customer.id;
+    const persistedCustomer = {
+      ...upsert.customer,
+      ...customerPayload,
+      id: customerId,
+    };
 
     const consultationPayload = {
       customer_id: customerId,
-      customer_name: `${customerPayload.first_name || ''} ${customerPayload.last_name || ''}`.trim(),
+      customer_name: `${persistedCustomer.first_name || ''} ${persistedCustomer.last_name || ''}`.trim(),
       consultation_type: type || 'neukunde',
       status: outcome === 'abschluss' ? 'abgeschlossen' : outcome === 'testphase' ? 'testphase' : 'angebot_gespeichert',
       anamnesis,
@@ -83,9 +113,9 @@ export default function ConsultationFlow() {
 
     const savedConsultation = await base44.entities.Consultation.create(consultationPayload);
 
-    await syncConsultationCrmArtifacts({
+    const crmResult = await syncConsultationCrmArtifacts({
       base44,
-      customer: customerPayload,
+      customer: persistedCustomer,
       customerId,
       consultation: savedConsultation,
       selectedGoals,
@@ -95,8 +125,36 @@ export default function ConsultationFlow() {
       outcome,
       notes,
       type,
-      leadId: searchParams.get('lead'),
+      leadId: leadIdFromUrl,
     });
+    const contractDraft = crmResult.results
+      ?.find(result => result.entityName === 'ContractDraft' && result.data?.id)
+      ?.data;
+    const followUpTasks = crmResult.results
+      ?.filter(result => result.entityName === 'FollowUpTask' && result.data)
+      .map(result => result.data) || [];
+    const leadSnapshot = crmResult.leadId
+      ? { id: crmResult.leadId, status: crmResult.status, next_action_at: followUpTasks[0]?.due_at }
+      : null;
+    const currentFocus = deriveCurrentFocus({
+      lead: leadSnapshot,
+      followUpTasks,
+    });
+    const profileStatus = deriveProfileStatus({
+      lead: leadSnapshot,
+      consultation: savedConsultation,
+      contractDraft,
+    });
+
+    await base44.entities.Customer.update(customerId, mergeCustomerContextSnapshot(persistedCustomer, {
+      active_lead_id: crmResult.leadId || persistedCustomer.active_lead_id,
+      active_consultation_id: savedConsultation.id,
+      active_contract_draft_id: contractDraft?.id || persistedCustomer.active_contract_draft_id,
+      profile_status: profileStatus,
+      current_focus: currentFocus.type,
+      next_action_at: currentFocus.next_action_at,
+      last_contact_at: now,
+    }));
 
     queryClient.invalidateQueries({ queryKey: ['consultations-recent'] });
     queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
