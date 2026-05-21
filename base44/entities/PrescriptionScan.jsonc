@@ -48,7 +48,8 @@
       "enum": [
         "private_signed_url",
         "public_url",
-        "public_retry"
+        "public_retry",
+        "llm_vision"
       ],
       "description": "URL-Weg, ueber den OCR/Extraktion ausgefuehrt wurde"
     },

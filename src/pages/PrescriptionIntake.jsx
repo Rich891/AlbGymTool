@@ -272,7 +272,7 @@ export default function PrescriptionIntake() {
             Rezept einlesen, Daten pruefen, zentrale Kundendatei anlegen oder aktualisieren und den Scan revisionsfaehig speichern.
           </p>
           <p className="text-xs text-muted-foreground mt-2 max-w-3xl">
-            Automatisches Auslesen nutzt Base44 Upload + ExtractDataFromUploadedFile. Wenn die Erkennung scheitert, bleibt der manuelle Speicherweg offen.
+            Automatisches Auslesen nutzt Base44 Upload, Formular-56-OCR und einen Vision-Retry fuer schwierige Scans. Wenn die Erkennung scheitert, bleibt der manuelle Speicherweg offen.
           </p>
         </div>
 
