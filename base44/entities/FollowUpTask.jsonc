@@ -1,0 +1,42 @@
+{
+  "name": "FollowUpTask",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Lead"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Kundendatei"
+    },
+    "consultation_id": {
+      "type": "string",
+      "description": "Beratung"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Faellig am"
+    },
+    "status": {
+      "type": "string",
+      "description": "Status"
+    },
+    "channel": {
+      "type": "string",
+      "description": "Kanal"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Grund"
+    },
+    "draft_message": {
+      "type": "string",
+      "description": "Nachrichtenvorschlag"
+    }
+  },
+  "required": [
+    "status"
+  ]
+}

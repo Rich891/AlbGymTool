@@ -3,6 +3,8 @@ import { X, Check, Loader2, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { buildUnifiedCustomerPayload, upsertUnifiedCustomer } from '@/lib/customerDataModel';
+import { updateEntity } from '@/lib/entityGateway';
 
 const EMPTY = {
   customer_name: '',
@@ -41,7 +43,19 @@ export default function NewCustomerModal({ onClose, onCreated }) {
     if (!canSave) return;
     setSaving(true);
     try {
-      const record = await base44.entities.RehasportConsultation.create(form);
+      const customerPayload = buildUnifiedCustomerPayload(form, {
+        source: 'manual_reha_customer',
+        sourceSystem: 'reha_dashboard',
+      });
+      const { customer } = await upsertUnifiedCustomer(base44, customerPayload);
+      const record = await base44.entities.RehasportConsultation.create({
+        ...form,
+        customer_id: customer.id,
+      });
+      await updateEntity(base44, 'Customer', customer.id, {
+        last_rehasport_consultation_id: record.id,
+      });
+      qc.invalidateQueries({ queryKey: ['customers'] });
       qc.invalidateQueries({ queryKey: ['rehasport-consultations'] });
       onCreated(record);
     } finally {

@@ -1,0 +1,51 @@
+{
+  "name": "ActivityLog",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Lead"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Kundendatei"
+    },
+    "consultation_id": {
+      "type": "string",
+      "description": "Beratung"
+    },
+    "rehasport_consultation_id": {
+      "type": "string",
+      "description": "Rehasport-Vorgang"
+    },
+    "prescription_scan_id": {
+      "type": "string",
+      "description": "Rezeptscan"
+    },
+    "type": {
+      "type": "string",
+      "description": "Aktivitaetstyp"
+    },
+    "actor": {
+      "type": "string",
+      "description": "Ausloeser"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Zeitpunkt"
+    },
+    "outcome": {
+      "type": "string",
+      "description": "Ergebnis"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notiz"
+    }
+  },
+  "required": [
+    "type",
+    "occurred_at"
+  ]
+}

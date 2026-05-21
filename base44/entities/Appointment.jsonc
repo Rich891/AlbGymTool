@@ -1,0 +1,44 @@
+{
+  "name": "Appointment",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Lead"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Kundendatei"
+    },
+    "consultation_id": {
+      "type": "string",
+      "description": "Beratung"
+    },
+    "rehasport_consultation_id": {
+      "type": "string",
+      "description": "Rehasport-Vorgang"
+    },
+    "start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Startzeit"
+    },
+    "end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Endzeit"
+    },
+    "status": {
+      "type": "string",
+      "description": "Terminstatus"
+    },
+    "advisor": {
+      "type": "string",
+      "description": "Berater"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notiz"
+    }
+  }
+}

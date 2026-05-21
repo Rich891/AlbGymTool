@@ -12,8 +12,10 @@ This branch starts the CRM-MVP described in the project documentation:
 
 - Advisor access no longer uses a hardcoded frontend password. Internal routes are protected by the Base44 session and advisor/admin/trainer/service roles.
 - `/berater/leads` adds the first Lead Cockpit for pipeline status, next action, appointment context, and trainer briefings.
+- `/berater/rezepte` adds the first prescription intake workflow: scan upload, structured extraction, staff review mask, canonical customer upsert, Rehasport case creation, and scan record storage.
 - Consultation closing now writes CRM-adjacent artifacts when the corresponding Base44 entities exist: `Lead`, `ActivityLog`, `FollowUpTask`, and `ContractDraft`.
 - The scoring engine now maps the current anamnesis answers (`experience`, `schedule`, `complaints`, `lifestyle`) instead of the older field names.
+- `Customer` is the canonical customer file. `RehasportConsultation` stores the Rehasport case/episode. `PrescriptionScan` stores scan metadata, extracted fields, reviewed fields, and the future AZH sync state.
 
 Before using the CRM modules in production, create or verify these Base44 entities and permissions:
 
@@ -23,6 +25,7 @@ Appointment
 ActivityLog
 FollowUpTask
 ContractDraft
+PrescriptionScan
 Consent (optional, if consent history is split out from Customer)
 ```
 

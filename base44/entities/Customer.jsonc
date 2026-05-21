@@ -10,6 +10,15 @@
       "type": "string",
       "description": "Nachname"
     },
+    "customer_name": {
+      "type": "string",
+      "description": "Kanonischer Anzeigename"
+    },
+    "birthdate": {
+      "type": "string",
+      "format": "date",
+      "description": "Geburtsdatum"
+    },
     "age": {
       "type": "number",
       "description": "Alter"
@@ -30,6 +39,93 @@
     "email": {
       "type": "string",
       "description": "E-Mail"
+    },
+    "address": {
+      "type": "string",
+      "description": "Vollstaendige Adresse"
+    },
+    "street": {
+      "type": "string",
+      "description": "Strasse und Hausnummer"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "Postleitzahl"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ort"
+    },
+    "health_insurance": {
+      "type": "string",
+      "description": "Krankenkasse"
+    },
+    "insurance_number": {
+      "type": "string",
+      "description": "Krankenversichertennummer"
+    },
+    "cost_carrier_number": {
+      "type": "string",
+      "description": "Kostentraegernummer / IK"
+    },
+    "customer_status": {
+      "type": "string",
+      "enum": [
+        "lead",
+        "active",
+        "paused",
+        "archived"
+      ],
+      "default": "lead",
+      "description": "Zentraler Kundenstatus"
+    },
+    "customer_source": {
+      "type": "string",
+      "description": "Quelle der Kundendatei"
+    },
+    "source_systems": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Systeme, die Daten zu dieser Kundendatei geliefert haben"
+    },
+    "data_quality_score": {
+      "type": "number",
+      "description": "Vollstaendigkeitswert 0-100"
+    },
+    "active_lead_id": {
+      "type": "string",
+      "description": "Aktiver Lead"
+    },
+    "last_prescription_scan_id": {
+      "type": "string",
+      "description": "Letzter Rezeptscan"
+    },
+    "last_rehasport_consultation_id": {
+      "type": "string",
+      "description": "Letzter Rehasport-Vorgang"
+    },
+    "azh_person_guid": {
+      "type": "string",
+      "description": "myYOLO/AZH Personen-GUID"
+    },
+    "azh_sync_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "pending",
+        "synced",
+        "conflict",
+        "error"
+      ],
+      "default": "not_started",
+      "description": "Status der spaeteren AZH-Synchronisation"
+    },
+    "azh_last_sync_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Letzter AZH-Sync"
     },
     "training_goal": {
       "type": "string",
@@ -98,6 +194,14 @@
       "type": "string",
       "format": "date-time",
       "description": "Datum der Einwilligung"
+    },
+    "consent_health": {
+      "type": "boolean",
+      "description": "Einwilligung Gesundheitsdaten"
+    },
+    "consent_prescription_scan": {
+      "type": "boolean",
+      "description": "Einwilligung Rezeptscan-Speicherung"
     },
     "notes": {
       "type": "string",

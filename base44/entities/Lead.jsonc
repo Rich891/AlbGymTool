@@ -1,0 +1,102 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "Zentrale Kundendatei"
+    },
+    "first_name": {
+      "type": "string",
+      "description": "Vorname"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Nachname"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefon"
+    },
+    "email": {
+      "type": "string",
+      "description": "E-Mail"
+    },
+    "source": {
+      "type": "string",
+      "description": "Leadquelle"
+    },
+    "campaign_id": {
+      "type": "string",
+      "description": "Kampagne"
+    },
+    "status": {
+      "type": "string",
+      "description": "Pipeline-Status"
+    },
+    "primary_goal": {
+      "type": "string",
+      "description": "Hauptziel"
+    },
+    "selected_goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ausgewaehlte Ziele"
+    },
+    "pain_points": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Schmerzpunkte"
+    },
+    "assigned_advisor": {
+      "type": "string",
+      "description": "Zugewiesener Berater"
+    },
+    "next_action_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Naechste Aktion"
+    },
+    "recommended_tariff": {
+      "type": "string",
+      "description": "Empfohlener Tarif"
+    },
+    "expected_monthly_value": {
+      "type": "number",
+      "description": "Erwarteter Monatswert"
+    },
+    "consultation_type": {
+      "type": "string",
+      "description": "Beratungstyp"
+    },
+    "last_contact_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Letzter Kontakt"
+    },
+    "last_consultation_id": {
+      "type": "string",
+      "description": "Letzte Beratung"
+    },
+    "created_from": {
+      "type": "string",
+      "description": "Erstellt aus"
+    },
+    "lead_score": {
+      "type": "number",
+      "description": "Leadscore"
+    },
+    "advisor_note": {
+      "type": "string",
+      "description": "Beraternotiz"
+    }
+  },
+  "required": [
+    "first_name",
+    "last_name"
+  ]
+}

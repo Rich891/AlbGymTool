@@ -3,6 +3,8 @@ import { ChevronLeft, AlertCircle, Loader2, FlaskConical, CheckCircle2, XCircle,
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { buildUnifiedCustomerPayload, upsertUnifiedCustomer } from '@/lib/customerDataModel';
+import { updateEntity } from '@/lib/entityGateway';
 
 // --- IBAN Validation (Mod97, no external lib needed) ---
 function validateIban(iban) {
@@ -142,7 +144,26 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack, tes
     if (!consents.counseling || !consents.health || (hasBankData && !consents.bank)) return;
     setSaving(true);
     try {
-      await base44.entities.RehasportConsultation.create({
+      const customerPayload = buildUnifiedCustomerPayload({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        customer_name: profile.name,
+        birthdate: profile.birthdate,
+        gender: profile.gender,
+        address: formData.address,
+        email: formData.email,
+        phone: formData.phone,
+        health_insurance: formData.health_insurance,
+        insurance_number: formData.insurance_number,
+        customer_status: 'active',
+        consent_health: consents.health,
+      }, {
+        source: 'rehasport_flow',
+        sourceSystem: 'albgym_rehasport',
+      });
+      const { customer } = await upsertUnifiedCustomer(base44, customerPayload);
+      const rehaRecord = await base44.entities.RehasportConsultation.create({
+        customer_id: customer.id,
         customer_name: profile.name,
         birthdate: profile.birthdate,
         gender: profile.gender,
@@ -163,6 +184,10 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack, tes
         selected_offers: profile.selectedOffers || [],
         subsidy_active: profile.subsidyActive || false,
         status: 'angebot_erstellt',
+      });
+      await updateEntity(base44, 'Customer', customer.id, {
+        last_rehasport_consultation_id: rehaRecord.id,
+        customer_status: 'active',
       });
       update({ ...formData });
       setShowConsent(false);

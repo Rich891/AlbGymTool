@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  ScanLine,
   Settings,
   Target,
   UserPlus,
@@ -18,6 +19,7 @@ import { getAdvisorRoleLabel } from '@/lib/advisorAccess';
 
 const NAV = [
   { label: 'Dashboard', path: '/berater/dashboard', icon: LayoutDashboard },
+  { label: 'Rezepte', path: '/berater/rezepte', icon: ScanLine },
   { label: 'Leads', path: '/berater/leads', icon: UserPlus },
   { label: 'Verlauf', path: '/berater/verlauf', icon: History },
   { label: 'CRM-Kunden', path: '/berater/kunden', icon: Users },
