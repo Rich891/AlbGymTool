@@ -1,0 +1,41 @@
+{
+  "name": "ExternalReference",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "Zentrale Kundendatei"
+    },
+    "target_system": {
+      "type": "string",
+      "enum": [
+        "azh",
+        "themisoft",
+        "myyolo"
+      ],
+      "description": "Zielsystem, in dem die externe ID gilt"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "Externe ID/GUID/Personennummer im Zielsystem"
+    },
+    "lookup_key": {
+      "type": "string",
+      "description": "Stabiler Suchschluessel (z.B. Name+Geburtsdatum-Hash)"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Zeitpunkt der Bestaetigung durch das Zielsystem"
+    },
+    "note": {
+      "type": "string",
+      "description": "Hinweis / Bemerkung zur Zuordnung"
+    }
+  },
+  "required": [
+    "customer_id",
+    "target_system",
+    "external_id"
+  ]
+}

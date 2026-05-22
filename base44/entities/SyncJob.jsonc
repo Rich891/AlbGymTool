@@ -1,0 +1,66 @@
+{
+  "name": "SyncJob",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "Zentrale Kundendatei"
+    },
+    "target_system": {
+      "type": "string",
+      "enum": [
+        "azh",
+        "themisoft",
+        "myyolo"
+      ],
+      "description": "Zielsystem fuer den Sync"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ready",
+        "syncing",
+        "synced",
+        "failed",
+        "blocked"
+      ],
+      "default": "pending",
+      "description": "Status des Sync-Jobs"
+    },
+    "payload_snapshot": {
+      "type": "object",
+      "description": "Snapshot der zu uebertragenden Daten zum Zeitpunkt des Jobs"
+    },
+    "external_reference_id": {
+      "type": "string",
+      "description": "Externe Referenz-/Vorgangs-ID nach erfolgreichem Sync"
+    },
+    "last_attempt_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Zeitpunkt des letzten Versuchs"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Fehlermeldung beim letzten Versuch"
+    },
+    "attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Anzahl bisheriger Versuche"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Erzeuger (User/System)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notizen"
+    }
+  },
+  "required": [
+    "customer_id",
+    "target_system"
+  ]
+}

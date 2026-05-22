@@ -1,4 +1,5 @@
 import { createEntity, safeFilterEntity, updateEntity } from '@/lib/entityGateway';
+import { deriveGoalProfileSummary } from '@/lib/goalProfileModel';
 
 const EMPTY_VALUES = new Set([undefined, null, '']);
 
@@ -20,6 +21,7 @@ export const CURRENT_FOCUS_TYPES = {
   CONTRACT_PREPARE: 'vertrag_vorbereiten',
   PRESCRIPTION_REVIEW: 'rezept_pruefen',
   SYNC_PREPARE: 'sync_vorbereiten',
+  GOAL_PROFILE_REVIEW: 'goalprofile_review',
   NONE: 'none',
 };
 
@@ -86,8 +88,9 @@ export function joinCustomerName(customer = {}) {
 export function normalizeInsuranceNumber(value = '') {
   const clean = cleanText(value).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   if (!clean) return '';
-  const letter = clean[0]?.replace(/[^A-Z]/g, '') || '';
-  const digits = clean.slice(1).replace(/\D/g, '').slice(0, 9);
+  const startsWithLetter = /^[A-Z]/.test(clean);
+  const letter = startsWithLetter ? clean[0] : '';
+  const digits = (startsWithLetter ? clean.slice(1) : clean).replace(/\D/g, '').slice(0, 9);
   if (!letter) return digits;
   return [letter, digits.slice(0, 3), digits.slice(3, 6), digits.slice(6, 9)]
     .filter(Boolean)
@@ -174,7 +177,7 @@ export function deriveProfileStatus({ lead, rehaCase, consultation, contractDraf
   return PROFILE_STATUSES.LEAD;
 }
 
-export function deriveCurrentFocus({ lead, rehaCase, syncJobs = [], followUpTasks = [] } = {}) {
+export function deriveCurrentFocus({ lead, rehaCase, syncJobs = [], followUpTasks = [], goalProfile } = {}) {
   const openFollowUp = (followUpTasks || [])
     .filter(task => !task?.status || task.status === 'open')
     .sort((a, b) => String(a?.due_at || '').localeCompare(String(b?.due_at || '')))[0];
@@ -242,6 +245,14 @@ export function deriveCurrentFocus({ lead, rehaCase, syncJobs = [], followUpTask
     };
   }
 
+  if (goalProfile?.status === 'active' && typeof goalProfile?.confidence_score === 'number' && goalProfile.confidence_score < 50) {
+    return {
+      type: CURRENT_FOCUS_TYPES.GOAL_PROFILE_REVIEW,
+      label: 'Zielprofil schaerfen',
+      next_action_at: goalProfile?.next_action_at || null,
+    };
+  }
+
   return {
     type: CURRENT_FOCUS_TYPES.NONE,
     label: 'Keine offene Aktion',
@@ -262,8 +273,8 @@ export function mergeCustomerContextSnapshot(existing = {}, incoming = {}) {
 }
 
 export function buildCustomerSummary(customer = {}, contexts = {}) {
-  const { lead, rehaCase, consultation, contractDraft, syncJobs = [], followUpTasks = [] } = contexts;
-  const focus = deriveCurrentFocus({ lead, rehaCase, syncJobs, followUpTasks });
+  const { lead, rehaCase, consultation, contractDraft, syncJobs = [], followUpTasks = [], goalProfile } = contexts;
+  const focus = deriveCurrentFocus({ lead, rehaCase, syncJobs, followUpTasks, goalProfile });
   const profileStatus = customer.profile_status || deriveProfileStatus({ lead, rehaCase, consultation, contractDraft });
   const badges = [
     lead || customer.active_lead_id ? 'Lead aktiv' : '',
@@ -272,7 +283,7 @@ export function buildCustomerSummary(customer = {}, contexts = {}) {
     profileStatus === PROFILE_STATUSES.OFFER_OPEN ? 'Angebot offen' : '',
   ].filter(Boolean);
 
-  return {
+  const summary = {
     id: customer.id,
     customer_name: joinCustomerName(customer),
     profile_status: profileStatus,
@@ -286,6 +297,12 @@ export function buildCustomerSummary(customer = {}, contexts = {}) {
     myyolo_sync_status: customer.myyolo_sync_status || customer.azh_sync_status || SYNC_STATUSES.NOT_STARTED,
     azh_sync_status: customer.azh_sync_status || SYNC_STATUSES.NOT_STARTED,
   };
+
+  if (goalProfile) {
+    summary.active_goal_headline = deriveGoalProfileSummary(goalProfile);
+  }
+
+  return summary;
 }
 
 export function buildCustomerSearchText(customer = {}, contexts = {}) {

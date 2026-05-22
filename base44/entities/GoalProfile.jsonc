@@ -1,0 +1,100 @@
+{
+  "name": "GoalProfile",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "Zentrale Kundendatei"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Kanonischer Anzeigename"
+    },
+    "primary_goal": {
+      "type": "string",
+      "description": "Hauptziel"
+    },
+    "secondary_goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Weitere Ziele"
+    },
+    "life_phase": {
+      "type": "string",
+      "enum": [
+        "young_adult",
+        "family",
+        "silver",
+        "reha_entry"
+      ],
+      "description": "Lebensphase"
+    },
+    "motivation": {
+      "type": "string",
+      "description": "Motivation"
+    },
+    "time_per_week": {
+      "type": "string",
+      "enum": [
+        "<2h",
+        "2-4h",
+        "4-6h",
+        ">6h"
+      ],
+      "description": "Verfuegbare Trainingszeit pro Woche"
+    },
+    "restrictions_text": {
+      "type": "string",
+      "description": "Einschraenkungen als Freitext"
+    },
+    "pain_points": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Schmerzpunkte"
+    },
+    "experience_level": {
+      "type": "string",
+      "description": "Trainingserfahrung"
+    },
+    "confidence_score": {
+      "type": "number",
+      "description": "Vollstaendigkeitswert 0-100"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "consultation_neukunde",
+        "consultation_rehasport",
+        "manual",
+        "lead_cockpit"
+      ],
+      "description": "Herkunft des Zielprofils"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Zeitpunkt der Erfassung"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "archived"
+      ],
+      "default": "active",
+      "description": "Status des Zielprofils"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notizen"
+    }
+  },
+  "required": [
+    "customer_id"
+  ]
+}

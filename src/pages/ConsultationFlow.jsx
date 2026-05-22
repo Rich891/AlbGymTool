@@ -21,6 +21,11 @@ import {
   mergeCustomerContextSnapshot,
   upsertUnifiedCustomer,
 } from '@/lib/customerDataModel';
+import {
+  buildGoalProfilePayload,
+  GOAL_PROFILE_SOURCES,
+  upsertGoalProfile,
+} from '@/lib/goalProfileModel';
 
 export default function ConsultationFlow() {
   const { type } = useParams();
@@ -87,6 +92,23 @@ export default function ConsultationFlow() {
       id: customerId,
     };
 
+    let goalProfileId = null;
+    try {
+      const goalSource = type === 'rehasport'
+        ? GOAL_PROFILE_SOURCES.CONSULTATION_REHA
+        : GOAL_PROFILE_SOURCES.CONSULTATION_NEUKUNDE;
+      const goalPayload = buildGoalProfilePayload({
+        customer: persistedCustomer,
+        selectedGoals,
+        anamnesis,
+        source: goalSource,
+      });
+      const goalResult = await upsertGoalProfile(base44, customerId, goalPayload);
+      goalProfileId = goalResult?.id || null;
+    } catch (err) {
+      console.warn('GoalProfile upsert skipped:', err);
+    }
+
     const consultationPayload = {
       customer_id: customerId,
       customer_name: `${persistedCustomer.first_name || ''} ${persistedCustomer.last_name || ''}`.trim(),
@@ -150,6 +172,7 @@ export default function ConsultationFlow() {
       active_lead_id: crmResult.leadId || persistedCustomer.active_lead_id,
       active_consultation_id: savedConsultation.id,
       active_contract_draft_id: contractDraft?.id || persistedCustomer.active_contract_draft_id,
+      active_goal_profile_id: goalProfileId || persistedCustomer.active_goal_profile_id,
       profile_status: profileStatus,
       current_focus: currentFocus.type,
       next_action_at: currentFocus.next_action_at,

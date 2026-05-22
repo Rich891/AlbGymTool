@@ -19,6 +19,7 @@ import RehasportAdvisorDashboard from '@/pages/berater/RehasportAdvisorDashboard
 // Advisor area (protected)
 import AdvisorLayout from '@/components/layout/AdvisorLayout';
 import LeadCockpit from '@/pages/LeadCockpit';
+import PersonenCockpit from '@/pages/PersonenCockpit';
 import PrescriptionIntake from '@/pages/PrescriptionIntake';
 import CustomerList from '@/pages/CustomerList';
 import ServiceCatalog from '@/pages/ServiceCatalog';
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
           <Route path="/berater/dashboard" element={<RehasportAdvisorDashboard />} />
           <Route path="/berater/rezepte" element={<PrescriptionIntake />} />
           <Route path="/berater/leads" element={<LeadCockpit />} />
+          <Route path="/berater/personen" element={<PersonenCockpit />} />
           <Route path="/berater/kunden" element={<CustomerList />} />
           <Route path="/berater/leistungen" element={<ServiceCatalog />} />
           <Route path="/berater/tarife" element={<TariffList />} />
