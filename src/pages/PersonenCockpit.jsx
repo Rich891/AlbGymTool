@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
@@ -9,15 +9,17 @@ import {
   IdCard,
   Loader2,
   RefreshCcw,
+  ScanLine,
   Search,
   UserPlus,
   Users,
 } from 'lucide-react';
 
 import { base44 } from '@/api/base44Client';
-import { safeListEntity } from '@/lib/entityGateway';
+import { createEntity, safeListEntity } from '@/lib/entityGateway';
 import {
   buildCustomerSummary,
+  buildUnifiedCustomerPayload,
   CURRENT_FOCUS_TYPES,
   PROFILE_STATUSES,
 } from '@/lib/customerDataModel';
@@ -33,6 +35,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const PROFILE_STATUS_LABELS = {
   [PROFILE_STATUSES.LEAD]: 'Lead',
@@ -74,6 +84,19 @@ const SYNC_BADGE_COLOR_CLASS = {
 };
 
 const CARDS_PAGE_SIZE = 60;
+
+const EMPTY_NEW_PERSON_FORM = {
+  first_name: '',
+  last_name: '',
+  birthdate: '',
+  phone: '',
+  email: '',
+  street: '',
+  postal_code: '',
+  city: '',
+  health_insurance: '',
+  insurance_number: '',
+};
 
 function getInitials(name) {
   if (!name) return '?';
@@ -169,9 +192,14 @@ function buildPersonRows({
 }
 
 export default function PersonenCockpit() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [profileStatusFilter, setProfileStatusFilter] = useState('ALL');
   const [focusFilter, setFocusFilter] = useState('ALL');
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newPersonForm, setNewPersonForm] = useState(EMPTY_NEW_PERSON_FORM);
+  const [creatingPerson, setCreatingPerson] = useState(false);
 
   const {
     data: customers = [],
@@ -306,10 +334,38 @@ export default function PersonenCockpit() {
       toast.error('Person hat keine ID.');
       return;
     }
-    // Detailansicht folgt in Phase 5: navigate(`/berater/personen/${customerId}`)
-    toast('Detailansicht folgt in Phase 5.', {
-      description: 'Personenakte wird derzeit aufgebaut.',
-    });
+    navigate(`/berater/personen/${customerId}`);
+  };
+
+  const handleNewPersonChange = (field, value) => {
+    setNewPersonForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreatePerson = async () => {
+    if (!newPersonForm.first_name.trim() || !newPersonForm.last_name.trim()) {
+      toast.error('Vorname und Nachname sind Pflicht.');
+      return;
+    }
+
+    setCreatingPerson(true);
+    try {
+      const payload = buildUnifiedCustomerPayload(newPersonForm, {
+        source: 'manual',
+        sourceSystem: 'personen_cockpit',
+      });
+      const created = await createEntity(base44, 'Customer', payload);
+      await queryClient.invalidateQueries({ queryKey: ['personen-cockpit', 'customers'] });
+      await queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setCreateDialogOpen(false);
+      setNewPersonForm(EMPTY_NEW_PERSON_FORM);
+      toast.success('Personenakte wurde angelegt.');
+      navigate(`/berater/personen/${created.id}`);
+    } catch (error) {
+      console.error('Person create failed', error);
+      toast.error('Personenakte konnte nicht angelegt werden.');
+    } finally {
+      setCreatingPerson(false);
+    }
   };
 
   if (customersError) {
@@ -342,6 +398,7 @@ export default function PersonenCockpit() {
           setFocusFilter={setFocusFilter}
           availableStatusValues={availableStatusValues}
           availableFocusValues={availableFocusValues}
+          onCreate={() => setCreateDialogOpen(true)}
         />
 
         {customersLoading ? (
@@ -380,6 +437,19 @@ export default function PersonenCockpit() {
           totalGoalProfiles={goalProfiles.length}
           totalPrescriptionScans={prescriptionScans.length}
         />
+
+        <NewPersonDialog
+          open={createDialogOpen}
+          form={newPersonForm}
+          saving={creatingPerson}
+          onOpenChange={setCreateDialogOpen}
+          onChange={handleNewPersonChange}
+          onCreate={handleCreatePerson}
+          onScan={() => {
+            setCreateDialogOpen(false);
+            navigate('/berater/rezepte');
+          }}
+        />
       </div>
     </TooltipProvider>
   );
@@ -397,6 +467,7 @@ function Header({
   setFocusFilter,
   availableStatusValues,
   availableFocusValues,
+  onCreate,
 }) {
   return (
     <div className="space-y-4">
@@ -408,6 +479,23 @@ function Header({
             {filteredCount} von {totalCount} Personen sichtbar
             {isFetching && <Loader2 className="inline-block w-3.5 h-3.5 ml-2 animate-spin text-primary" />}
           </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link
+            to="/berater/rezepte"
+            className="h-11 px-4 rounded-xl border border-border bg-card text-foreground font-bold hover:bg-secondary transition-all inline-flex items-center justify-center gap-2"
+          >
+            <ScanLine className="w-4 h-4" />
+            Rezept scannen
+          </Link>
+          <button
+            type="button"
+            onClick={onCreate}
+            className="h-11 px-4 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all inline-flex items-center justify-center gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            Neue Person
+          </button>
         </div>
       </div>
 
@@ -477,6 +565,71 @@ function FilterChips({ label, value, onChange, options }) {
         );
       })}
     </div>
+  );
+}
+
+function NewPersonDialog({ open, form, saving, onOpenChange, onChange, onCreate, onScan }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Neue Personenakte</DialogTitle>
+          <DialogDescription>
+            Basisdaten erfassen oder direkt mit einem Rezeptscan starten.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <NewPersonField label="Vorname *" value={form.first_name} onChange={value => onChange('first_name', value)} />
+          <NewPersonField label="Nachname *" value={form.last_name} onChange={value => onChange('last_name', value)} />
+          <NewPersonField label="Geburtsdatum" type="date" value={form.birthdate} onChange={value => onChange('birthdate', value)} />
+          <NewPersonField label="Telefon" value={form.phone} onChange={value => onChange('phone', value)} />
+          <NewPersonField label="E-Mail" type="email" value={form.email} onChange={value => onChange('email', value)} />
+          <NewPersonField label="Strasse" value={form.street} onChange={value => onChange('street', value)} />
+          <NewPersonField label="PLZ" value={form.postal_code} onChange={value => onChange('postal_code', value)} />
+          <NewPersonField label="Ort" value={form.city} onChange={value => onChange('city', value)} />
+          <NewPersonField label="Krankenkasse" value={form.health_insurance} onChange={value => onChange('health_insurance', value)} />
+          <NewPersonField label="Versichertennummer" value={form.insurance_number} onChange={value => onChange('insurance_number', value)} />
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          <button
+            type="button"
+            onClick={onScan}
+            disabled={saving}
+            className="h-11 px-4 rounded-xl border border-border bg-card text-foreground font-bold hover:bg-secondary transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+          >
+            <ScanLine className="w-4 h-4" />
+            Rezept scannen
+          </button>
+          <button
+            type="button"
+            onClick={onCreate}
+            disabled={saving}
+            className="h-11 px-4 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+            Akte anlegen
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function NewPersonField({ label, value, onChange, type = 'text' }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground block mb-2">
+        {label}
+      </span>
+      <input
+        type={type}
+        value={value || ''}
+        onChange={event => onChange(event.target.value)}
+        className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+    </label>
   );
 }
 

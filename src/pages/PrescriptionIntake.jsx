@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
@@ -29,6 +30,9 @@ import {
 
 export default function PrescriptionIntake() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const customerIdFromUrl = searchParams.get('customerId') || '';
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [fileMeta, setFileMeta] = useState(null);
@@ -37,6 +41,7 @@ export default function PrescriptionIntake() {
   const [scanError, setScanError] = useState('');
   const [form, setForm] = useState(EMPTY_PRESCRIPTION_FORM);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [appliedCustomerIdParam, setAppliedCustomerIdParam] = useState('');
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -57,6 +62,15 @@ export default function PrescriptionIntake() {
     queryFn: () => safeListEntity(base44, 'HealthInsurance', 'name', 250),
     retry: false,
   });
+
+  useEffect(() => {
+    if (!customerIdFromUrl || appliedCustomerIdParam === customerIdFromUrl) return;
+    const exists = customers.some(customer => customer.id === customerIdFromUrl);
+    if (exists) {
+      setSelectedCustomerId(customerIdFromUrl);
+      setAppliedCustomerIdParam(customerIdFromUrl);
+    }
+  }, [customerIdFromUrl, customers, appliedCustomerIdParam]);
 
   useEffect(() => {
     if (!file || !file.type?.startsWith('image/')) {
@@ -254,6 +268,15 @@ export default function PrescriptionIntake() {
       queryClient.invalidateQueries({ queryKey: ['customers-unified-prescription'] });
       queryClient.invalidateQueries({ queryKey: ['rehasport-consultations'] });
       queryClient.invalidateQueries({ queryKey: ['prescription-scans'] });
+      queryClient.invalidateQueries({ queryKey: ['personen-cockpit', 'customers'] });
+      queryClient.invalidateQueries({ queryKey: ['personenakte', 'customer', upsert.customer.id] });
+      queryClient.invalidateQueries({ queryKey: ['personenakte', 'prescription-scans', upsert.customer.id] });
+      queryClient.invalidateQueries({ queryKey: ['personenakte', 'reha-cases', upsert.customer.id] });
+      queryClient.invalidateQueries({ queryKey: ['personenakte', 'activities', upsert.customer.id] });
+
+      if (upsert.customer?.id) {
+        navigate(`/berater/personen/${upsert.customer.id}?tab=rezepte`);
+      }
     } catch (error) {
       console.error('Prescription save failed', error);
       toast.error('Rezept konnte nicht gespeichert werden. Sind Customer, PrescriptionScan und RehasportConsultation in Base44 angelegt?');

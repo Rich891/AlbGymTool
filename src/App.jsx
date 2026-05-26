@@ -31,7 +31,7 @@
 //   Mitarbeiter-Welt (ProtectedWorldRoute world='berater', Admin + Mitarbeiter):
 //     /berater/heute                   -> BeraterHeute (NEU, AP-5)
 //     /berater/personen                -> PersonenCockpit (existing)
-//     /berater/personen/:id            -> PersonenAktePlaceholder (NEU, Skeleton fuer Sprint 2)
+//     /berater/personen/:id            -> PersonenAkte (zentrale Personenakte)
 //     /berater/leads                   -> LeadCockpit (existing)
 //     /berater/rezepte                 -> PrescriptionIntake (existing)
 //     /berater/beratung                -> ConsultationFlow (existing)
@@ -89,7 +89,7 @@ import CustomerKioskLayout from '@/components/layout/CustomerKioskLayout';
 import BeraterHeute from '@/pages/berater/BeraterHeute';
 import LeadCockpit from '@/pages/LeadCockpit';
 import PersonenCockpit from '@/pages/PersonenCockpit';
-import PersonenAktePlaceholder from '@/pages/PersonenAktePlaceholder';
+import PersonenAkte from '@/pages/PersonenAkte';
 import PrescriptionIntake from '@/pages/PrescriptionIntake';
 import CustomerList from '@/pages/CustomerList';
 import ConsultationHistory from '@/pages/ConsultationHistory';
@@ -179,7 +179,7 @@ const AuthenticatedApp = () => {
         <Route path="/berater" element={<Navigate to="/berater/heute" replace />} />
         <Route path="/berater/heute" element={<BeraterHeute />} />
         <Route path="/berater/personen" element={<PersonenCockpit />} />
-        <Route path="/berater/personen/:id" element={<PersonenAktePlaceholder />} />
+        <Route path="/berater/personen/:id" element={<PersonenAkte />} />
         <Route path="/berater/leads" element={<LeadCockpit />} />
         <Route path="/berater/rezepte" element={<PrescriptionIntake />} />
         <Route path="/berater/beratung" element={<ConsultationFlow />} />
