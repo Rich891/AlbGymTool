@@ -2,34 +2,44 @@ import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
-  BarChart3,
-  BookOpen,
+  CalendarDays,
   History,
   IdCard,
-  LayoutDashboard,
   LogOut,
-  Package,
+  PlayCircle,
   ScanLine,
-  Settings,
-  Target,
   UserPlus,
-  Users,
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { getAdvisorRoleLabel } from '@/lib/advisorAccess';
+import WorldSwitcher from './WorldSwitcher';
 
+/**
+ * Mitarbeiter-Layout — Welt "Beratung & Mitarbeiter" (Sprint-1-AP-2 / AP-7).
+ *
+ * Refactor in Sprint 1:
+ *   - Admin-Items (Tarife, Regeln, Analytics, Krankenkassen, Admin) raus —
+ *     gehoeren in /admin/* und werden vom AdminLayout angezeigt.
+ *   - Neuer Eintrag "Heute" als erster Sidebar-Eintrag (Tagesfokus).
+ *   - Verbleibende Items neu sortiert:
+ *       Heute · Personen · Leads · Rezepte · Beratung · Verlauf
+ *   - WorldSwitcher (rechts oben) — nur fuer Admin sichtbar.
+ *   - Header-Title "Beratung & Mitarbeiter".
+ *
+ * Backward-Compat:
+ *   - Logout, User-Menue, vorhandene Sub-Komponenten und Routes-Embedding via
+ *     <Outlet /> bleiben unveraendert.
+ *   - Bestehende Pages (PersonenCockpit, LeadCockpit, PrescriptionIntake,
+ *     ConsultationFlow, ConsultationHistory) rendern weiter, sofern sie
+ *     von AdvisorLayout eingebettet werden (siehe App.jsx in Welle 3).
+ */
 const NAV = [
-  { label: 'Dashboard', path: '/berater/dashboard', icon: LayoutDashboard },
-  { label: 'Rezepte', path: '/berater/rezepte', icon: ScanLine },
-  { label: 'Leads', path: '/berater/leads', icon: UserPlus },
+  { label: 'Heute', path: '/berater/heute', icon: CalendarDays },
   { label: 'Personen', path: '/berater/personen', icon: IdCard },
+  { label: 'Leads', path: '/berater/leads', icon: UserPlus },
+  { label: 'Rezepte', path: '/berater/rezepte', icon: ScanLine },
+  { label: 'Beratung', path: '/berater/beratung', icon: PlayCircle },
   { label: 'Verlauf', path: '/berater/verlauf', icon: History },
-  { label: 'CRM-Kunden', path: '/berater/kunden', icon: Users },
-  { label: 'Leistungen', path: '/berater/leistungen', icon: BookOpen },
-  { label: 'Tarife', path: '/berater/tarife', icon: Package },
-  { label: 'Regeln', path: '/berater/regeln', icon: Target },
-  { label: 'Analytics', path: '/berater/analytics', icon: BarChart3 },
-  { label: 'Admin', path: '/berater/admin', icon: Settings },
 ];
 
 export default function AdvisorLayout() {
@@ -41,11 +51,21 @@ export default function AdvisorLayout() {
       {/* Sidebar */}
       <aside className="w-16 lg:w-56 bg-card border-r border-border flex flex-col flex-shrink-0">
         <div className="p-3 lg:p-4 border-b border-border">
-          <Link to="/" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
             <ArrowLeft className="w-4 h-4 flex-shrink-0" />
             <span className="hidden lg:block">Zur App</span>
           </Link>
         </div>
+
+        <div className="hidden lg:block px-4 pt-4 pb-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Beratung & Mitarbeiter
+          </p>
+        </div>
+
         <nav className="flex-1 py-3 space-y-1 px-2">
           {NAV.map(item => {
             const Icon = item.icon;
@@ -79,12 +99,28 @@ export default function AdvisorLayout() {
         </div>
       </aside>
 
-      {/* Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 lg:p-8 max-w-[1400px] mx-auto">
-          <Outlet />
-        </div>
-      </main>
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="bg-card border-b border-border px-4 lg:px-8 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Welt
+            </p>
+            <h1 className="text-base lg:text-lg font-black text-foreground truncate">
+              Beratung & Mitarbeiter
+            </h1>
+          </div>
+          <WorldSwitcher currentWorld="berater" />
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-6 lg:p-8 max-w-[1400px] mx-auto">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

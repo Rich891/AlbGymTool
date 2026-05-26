@@ -17,7 +17,12 @@ export default function AdvisorLogin() {
     navigateToLogin,
   } = useAuth();
 
-  const targetPath = location.state?.from || '/berater/dashboard';
+  // Sprint-1-AP-4: nach erfolgreichem Login NICHT mehr hart auf
+  // /berater/dashboard navigieren. Stattdessen entweder die ursprueglich
+  // gewuenschte URL (location.state.from) ansteuern oder auf '/' gehen —
+  // dort uebernimmt RootRedirect die rollenbasierte Default-Landing-Logik
+  // (admin -> /admin/dashboard, mitarbeiter -> /berater/heute, kunde -> /kiosk).
+  const targetPath = location.state?.from || '/';
   const isLoading = isLoadingAuth || isLoadingPublicSettings;
   const hasAccess = hasAdvisorAccess(user);
 
