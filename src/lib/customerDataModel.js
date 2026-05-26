@@ -265,7 +265,7 @@ export function deriveCurrentFocus({ lead, rehaCase, syncJobs = [], followUpTask
   if (lead) {
     return {
       type: CURRENT_FOCUS_TYPES.NEW_LEAD,
-      label: 'Lead qualifizieren',
+      label: 'Kontakt qualifizieren',
       next_action_at: lead?.next_action_at || null,
     };
   }
@@ -299,21 +299,36 @@ export function mergeCustomerContextSnapshot(existing = {}, incoming = {}) {
 
 export function buildCustomerSummary(customer = {}, contexts = {}) {
   const { lead, rehaCase, consultation, contractDraft, syncJobs = [], followUpTasks = [], goalProfile } = contexts;
-  const focus = deriveCurrentFocus({ lead, rehaCase, syncJobs, followUpTasks, goalProfile });
-  const profileStatus = customer.profile_status || deriveProfileStatus({ lead, rehaCase, consultation, contractDraft });
+  const centralPipeline = customer.pipeline_status || customer.last_pipeline_status
+    ? {
+      status: customer.pipeline_status || customer.last_pipeline_status,
+      next_action_at: customer.next_action_at,
+    }
+    : null;
+  const focus = deriveCurrentFocus({ lead: lead || centralPipeline, rehaCase, syncJobs, followUpTasks, goalProfile });
+  const profileStatus = customer.profile_status || deriveProfileStatus({ lead: lead || centralPipeline, rehaCase, consultation, contractDraft });
+  const hasCentralPrescription = Boolean(
+    customer.prescription_status ||
+    customer.prescription_date ||
+    customer.prescription_file_uri ||
+    customer.last_prescription_scan_id
+  );
   const badges = [
-    lead || customer.active_lead_id ? 'Lead aktiv' : '',
-    rehaCase || customer.active_reha_case_id || customer.last_rehasport_consultation_id ? 'Reha aktiv' : '',
+    lead || centralPipeline || customer.active_lead_id ? 'Kontakt aktiv' : '',
+    rehaCase || customer.active_reha_case_id || customer.last_rehasport_consultation_id || hasCentralPrescription ? 'Reha aktiv' : '',
+    hasCentralPrescription ? 'Rezept vorhanden' : '',
     contractDraft || customer.active_contract_draft_id ? 'Vertrag offen' : '',
     profileStatus === PROFILE_STATUSES.OFFER_OPEN ? 'Angebot offen' : '',
   ].filter(Boolean);
+  const centralPrescriptionNeedsReview = ['manual_review', 'failed'].includes(cleanText(customer.prescription_status));
+  const currentFocus = centralPrescriptionNeedsReview ? CURRENT_FOCUS_TYPES.PRESCRIPTION_REVIEW : (customer.current_focus || focus.type);
 
   const summary = {
     id: customer.id,
     customer_name: joinCustomerName(customer),
     profile_status: profileStatus,
-    current_focus: customer.current_focus || focus.type,
-    current_focus_label: focus.label,
+    current_focus: currentFocus,
+    current_focus_label: centralPrescriptionNeedsReview ? 'Rezept pruefen' : focus.label,
     next_action_at: customer.next_action_at || focus.next_action_at,
     badges,
     data_quality_score: customer.data_quality_score ?? calculateDataQualityScore(customer),
@@ -356,6 +371,18 @@ export function buildCustomerSearchText(customer = {}, contexts = {}) {
     customer.health_insurance,
     customer.insurance_number,
     customer.cost_carrier_number,
+    customer.prescription_status,
+    customer.prescription_date,
+    customer.prescription_valid_to,
+    customer.prescribed_service,
+    customer.diagnosis_text,
+    ...(customer.icd_codes || []),
+    customer.pipeline_status,
+    customer.last_pipeline_status,
+    customer.lead_source,
+    customer.primary_goal,
+    customer.recommended_tariff,
+    customer.consultation_type,
     customer.profile_status,
     customer.current_focus,
     ...summary.badges,
@@ -401,6 +428,20 @@ export function buildUnifiedCustomerPayload(input = {}, { source = 'manual', sou
     active_contract_draft_id: input.active_contract_draft_id,
     last_prescription_scan_id: input.last_prescription_scan_id,
     last_rehasport_consultation_id: input.last_rehasport_consultation_id,
+    pipeline_status: input.pipeline_status || input.last_pipeline_status,
+    last_pipeline_status: input.last_pipeline_status || input.pipeline_status,
+    lead_source: cleanText(input.lead_source || input.source),
+    campaign_id: cleanText(input.campaign_id),
+    primary_goal: cleanText(input.primary_goal),
+    selected_goals: Array.isArray(input.selected_goals) ? compactArray(input.selected_goals) : [],
+    pain_points: Array.isArray(input.pain_points) ? compactArray(input.pain_points) : [],
+    assigned_advisor: cleanText(input.assigned_advisor),
+    recommended_tariff: cleanText(input.recommended_tariff),
+    expected_monthly_value: Number(input.expected_monthly_value) || undefined,
+    consultation_type: cleanText(input.consultation_type),
+    last_consultation_id: input.last_consultation_id,
+    lead_score: Number(input.lead_score) || undefined,
+    advisor_note: cleanText(input.advisor_note),
     themisoft_customer_id: input.themisoft_customer_id,
     themisoft_sync_status: input.themisoft_sync_status || SYNC_STATUSES.NOT_STARTED,
     myyolo_person_id: input.myyolo_person_id,
@@ -408,7 +449,7 @@ export function buildUnifiedCustomerPayload(input = {}, { source = 'manual', sou
     azh_person_guid: input.azh_person_guid,
     azh_sync_status: input.azh_sync_status || SYNC_STATUSES.NOT_STARTED,
     azh_last_sync_at: input.azh_last_sync_at,
-    training_goal: cleanText(input.training_goal),
+    training_goal: cleanText(input.training_goal || input.primary_goal),
     training_experience: input.training_experience,
     training_frequency: input.training_frequency,
     restrictions: cleanText(input.restrictions),
@@ -432,29 +473,87 @@ export function buildUnifiedCustomerPayload(input = {}, { source = 'manual', sou
   };
 }
 
-export function buildCustomerPayloadFromPrescription(prescription = {}) {
-  return buildUnifiedCustomerPayload({
-    first_name: prescription.patient_first_name,
-    last_name: prescription.patient_last_name,
-    birthdate: prescription.birthdate,
-    gender: prescription.gender,
-    street: prescription.street,
-    postal_code: prescription.postal_code,
-    city: prescription.city,
-    address: prescription.address,
-    phone: prescription.phone,
-    email: prescription.email,
-    health_insurance: prescription.health_insurance,
-    insurance_number: prescription.insurance_number,
-    cost_carrier_number: prescription.cost_carrier_number,
-    insured_status: prescription.insured_status,
+export function buildCustomerPayloadFromPrescription(prescription = {}, { fileMeta, extraction } = {}) {
+  const validation = prescription.validation_report || extraction?.validation_report || {};
+  const lifecyclePrescription = derivePrescriptionLifecycle(prescription, validation);
+  const validationStatus = lifecyclePrescription.prescription_validation_status || validation.status;
+  const prescriptionStatus = validationStatus
+    ? validationStatusToPrescriptionStatus(validationStatus)
+    : 'manual_review';
+  const missingItems = (validation.issues || [])
+    .map(issue => issue.label || issue.message)
+    .filter(Boolean);
+  const profilePayload = buildUnifiedCustomerPayload({
+    first_name: lifecyclePrescription.patient_first_name,
+    last_name: lifecyclePrescription.patient_last_name,
+    birthdate: lifecyclePrescription.birthdate,
+    gender: lifecyclePrescription.gender,
+    street: lifecyclePrescription.street,
+    postal_code: lifecyclePrescription.postal_code,
+    city: lifecyclePrescription.city,
+    address: lifecyclePrescription.address,
+    phone: lifecyclePrescription.phone,
+    email: lifecyclePrescription.email,
+    health_insurance: lifecyclePrescription.health_insurance,
+    insurance_number: lifecyclePrescription.insurance_number,
+    cost_carrier_number: lifecyclePrescription.cost_carrier_number,
+    insured_status: lifecyclePrescription.insured_status,
     customer_status: 'lead',
+    profile_status: PROFILE_STATUSES.REHA_ACTIVE,
+    current_focus: prescriptionStatus === 'verified' ? CURRENT_FOCUS_TYPES.NONE : CURRENT_FOCUS_TYPES.PRESCRIPTION_REVIEW,
     azh_sync_status: 'not_started',
     consent_health: true,
     consent_prescription_scan: true,
   }, {
     source: 'prescription_scan',
     sourceSystem: 'prescription_intake',
+  });
+
+  return compactObject({
+    ...profilePayload,
+    prescription_status: prescriptionStatus,
+    prescription_date: normalizeDate(lifecyclePrescription.prescription_date),
+    prescription_valid_from: normalizeDate(lifecyclePrescription.valid_from),
+    prescription_valid_to: normalizeDate(lifecyclePrescription.valid_to),
+    form_type: cleanText(lifecyclePrescription.form_type),
+    form_number: cleanText(lifecyclePrescription.form_number),
+    form_version: cleanText(lifecyclePrescription.form_version),
+    practice_site_number: cleanText(lifecyclePrescription.practice_site_number),
+    doctor_number: cleanText(lifecyclePrescription.doctor_number),
+    prescribed_units: Number(lifecyclePrescription.prescribed_units) || undefined,
+    duration_months: Number(lifecyclePrescription.duration_months) || undefined,
+    prescription_frequency: cleanText(lifecyclePrescription.frequency),
+    prescribed_service: cleanText(lifecyclePrescription.prescribed_service),
+    sport_type: cleanText(lifecyclePrescription.sport_type),
+    functional_training_type: cleanText(lifecyclePrescription.functional_training_type),
+    diagnosis_text: cleanText(lifecyclePrescription.diagnosis_text),
+    icd_codes: Array.isArray(lifecyclePrescription.icd_codes) ? lifecyclePrescription.icd_codes.filter(Boolean) : [],
+    impairment_text: cleanText(lifecyclePrescription.impairment_text),
+    rehab_goal: cleanText(lifecyclePrescription.rehab_goal),
+    follow_up_prescription: Boolean(lifecyclePrescription.follow_up_prescription),
+    follow_up_reason: cleanText(lifecyclePrescription.follow_up_reason),
+    prf_number: cleanText(lifecyclePrescription.prf_number),
+    physician_name: cleanText(lifecyclePrescription.physician_name),
+    physician_lanr: cleanText(lifecyclePrescription.physician_lanr),
+    doctor_signature_present: Boolean(lifecyclePrescription.doctor_signature_present),
+    doctor_stamp_present: Boolean(lifecyclePrescription.doctor_stamp_present),
+    patient_signature_present: Boolean(lifecyclePrescription.patient_signature_present),
+    approval_required: resolveApprovalRequired(validation, lifecyclePrescription),
+    approval_present: Boolean(validation.approval_present || lifecyclePrescription.approval_present),
+    approval_date: normalizeDate(lifecyclePrescription.approval_date),
+    approval_until: normalizeDate(lifecyclePrescription.approval_until),
+    approval_reference: cleanText(lifecyclePrescription.approval_reference),
+    prescription_validation_status: validationStatus,
+    prescription_validation_score: validation.score,
+    prescription_validation_report: validation,
+    prescription_missing_items: missingItems,
+    prescription_file_name: fileMeta?.file_name,
+    prescription_file_uri: fileMeta?.file_uri,
+    prescription_file_url: fileMeta?.file_url,
+    prescription_storage_mode: fileMeta?.storage_mode,
+    prescription_extraction_status: extraction?.status,
+    prescription_extraction_confidence: extraction?.confidence,
+    prescription_last_scan_at: fileMeta ? new Date().toISOString() : undefined,
   });
 }
 

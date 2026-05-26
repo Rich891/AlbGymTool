@@ -1,7 +1,7 @@
 // Pure-function-Helpers fuer /berater/heute (Sprint-1-AP-5, lib-Anteil).
 //
 // Werden von BeraterHeute.jsx (kommt in Welle 2) konsumiert. Datenquellen
-// sind Appointment.list, FollowUpTask.list und Lead.list — geladen ueber
+// sind Appointment.list, FollowUpTask.list und Customer.list — geladen ueber
 // safeListEntity in entityGateway.js. Diese Datei beruehrt KEINE Entities
 // direkt und macht KEINE Netzwerkaufrufe — sie sortiert/filtert nur
 // bereits geladene Arrays.
@@ -135,30 +135,32 @@ export function filterFollowUpsDue(followUps, now = new Date()) {
 }
 
 /**
- * Liefert die N neuesten Leads, sortiert nach created_date absteigend.
+ * Liefert die N neuesten Kontakte, sortiert nach created_date absteigend.
  * Akzeptiert sowohl created_date als auch created_at (Base44-Variante),
  * fallback auf updated_date / id-Sortierung wenn beides fehlt.
  *
- * @param {Array}  leads  Liste aus Lead.list — darf null sein
+ * @param {Array}  contacts  Liste aus Customer.list oder Legacy-Lead.list
  * @param {number} limit  Default 5
- * @returns {Array}       die top-N Leads
+ * @returns {Array}       die top-N Kontakte
  */
-export function groupNewLeads(leads, limit = 5) {
-  if (!Array.isArray(leads) || leads.length === 0) return [];
+export function groupNewContacts(contacts, limit = 5) {
+  if (!Array.isArray(contacts) || contacts.length === 0) return [];
   const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 5;
 
-  const withTs = leads.map(lead => {
+  const withTs = contacts.map(contact => {
     const ts =
-      toDate(lead?.created_date)?.getTime() ??
-      toDate(lead?.created_at)?.getTime() ??
-      toDate(lead?.updated_date)?.getTime() ??
+      toDate(contact?.created_date)?.getTime() ??
+      toDate(contact?.created_at)?.getTime() ??
+      toDate(contact?.updated_date)?.getTime() ??
       0;
-    return { lead, ts };
+    return { contact, ts };
   });
 
   withTs.sort((a, b) => b.ts - a.ts);
-  return withTs.slice(0, safeLimit).map(entry => entry.lead);
+  return withTs.slice(0, safeLimit).map(entry => entry.contact);
 }
+
+export const groupNewLeads = groupNewContacts;
 
 /**
  * Konsolidiert die Tagesuebersicht fuer /berater/heute.
@@ -167,33 +169,38 @@ export function groupNewLeads(leads, limit = 5) {
  * @param {object} input
  * @param {Array}  input.appointments
  * @param {Array}  input.followUps
- * @param {Array}  input.leads
+ * @param {Array}  input.customers
+ * @param {Array}  input.leads Legacy-Fallback
  * @param {Date}   input.now
  * @returns {{
  *   todayAppointments: Array,
  *   dueFollowUps: Array,
- *   newLeads: Array,
- *   counts: { todayAppointments: number, dueFollowUps: number, newLeads: number }
+ *   newContacts: Array,
+ *   counts: { todayAppointments: number, dueFollowUps: number, newContacts: number, newLeads: number }
  * }}
  */
 export function buildHeuteOverview({
   appointments = [],
   followUps = [],
+  customers = [],
   leads = [],
   now = new Date(),
 } = {}) {
   const todayAppointments = filterAppointmentsToday(appointments, now);
   const dueFollowUps = filterFollowUpsDue(followUps, now);
-  const newLeads = groupNewLeads(leads, 5);
+  const contactSource = Array.isArray(customers) && customers.length > 0 ? customers : leads;
+  const newContacts = groupNewContacts(contactSource, 5);
 
   return {
     todayAppointments,
     dueFollowUps,
-    newLeads,
+    newContacts,
+    newLeads: newContacts,
     counts: {
       todayAppointments: todayAppointments.length,
       dueFollowUps: dueFollowUps.length,
-      newLeads: newLeads.length,
+      newContacts: newContacts.length,
+      newLeads: newContacts.length,
     },
   };
 }

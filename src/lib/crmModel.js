@@ -188,6 +188,36 @@ export function buildLeadPayload({ customer, customerId, selectedGoals = [], out
   };
 }
 
+export function buildCustomerPipelinePayload({ customer, customerId, selectedGoals = [], outcome, type, selectedTariff, totalMonthly, consultation }) {
+  const leadPayload = buildLeadPayload({
+    customer,
+    customerId,
+    selectedGoals,
+    outcome,
+    type,
+    selectedTariff,
+    totalMonthly,
+  });
+
+  return {
+    pipeline_status: leadPayload.status,
+    last_pipeline_status: leadPayload.status,
+    lead_source: leadPayload.source,
+    campaign_id: leadPayload.campaign_id,
+    primary_goal: leadPayload.primary_goal,
+    selected_goals: leadPayload.selected_goals,
+    pain_points: leadPayload.pain_points,
+    assigned_advisor: leadPayload.assigned_advisor,
+    next_action_at: leadPayload.next_action_at,
+    recommended_tariff: leadPayload.recommended_tariff,
+    expected_monthly_value: leadPayload.expected_monthly_value,
+    consultation_type: leadPayload.consultation_type,
+    last_contact_at: leadPayload.last_contact_at,
+    last_consultation_id: consultation?.id || null,
+    training_goal: customer?.training_goal || leadPayload.primary_goal,
+  };
+}
+
 export function buildActivityPayload({ leadId, customerId, consultationId, outcome, notes, actor = 'navigator' }) {
   return {
     lead_id: leadId || null,

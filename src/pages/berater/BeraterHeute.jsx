@@ -3,7 +3,7 @@
 // 4-Kachel-Layout (responsive: stapelt auf sm, 2 Spalten ab md):
 //   1) Termine heute       (Appointment.list, gefiltert auf heute)
 //   2) Faellige Follow-ups (FollowUpTask.list, faellig oder ueberfaellig)
-//   3) Neue Leads          (Lead.list, top 5 nach created_date)
+//   3) Neue Kontakte       (Customer.list, top 5 nach created_date)
 //   4) Schnellaktionen     (statische Buttons, kein Datenfeed)
 //
 // Datenquellen ausschliesslich ueber safeListEntity → entityGateway.js.
@@ -84,11 +84,11 @@ function formatHeaderDate(date) {
   }
 }
 
-function leadDisplayName(lead) {
-  if (!lead) return 'Unbekannter Lead';
-  const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim();
+function contactDisplayName(contact) {
+  if (!contact) return 'Unbekannter Kontakt';
+  const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim();
   if (fullName) return fullName;
-  return lead.email || lead.phone || 'Unbekannter Lead';
+  return contact.email || contact.phone || contact.customer_name || 'Unbekannter Kontakt';
 }
 
 // FollowUpTask hat kein 'title'-Feld. Wir zeigen 'reason' als Label und
@@ -138,19 +138,19 @@ export default function BeraterHeute() {
   });
 
   const {
-    data: leads = [],
-    isLoading: leadsLoading,
+    data: customers = [],
+    isLoading: customersLoading,
   } = useQuery({
-    queryKey: ['heute-leads'],
-    queryFn: () => safeListEntity(base44, 'Lead', '-created_date', 50),
+    queryKey: ['heute-customers'],
+    queryFn: () => safeListEntity(base44, 'Customer', '-created_date', 50),
     retry: false,
   });
 
-  const isLoading = appointmentsLoading || followUpsLoading || leadsLoading;
+  const isLoading = appointmentsLoading || followUpsLoading || customersLoading;
 
   const overview = useMemo(
-    () => buildHeuteOverview({ appointments, followUps, leads, now }),
-    [appointments, followUps, leads, now],
+    () => buildHeuteOverview({ appointments, followUps, customers, now }),
+    [appointments, followUps, customers, now],
   );
 
   // Ueberfaellige Follow-ups extra zaehlen — buildHeuteOverview liefert sie
@@ -209,8 +209,8 @@ export default function BeraterHeute() {
           count={overview.counts.dueFollowUps}
           items={overview.dueFollowUps}
           emptyText="Alles abgearbeitet."
-          linkText="Lead-Cockpit"
-          linkTo="/berater/leads"
+          linkText="Kundenakten"
+          linkTo="/berater/personen"
           renderItem={(task) => (
             <div className="flex items-center justify-between gap-3 py-1.5">
               <span className="text-sm text-foreground truncate">
@@ -224,22 +224,22 @@ export default function BeraterHeute() {
         />
 
         <TodaySectionCard
-          title="Neue Leads"
+          title="Neue Kontakte"
           icon={UserPlus}
           accent="success"
           isLoading={isLoading}
-          count={overview.counts.newLeads}
-          items={overview.newLeads}
-          emptyText="Keine neuen Leads."
-          linkText="Alle Leads"
-          linkTo="/berater/leads"
-          renderItem={(lead) => (
+          count={overview.counts.newContacts}
+          items={overview.newContacts}
+          emptyText="Keine neuen Kontakte."
+          linkText="Kundenakten"
+          linkTo="/berater/personen"
+          renderItem={(contact) => (
             <div className="flex items-center justify-between gap-3 py-1.5">
               <span className="text-sm text-foreground truncate">
-                {leadDisplayName(lead)}
+                {contactDisplayName(contact)}
               </span>
               <span className="text-xs text-muted-foreground flex-shrink-0">
-                {lead?.source || ''}
+                {contact?.lead_source || contact?.customer_source || contact?.profile_status || ''}
               </span>
             </div>
           )}

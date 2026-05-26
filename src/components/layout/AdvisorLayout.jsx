@@ -8,7 +8,6 @@ import {
   LogOut,
   PlayCircle,
   ScanLine,
-  UserPlus,
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { getAdvisorRoleLabel } from '@/lib/advisorAccess';
@@ -22,21 +21,20 @@ import WorldSwitcher from './WorldSwitcher';
  *     gehoeren in /admin/* und werden vom AdminLayout angezeigt.
  *   - Neuer Eintrag "Heute" als erster Sidebar-Eintrag (Tagesfokus).
  *   - Verbleibende Items neu sortiert:
- *       Heute · Personen · Leads · Rezepte · Beratung · Verlauf
+ *       Heute · Kundenakte · Rezepte · Beratung · Verlauf
  *   - WorldSwitcher (rechts oben) — nur fuer Admin sichtbar.
  *   - Header-Title "Beratung & Mitarbeiter".
  *
  * Backward-Compat:
  *   - Logout, User-Menue, vorhandene Sub-Komponenten und Routes-Embedding via
  *     <Outlet /> bleiben unveraendert.
- *   - Bestehende Pages (PersonenCockpit, LeadCockpit, PrescriptionIntake,
+ *   - Bestehende Pages (PersonenCockpit, PrescriptionIntake,
  *     ConsultationFlow, ConsultationHistory) rendern weiter, sofern sie
  *     von AdvisorLayout eingebettet werden (siehe App.jsx in Welle 3).
  */
 const NAV = [
   { label: 'Heute', path: '/berater/heute', icon: CalendarDays },
-  { label: 'Personen', path: '/berater/personen', icon: IdCard },
-  { label: 'Leads', path: '/berater/leads', icon: UserPlus },
+  { label: 'Kundenakte', path: '/berater/personen', icon: IdCard },
   { label: 'Rezepte', path: '/berater/rezepte', icon: ScanLine },
   { label: 'Beratung', path: '/berater/beratung', icon: PlayCircle },
   { label: 'Verlauf', path: '/berater/verlauf', icon: History },

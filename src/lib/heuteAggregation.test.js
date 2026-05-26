@@ -145,9 +145,11 @@ describe('buildHeuteOverview', () => {
     expect(result.todayAppointments).toEqual([]);
     expect(result.dueFollowUps).toEqual([]);
     expect(result.newLeads).toEqual([]);
+    expect(result.newContacts).toEqual([]);
     expect(result.counts).toEqual({
       todayAppointments: 0,
       dueFollowUps: 0,
+      newContacts: 0,
       newLeads: 0,
     });
   });
@@ -170,8 +172,25 @@ describe('buildHeuteOverview', () => {
     expect(result.counts).toEqual({
       todayAppointments: 1,
       dueFollowUps: 1,
+      newContacts: 2,
       newLeads: 2,
     });
     expect(result.todayAppointments[0].id).toBe('today_appt');
+  });
+
+  it('uses customers as the primary contact source', () => {
+    const result = buildHeuteOverview({
+      customers: [
+        { id: 'customer1', created_date: '2026-05-26T08:00:00Z' },
+        { id: 'customer2', created_date: '2026-05-25T08:00:00Z' },
+      ],
+      leads: [
+        { id: 'legacy_lead', created_date: '2026-05-26T09:00:00Z' },
+      ],
+      now: NOW,
+    });
+
+    expect(result.newContacts.map(item => item.id)).toEqual(['customer1', 'customer2']);
+    expect(result.counts.newContacts).toBe(2);
   });
 });

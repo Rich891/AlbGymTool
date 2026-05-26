@@ -32,7 +32,7 @@
 //     /berater/heute                   -> BeraterHeute (NEU, AP-5)
 //     /berater/personen                -> PersonenCockpit (existing)
 //     /berater/personen/:id            -> PersonenAkte (zentrale Personenakte)
-//     /berater/leads                   -> LeadCockpit (existing)
+//     /berater/leads                   -> /berater/personen (Legacy-Redirect)
 //     /berater/rezepte                 -> PrescriptionIntake (existing)
 //     /berater/beratung                -> ConsultationFlow (existing)
 //     /berater/verlauf                 -> ConsultationHistory (existing)
@@ -87,7 +87,6 @@ import CustomerKioskLayout from '@/components/layout/CustomerKioskLayout';
 
 // Mitarbeiter-Welt Pages
 import BeraterHeute from '@/pages/berater/BeraterHeute';
-import LeadCockpit from '@/pages/LeadCockpit';
 import PersonenCockpit from '@/pages/PersonenCockpit';
 import PersonenAkte from '@/pages/PersonenAkte';
 import PrescriptionIntake from '@/pages/PrescriptionIntake';
@@ -180,7 +179,7 @@ const AuthenticatedApp = () => {
         <Route path="/berater/heute" element={<BeraterHeute />} />
         <Route path="/berater/personen" element={<PersonenCockpit />} />
         <Route path="/berater/personen/:id" element={<PersonenAkte />} />
-        <Route path="/berater/leads" element={<LeadCockpit />} />
+        <Route path="/berater/leads" element={<Navigate to="/berater/personen" replace />} />
         <Route path="/berater/rezepte" element={<PrescriptionIntake />} />
         <Route path="/berater/beratung" element={<ConsultationFlow />} />
         <Route path="/berater/verlauf" element={<ConsultationHistory />} />

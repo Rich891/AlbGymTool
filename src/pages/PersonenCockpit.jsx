@@ -45,7 +45,7 @@ import {
 } from '@/components/ui/dialog';
 
 const PROFILE_STATUS_LABELS = {
-  [PROFILE_STATUSES.LEAD]: 'Lead',
+  [PROFILE_STATUSES.LEAD]: 'Kontakt',
   [PROFILE_STATUSES.OFFER_OPEN]: 'Angebot offen',
   [PROFILE_STATUSES.TRIAL]: 'Testphase',
   [PROFILE_STATUSES.MEMBER]: 'Mitglied',
@@ -65,7 +65,7 @@ const PROFILE_STATUS_BADGE_CLASS = {
 };
 
 const CURRENT_FOCUS_LABELS = {
-  [CURRENT_FOCUS_TYPES.NEW_LEAD]: 'Lead qualifizieren',
+  [CURRENT_FOCUS_TYPES.NEW_LEAD]: 'Kontakt qualifizieren',
   [CURRENT_FOCUS_TYPES.APPOINTMENT_PREP]: 'Termin vorbereiten',
   [CURRENT_FOCUS_TYPES.OFFER_FOLLOW_UP]: 'Angebot nachfassen',
   [CURRENT_FOCUS_TYPES.TRIAL_CHECK]: 'Testphase pruefen',
@@ -324,11 +324,6 @@ export default function PersonenCockpit() {
 
   const visibleRows = useMemo(() => filteredRows.slice(0, CARDS_PAGE_SIZE), [filteredRows]);
 
-  const leadsWithoutCustomerCount = useMemo(
-    () => leads.filter((lead) => !lead.customer_id).length,
-    [leads],
-  );
-
   const handleOpenPerson = (customerId) => {
     if (!customerId) {
       toast.error('Person hat keine ID.');
@@ -467,8 +462,6 @@ export default function PersonenCockpit() {
         )}
 
         <FooterCounters
-          leadsWithoutCustomer={leadsWithoutCustomerCount}
-          totalLeads={leads.length}
           totalGoalProfiles={goalProfiles.length}
           totalPrescriptionScans={prescriptionScans.length}
         />
@@ -673,7 +666,7 @@ function PersonCard({ row, onOpen }) {
 
   // Maximal 6 Badges pro Karte (Anforderung):
   const contextBadges = [
-    customer.active_lead_id || summary.badges?.includes('Lead aktiv') ? 'Lead aktiv' : null,
+    customer.active_lead_id || customer.pipeline_status || summary.badges?.includes('Kontakt aktiv') ? 'Kontakt aktiv' : null,
     customer.active_reha_case_id || customer.last_rehasport_consultation_id ? 'Reha aktiv' : null,
     customer.active_contract_draft_id ? 'Vertrag offen' : null,
     summary.profile_status === PROFILE_STATUSES.OFFER_OPEN ? 'Angebot offen' : null,
@@ -831,13 +824,13 @@ function EmptyState({ hasCustomers, hasFilters, onReset }) {
         <Users className="w-10 h-10 text-muted-foreground mx-auto" />
         <p className="text-foreground font-bold">Noch keine Personenakten vorhanden.</p>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Sobald aus einem Lead, einer Beratung oder einem Rezeptscan eine Personenakte angelegt wird, taucht sie hier auf.
+          Sobald eine Kundenakte manuell oder aus einem Rezeptscan angelegt wird, taucht sie hier auf.
         </p>
         <Link
-          to="/berater/leads"
+          to="/berater/rezepte"
           className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all"
         >
-          <UserPlus className="w-4 h-4" /> Zum Lead-Cockpit
+          <ScanLine className="w-4 h-4" /> Rezept scannen
         </Link>
       </div>
     );
@@ -863,26 +856,9 @@ function EmptyState({ hasCustomers, hasFilters, onReset }) {
   );
 }
 
-function FooterCounters({ leadsWithoutCustomer, totalLeads, totalGoalProfiles, totalPrescriptionScans }) {
+function FooterCounters({ totalGoalProfiles, totalPrescriptionScans }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <Link
-        to="/berater/leads"
-        className="rounded-2xl border border-border bg-card p-4 hover:border-primary/30 transition-colors flex items-center gap-3"
-      >
-        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-          <UserPlus className="w-4 h-4" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Leads ohne Personenakte
-          </p>
-          <p className="text-lg font-black text-foreground">
-            {leadsWithoutCustomer} <span className="text-xs font-bold text-muted-foreground">von {totalLeads}</span>
-          </p>
-        </div>
-      </Link>
-
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
           <IdCard className="w-4 h-4" />

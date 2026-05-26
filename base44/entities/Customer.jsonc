@@ -134,7 +134,7 @@
     },
     "active_lead_id": {
       "type": "string",
-      "description": "Aktiver Lead"
+      "description": "Legacy-Verweis auf alten Lead-Datensatz"
     },
     "active_goal_profile_id": {
       "type": "string",
@@ -159,6 +159,268 @@
     "last_rehasport_consultation_id": {
       "type": "string",
       "description": "Letzter Rehasport-Vorgang"
+    },
+    "pipeline_status": {
+      "type": "string",
+      "description": "Aktueller Aufnahme-/Beratungsstatus direkt in der Kundenakte"
+    },
+    "last_pipeline_status": {
+      "type": "string",
+      "description": "Letzter Pipeline-Status aus Beratung oder Aufnahme"
+    },
+    "lead_source": {
+      "type": "string",
+      "description": "Kontaktquelle, zentral in der Kundenakte"
+    },
+    "campaign_id": {
+      "type": "string",
+      "description": "Kampagne / Herkunft des Kontakts"
+    },
+    "primary_goal": {
+      "type": "string",
+      "description": "Primaeres Kunden-/Trainingsziel"
+    },
+    "selected_goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ausgewaehlte Ziele aus Beratung oder Navigator"
+    },
+    "pain_points": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Schmerzpunkte / Motive aus der Aufnahme"
+    },
+    "assigned_advisor": {
+      "type": "string",
+      "description": "Zugewiesener Berater"
+    },
+    "recommended_tariff": {
+      "type": "string",
+      "description": "Empfohlener Tarif aus Beratung oder Navigator"
+    },
+    "expected_monthly_value": {
+      "type": "number",
+      "description": "Erwarteter Monatswert"
+    },
+    "consultation_type": {
+      "type": "string",
+      "description": "Art der letzten Beratung oder Aufnahme"
+    },
+    "last_consultation_id": {
+      "type": "string",
+      "description": "Letzte Beratung"
+    },
+    "lead_score": {
+      "type": "number",
+      "description": "Kontakt-/Abschlusswahrscheinlichkeit"
+    },
+    "advisor_note": {
+      "type": "string",
+      "description": "Interne Beraternotiz"
+    },
+    "prescription_status": {
+      "type": "string",
+      "enum": [
+        "missing",
+        "scan_saved",
+        "manual_review",
+        "verified",
+        "failed"
+      ],
+      "description": "Aktueller Rezeptstatus direkt in der zentralen Kundenakte"
+    },
+    "prescription_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Ausstellungsdatum des aktuellen Reha-Rezepts"
+    },
+    "prescription_valid_from": {
+      "type": "string",
+      "format": "date",
+      "description": "Aktuelles Rezept gueltig ab"
+    },
+    "prescription_valid_to": {
+      "type": "string",
+      "format": "date",
+      "description": "Aktuelles Rezept gueltig bis"
+    },
+    "form_type": {
+      "type": "string",
+      "description": "Formulartyp des aktuellen Rezepts"
+    },
+    "form_number": {
+      "type": "string",
+      "description": "Formular-/Musternummer des aktuellen Rezepts"
+    },
+    "form_version": {
+      "type": "string",
+      "description": "Formularversion des aktuellen Rezepts"
+    },
+    "practice_site_number": {
+      "type": "string",
+      "description": "BSNR / Betriebsstaettennummer aus dem aktuellen Rezept"
+    },
+    "doctor_number": {
+      "type": "string",
+      "description": "Arzt-Nr. / LANR aus dem aktuellen Rezept"
+    },
+    "prescribed_units": {
+      "type": "number",
+      "description": "Verordnete Einheiten des aktuellen Rezepts"
+    },
+    "duration_months": {
+      "type": "number",
+      "description": "Dauer des aktuellen Rezepts in Monaten"
+    },
+    "prescription_frequency": {
+      "type": "string",
+      "description": "Trainingsfrequenz laut aktuellem Rezept"
+    },
+    "prescribed_service": {
+      "type": "string",
+      "description": "Verordnete Leistung"
+    },
+    "sport_type": {
+      "type": "string",
+      "description": "Rehasportart"
+    },
+    "functional_training_type": {
+      "type": "string",
+      "description": "Funktionstrainingsart"
+    },
+    "diagnosis_text": {
+      "type": "string",
+      "description": "Diagnose / Indikation aus dem aktuellen Rezept"
+    },
+    "icd_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ICD-Codes aus dem aktuellen Rezept"
+    },
+    "impairment_text": {
+      "type": "string",
+      "description": "Schaedigung / Funktionsstoerung aus dem aktuellen Rezept"
+    },
+    "rehab_goal": {
+      "type": "string",
+      "description": "Rehabilitationsziel aus dem aktuellen Rezept"
+    },
+    "follow_up_prescription": {
+      "type": "boolean",
+      "description": "Folgeverordnung im aktuellen Rezept"
+    },
+    "follow_up_reason": {
+      "type": "string",
+      "description": "Begruendung der Folgeverordnung"
+    },
+    "prf_number": {
+      "type": "string",
+      "description": "PRF.NR / Pruefnummer"
+    },
+    "physician_name": {
+      "type": "string",
+      "description": "Arzt / Praxis aus dem aktuellen Rezept"
+    },
+    "physician_lanr": {
+      "type": "string",
+      "description": "LANR aus dem aktuellen Rezept"
+    },
+    "doctor_signature_present": {
+      "type": "boolean",
+      "description": "Arztunterschrift im aktuellen Rezept erkannt"
+    },
+    "doctor_stamp_present": {
+      "type": "boolean",
+      "description": "Arzt-/Praxisstempel im aktuellen Rezept erkannt"
+    },
+    "patient_signature_present": {
+      "type": "boolean",
+      "description": "Patienten-/Versichertenunterschrift erkannt"
+    },
+    "approval_required": {
+      "type": "boolean",
+      "description": "Genehmigung fuer das aktuelle Rezept erforderlich"
+    },
+    "approval_present": {
+      "type": "boolean",
+      "description": "Genehmigung fuer das aktuelle Rezept vorhanden"
+    },
+    "approval_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Genehmigungsdatum des aktuellen Rezepts"
+    },
+    "approval_until": {
+      "type": "string",
+      "format": "date",
+      "description": "Genehmigt bis"
+    },
+    "approval_reference": {
+      "type": "string",
+      "description": "Genehmigungsnummer / Aktenzeichen"
+    },
+    "prescription_validation_status": {
+      "type": "string",
+      "enum": [
+        "valid",
+        "needs_review",
+        "incomplete"
+      ],
+      "description": "Fachlicher Pruefstatus des aktuellen Rezepts"
+    },
+    "prescription_validation_score": {
+      "type": "number",
+      "description": "Rezept-Pruefscore 0-100"
+    },
+    "prescription_validation_report": {
+      "type": "object",
+      "description": "Vollstaendige Rezeptanalyse mit Issues und Feldmarkierungen"
+    },
+    "prescription_missing_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Kurzliste fehlender oder unsicherer Rezeptpunkte"
+    },
+    "prescription_file_name": {
+      "type": "string",
+      "description": "Dateiname des letzten Rezeptscans"
+    },
+    "prescription_file_uri": {
+      "type": "string",
+      "description": "Private Datei-URI des letzten Rezeptscans"
+    },
+    "prescription_file_url": {
+      "type": "string",
+      "description": "Fallback-Datei-URL des letzten Rezeptscans"
+    },
+    "prescription_storage_mode": {
+      "type": "string",
+      "enum": [
+        "private",
+        "public_fallback"
+      ],
+      "description": "Speicherart des letzten Rezeptscans"
+    },
+    "prescription_extraction_status": {
+      "type": "string",
+      "description": "OCR-/Extraktionsstatus des letzten Rezeptscans"
+    },
+    "prescription_extraction_confidence": {
+      "type": "string",
+      "description": "Qualitative Einschaetzung der letzten Rezept-Extraktion"
+    },
+    "prescription_last_scan_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Zeitpunkt der letzten Rezeptscan-Speicherung"
     },
     "themisoft_customer_id": {
       "type": "string",

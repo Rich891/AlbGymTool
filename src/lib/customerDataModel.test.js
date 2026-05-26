@@ -234,7 +234,18 @@ describe('prescription data mapping', () => {
   };
 
   it('copies OCR profile fields into the unified customer payload', () => {
-    const customer = buildCustomerPayloadFromPrescription(prescription);
+    const customer = buildCustomerPayloadFromPrescription(prescription, {
+      fileMeta: {
+        file_name: 'Bader Armin.pdf',
+        file_uri: 'private://scan-1',
+        storage_mode: 'private',
+      },
+      extraction: {
+        status: 'extracted',
+        confidence: 'review_required',
+        validation_report: prescription.validation_report,
+      },
+    });
 
     expect(customer.first_name).toBe('Armin');
     expect(customer.last_name).toBe('Bader');
@@ -245,6 +256,17 @@ describe('prescription data mapping', () => {
     expect(customer.health_insurance).toBe('AOK Baden-Wuerttemberg');
     expect(customer.insurance_number).toBe('A 123 456 789');
     expect(customer.cost_carrier_number).toBe('108018007');
+    expect(customer.prescription_status).toBe('verified');
+    expect(customer.prescription_date).toBe('2026-01-09');
+    expect(customer.prescription_valid_from).toBe('2026-01-09');
+    expect(customer.prescription_valid_to).toBe('2027-07-09');
+    expect(customer.prescribed_units).toBe(50);
+    expect(customer.duration_months).toBe(18);
+    expect(customer.approval_required).toBe(false);
+    expect(customer.approval_date).toBe('2026-01-09');
+    expect(customer.prescription_file_name).toBe('Bader Armin.pdf');
+    expect(customer.prescription_file_uri).toBe('private://scan-1');
+    expect(customer.prescription_last_scan_at).toBeDefined();
   });
 
   it('stores approval requirement from the validation report, not from OCR hints', () => {

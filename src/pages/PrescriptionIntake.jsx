@@ -303,75 +303,89 @@ export default function PrescriptionIntake() {
         validation_report: finalReview,
         prescription_validation_status: finalReview.status,
       };
-      const profilePayload = buildCustomerPayloadFromPrescription(reviewedPrescription);
       currentExtraction = {
         ...currentExtraction,
         validation_report: finalReview,
       };
+      const profilePayload = buildCustomerPayloadFromPrescription(reviewedPrescription, {
+        fileMeta: currentFileMeta,
+        extraction: currentExtraction,
+      });
 
       const targetCustomerId = selectedCustomerId || customerIdFromUrl || undefined;
       const upsert = await upsertUnifiedCustomer(base44, profilePayload, {
         existingCustomerId: targetCustomerId,
       });
       const savedCustomerId = upsert.customer?.id || targetCustomerId;
+      if (!savedCustomerId) {
+        throw new Error('Kundenakte wurde gespeichert, aber Base44 hat keine Customer-ID zurueckgegeben.');
+      }
       const savedCustomer = {
         ...profilePayload,
         ...upsert.customer,
         id: savedCustomerId,
       };
 
-      const prescriptionScan = await createEntity(
-        base44,
-        'PrescriptionScan',
-        buildPrescriptionScanPayload({
-          customer: savedCustomer,
-          prescription: reviewedPrescription,
-          fileMeta: currentFileMeta,
-          extraction: currentExtraction,
-        })
-      );
-
-      const rehaRecord = await createEntity(
-        base44,
-        'RehasportConsultation',
-        buildRehasportConsultationFromPrescription({
-          customer: savedCustomer,
-          prescription: reviewedPrescription,
-          prescriptionScanId: prescriptionScan.id,
-        })
-      );
-
-      await updateEntity(base44, 'PrescriptionScan', prescriptionScan.id, {
-        rehasport_consultation_id: rehaRecord.id,
-      });
-
-      await updateEntity(base44, 'Customer', savedCustomerId, {
-        ...profilePayload,
-        last_prescription_scan_id: prescriptionScan.id,
-        last_rehasport_consultation_id: rehaRecord.id,
-        active_reha_case_id: rehaRecord.id,
-        profile_status: 'reha_aktiv',
-        consent_health: true,
-        consent_prescription_scan: true,
-        azh_sync_status: 'not_started',
-      });
-
+      let prescriptionScan = null;
+      let rehaRecord = null;
+      let archiveWarning = '';
       try {
-        await createEntity(base44, 'ActivityLog', {
-          customer_id: savedCustomerId,
+        setScanPhase('Kundenakte gespeichert - Rezeptarchiv wird verknuepft');
+        prescriptionScan = await createEntity(
+          base44,
+          'PrescriptionScan',
+          buildPrescriptionScanPayload({
+            customer: savedCustomer,
+            prescription: reviewedPrescription,
+            fileMeta: currentFileMeta,
+            extraction: currentExtraction,
+          })
+        );
+
+        rehaRecord = await createEntity(
+          base44,
+          'RehasportConsultation',
+          buildRehasportConsultationFromPrescription({
+            customer: savedCustomer,
+            prescription: reviewedPrescription,
+            prescriptionScanId: prescriptionScan.id,
+          })
+        );
+
+        await updateEntity(base44, 'PrescriptionScan', prescriptionScan.id, {
           rehasport_consultation_id: rehaRecord.id,
-          prescription_scan_id: prescriptionScan.id,
-          type: 'prescription.scan_saved',
-          actor: 'advisor',
-          occurred_at: new Date().toISOString(),
-          notes: upsert.created ? 'Kunde aus Rezeptscan angelegt' : 'Kunde aus Rezeptscan aktualisiert',
-          outcome: finalReview.status,
         });
-      } catch (activityError) {
-        console.warn('ActivityLog for prescription skipped', activityError?.message || activityError);
+
+        await updateEntity(base44, 'Customer', savedCustomerId, {
+          last_prescription_scan_id: prescriptionScan.id,
+          last_rehasport_consultation_id: rehaRecord.id,
+          active_reha_case_id: rehaRecord.id,
+        });
+
+        try {
+          await createEntity(base44, 'ActivityLog', {
+            customer_id: savedCustomerId,
+            rehasport_consultation_id: rehaRecord.id,
+            prescription_scan_id: prescriptionScan.id,
+            type: 'prescription.scan_saved',
+            actor: 'advisor',
+            occurred_at: new Date().toISOString(),
+            notes: upsert.created ? 'Kunde aus Rezeptscan angelegt' : 'Kunde aus Rezeptscan aktualisiert',
+            outcome: finalReview.status,
+          });
+        } catch (activityError) {
+          console.warn('ActivityLog for prescription skipped', activityError?.message || activityError);
+        }
+      } catch (archiveError) {
+        archiveWarning = archiveError?.message || 'Archiv-/Verlaufsdaten konnten nicht vollstaendig gespeichert werden.';
+        console.warn('Prescription archive skipped after central customer save', archiveWarning);
       }
 
-      toast.success(upsert.created ? 'Kunde, Rezept und Reha-Vorgang wurden angelegt.' : 'Kunde, Rezept und Reha-Vorgang wurden aktualisiert.');
+      if (archiveWarning) {
+        toast.warning('Kundenakte wurde gespeichert. Rezeptarchiv/Verlauf bitte spaeter pruefen.');
+      } else {
+        toast.success(upsert.created ? 'Kundenakte mit Rezeptdaten wurde angelegt.' : 'Kundenakte mit Rezeptdaten wurde aktualisiert.');
+      }
       setFile(null);
       setPreviewUrl('');
       setFileMeta(null);
@@ -391,9 +405,7 @@ export default function PrescriptionIntake() {
       queryClient.invalidateQueries({ queryKey: ['personenakte', 'reha-cases', savedCustomerId] });
       queryClient.invalidateQueries({ queryKey: ['personenakte', 'activities', savedCustomerId] });
 
-      if (savedCustomerId) {
-        navigate(`/berater/personen/${savedCustomerId}?tab=profile`, { replace: true });
-      }
+      navigate(`/berater/personen/${savedCustomerId}?tab=profile`, { replace: true });
     } catch (error) {
       console.error('Prescription save failed', error);
       toast.error('Rezept konnte nicht gespeichert werden. Sind Customer, PrescriptionScan und RehasportConsultation in Base44 angelegt?');

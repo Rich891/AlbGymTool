@@ -146,6 +146,80 @@ const CUSTOMER_FIELD_SECTIONS = [
     ],
   },
   {
+    id: 'pipeline',
+    title: 'Aufnahme & Beratung',
+    description: 'Kontaktquelle, Ziel und aktueller Beratungsstatus direkt in der Kundenakte.',
+    fields: [
+      { name: 'pipeline_status', label: 'Pipeline-Status' },
+      { name: 'lead_source', label: 'Kontaktquelle' },
+      { name: 'primary_goal', label: 'Hauptziel' },
+      { name: 'recommended_tariff', label: 'Empfohlener Tarif' },
+      { name: 'expected_monthly_value', label: 'Monatswert', type: 'number' },
+      { name: 'consultation_type', label: 'Beratungsart' },
+      { name: 'advisor_note', label: 'Beraternotiz', type: 'textarea', span: 2 },
+    ],
+  },
+  {
+    id: 'prescription',
+    title: 'Aktuelles Rezept',
+    description: 'Fuehrende Rezeptdaten direkt in der zentralen Kundenakte.',
+    fields: [
+      {
+        name: 'prescription_status',
+        label: 'Rezeptstatus',
+        type: 'select',
+        options: [
+          { value: '', label: '-' },
+          { value: 'missing', label: 'Fehlt' },
+          { value: 'scan_saved', label: 'Scan gespeichert' },
+          { value: 'manual_review', label: 'Manuell pruefen' },
+          { value: 'verified', label: 'Geprueft' },
+          { value: 'failed', label: 'Fehler' },
+        ],
+      },
+      { name: 'prescription_date', label: 'Ausstellungsdatum', type: 'date' },
+      { name: 'prescription_valid_from', label: 'Gueltig ab', type: 'date' },
+      { name: 'prescription_valid_to', label: 'Gueltig bis', type: 'date' },
+      { name: 'prescribed_service', label: 'Leistung' },
+      { name: 'sport_type', label: 'Rehasportart' },
+      { name: 'prescribed_units', label: 'Einheiten', type: 'number' },
+      { name: 'duration_months', label: 'Dauer Monate', type: 'number' },
+      { name: 'prescription_frequency', label: 'Frequenz' },
+      { name: 'form_number', label: 'Muster/Formular' },
+    ],
+  },
+  {
+    id: 'medical',
+    title: 'Medizin & Reha-Ziel',
+    description: 'Diese Felder kommen aus dem Rezept und werden spaeter fuer Aufnahme und Sync genutzt.',
+    fields: [
+      { name: 'diagnosis_text', label: 'Diagnose / Indikation', type: 'textarea', span: 2 },
+      { name: 'impairment_text', label: 'Schaedigung / Funktionsstoerung', type: 'textarea', span: 2 },
+      { name: 'rehab_goal', label: 'Rehabilitationsziel', type: 'textarea', span: 2 },
+      { name: 'follow_up_prescription', label: 'Folgeverordnung', type: 'checkbox' },
+      { name: 'follow_up_reason', label: 'Begruendung Folgeverordnung', type: 'textarea' },
+    ],
+  },
+  {
+    id: 'prescription_review',
+    title: 'Rezeptpruefung',
+    description: 'Sichtpruefung, Genehmigung und Arztangaben aus dem aktuellen Rezept.',
+    fields: [
+      { name: 'doctor_signature_present', label: 'Arztunterschrift erkannt', type: 'checkbox' },
+      { name: 'doctor_stamp_present', label: 'Arztstempel erkannt', type: 'checkbox' },
+      { name: 'patient_signature_present', label: 'Patientenunterschrift erkannt', type: 'checkbox' },
+      { name: 'approval_required', label: 'Genehmigung erforderlich', type: 'checkbox' },
+      { name: 'approval_present', label: 'Genehmigung vorhanden', type: 'checkbox' },
+      { name: 'approval_date', label: 'Genehmigungsdatum', type: 'date' },
+      { name: 'approval_until', label: 'Genehmigt bis', type: 'date' },
+      { name: 'approval_reference', label: 'Genehmigungsnummer' },
+      { name: 'physician_name', label: 'Arzt / Praxis' },
+      { name: 'physician_lanr', label: 'LANR' },
+      { name: 'practice_site_number', label: 'BSNR' },
+      { name: 'doctor_number', label: 'Arzt-Nr.' },
+    ],
+  },
+  {
     id: 'consent',
     title: 'Einwilligungen & Notizen',
     description: 'Freigaben und interne Hinweise fuer Aufnahme, Scan und Gesundheitsdaten.',
@@ -223,6 +297,18 @@ function buildAddress(source = {}) {
   ]).join(', ');
 }
 
+function hasCustomerPrescription(customer = {}) {
+  return Boolean(
+    customer.prescription_status ||
+    customer.prescription_date ||
+    customer.prescription_file_uri ||
+    customer.prescription_file_url ||
+    customer.last_prescription_scan_id ||
+    customer.diagnosis_text ||
+    customer.prescribed_units
+  );
+}
+
 function customerToForm(customer = {}) {
   return Object.keys(EMPTY_CUSTOMER_FORM).reduce((acc, key) => {
     const defaultValue = EMPTY_CUSTOMER_FORM[key];
@@ -237,6 +323,7 @@ function displayValue(field, source = {}) {
   const value = source[field.name];
   if (field.type === 'checkbox') return value ? 'Ja' : 'Offen';
   if (field.type === 'date') return formatDate(value);
+  if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : '-';
   if (field.type === 'select') {
     return field.options?.find(option => option.value === value)?.label || value || '-';
   }
@@ -265,7 +352,8 @@ async function safeGetEntity(base44Client, entityName, id) {
   }
 }
 
-function buildNextAction({ missingFields, scans, appointments }) {
+function buildNextAction({ missingFields, scans, appointments, customer }) {
+  const hasPrescription = scans.length > 0 || hasCustomerPrescription(customer);
   if (missingFields.length > 0) {
     return {
       id: 'profile',
@@ -275,7 +363,7 @@ function buildNextAction({ missingFields, scans, appointments }) {
     };
   }
 
-  if (scans.length === 0) {
+  if (!hasPrescription) {
     return {
       id: 'scan',
       title: 'Rezept erfassen',
@@ -313,11 +401,12 @@ function buildNextAction({ missingFields, scans, appointments }) {
 function buildWorkflowSteps({ missingFields, scans, activeReha, appointments, customer }) {
   const latestScan = scans[0];
   const hasProfile = missingFields.length === 0;
-  const hasScan = scans.length > 0;
+  const hasScan = scans.length > 0 || hasCustomerPrescription(customer);
   const hasReviewedPrescription = hasScan && (
     latestScan?.status === 'verified' ||
     latestScan?.extraction_status === 'extracted' ||
-    Boolean(activeReha?.prescription_status)
+    Boolean(activeReha?.prescription_status) ||
+    ['verified', 'scan_saved'].includes(customer.prescription_status)
   );
   const hasAppointment = appointments.length > 0;
   const syncReady = hasProfile && hasScan && Boolean(customer.health_insurance || customer.insurance_number);
@@ -574,12 +663,14 @@ export default function PersonenAkte() {
   }
 
   const customerName = joinCustomerName(customer) || 'Unbenannte Person';
+  const customerHasPrescription = hasCustomerPrescription(customer);
   const dataQuality = summary?.data_quality_score ?? calculateDataQualityScore(customer);
   const missingFields = summary?.missing_required_fields || calculateMissingRequiredFields(customer);
   const nextAction = buildNextAction({
     missingFields,
     scans: sortedScans,
     appointments: sortedAppointments,
+    customer,
   });
   const workflowSteps = buildWorkflowSteps({
     missingFields,
@@ -616,8 +707,9 @@ export default function PersonenAkte() {
                   <Badge variant="outline" className={statusClass(summary?.profile_status)}>
                     {labelForStatus(summary?.profile_status)}
                   </Badge>
-                  {activeReha && <Badge variant="outline">Reha-Vorgang aktiv</Badge>}
-                  {sortedScans.length > 0 && <Badge variant="outline">Rezept vorhanden</Badge>}
+                  {(activeReha || customerHasPrescription) && <Badge variant="outline">Reha-Vorgang aktiv</Badge>}
+                  {customerHasPrescription && <Badge variant="outline">Rezept in Kundenakte</Badge>}
+                  {sortedScans.length > 0 && <Badge variant="outline">Scan archiviert</Badge>}
                 </div>
                 <h1 className="text-2xl lg:text-3xl font-black text-foreground tracking-tight truncate">
                   {customerName}
@@ -732,11 +824,11 @@ export default function PersonenAkte() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-              <ListCard title="Leads" icon={UserRound} empty="Keine Leads verknuepft.">
+              <ListCard title="Legacy-Kontakte" icon={UserRound} empty="Keine alten Kontaktkarten verknuepft.">
                 {sortedLeads.map(lead => (
                   <RecordPanel
                     key={lead.id}
-                    title={`${lead.first_name || customer.first_name || ''} ${lead.last_name || customer.last_name || ''}`.trim() || 'Lead'}
+                    title={`${lead.first_name || customer.first_name || ''} ${lead.last_name || customer.last_name || ''}`.trim() || 'Kontakt'}
                     subtitle={compact([lead.status, lead.source, lead.primary_goal]).join(' | ')}
                     meta={formatDateTime(lead.next_action_at)}
                   />
@@ -776,6 +868,52 @@ export default function PersonenAkte() {
               text="Reha-Fall, Rezeptdaten, gespeicherte Scans und spaetere Abrechnungsvorbereitung."
               action={<Button asChild><Link to={`/berater/rezepte?customerId=${customer.id}`}><ScanLine className="w-4 h-4 mr-2" /> Neuer Scan</Link></Button>}
             />
+
+            {customerHasPrescription && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IdCard className="w-5 h-5 text-primary" /> Aktuelles Rezept in der Kundenakte
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Field label="Status" value={customer.prescription_status || '-'} />
+                    <Field label="Ausgestellt" value={formatDate(customer.prescription_date)} />
+                    <Field label="Gueltig ab" value={formatDate(customer.prescription_valid_from)} />
+                    <Field label="Gueltig bis" value={formatDate(customer.prescription_valid_to)} />
+                    <Field label="Leistung" value={customer.prescribed_service} />
+                    <Field label="Art" value={customer.sport_type || customer.functional_training_type} />
+                    <Field label="Einheiten" value={customer.prescribed_units ? `${customer.prescribed_units}` : '-'} />
+                    <Field label="Dauer" value={customer.duration_months ? `${customer.duration_months} Monate` : '-'} />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Field label="Krankenkasse" value={customer.health_insurance} />
+                    <Field label="Versichertennummer" value={customer.insurance_number} />
+                    <Field label="Genehmigung" value={customer.approval_required ? (customer.approval_present ? 'Vorhanden' : 'Erforderlich, fehlt') : 'Nicht erforderlich'} />
+                    <Field label="Arztunterschrift" value={customer.doctor_signature_present ? 'Ja' : 'Offen'} />
+                    <Field label="Arztstempel" value={customer.doctor_stamp_present ? 'Ja' : 'Offen'} />
+                    <Field label="Pruefscore" value={customer.prescription_validation_score !== undefined ? `${customer.prescription_validation_score}` : '-'} />
+                  </div>
+
+                  {(customer.diagnosis_text || customer.rehab_goal || customer.impairment_text) && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Field label="Diagnose" value={customer.diagnosis_text} />
+                      <Field label="Schaedigung" value={customer.impairment_text} />
+                      <Field label="Reha-Ziel" value={customer.rehab_goal} />
+                    </div>
+                  )}
+
+                  {customer.prescription_missing_items?.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Offene Pruefpunkte</p>
+                      <ChipList items={customer.prescription_missing_items} />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
               <ListCard title="Reha-Vorgaenge" icon={HeartPulse} empty="Noch kein Reha-Vorgang vorhanden.">

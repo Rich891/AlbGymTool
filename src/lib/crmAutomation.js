@@ -1,7 +1,7 @@
 import {
   buildActivityPayload,
+  buildCustomerPipelinePayload,
   buildContractDraftPayload,
-  buildLeadPayload,
   getNextActionForOutcome,
   mapOutcomeToPipelineStatus,
 } from '@/lib/crmModel';
@@ -34,7 +34,7 @@ export async function syncConsultationCrmArtifacts({
 }) {
   const results = [];
   const status = mapOutcomeToPipelineStatus(outcome);
-  const leadPayload = buildLeadPayload({
+  const customerPipelinePayload = buildCustomerPipelinePayload({
     customer,
     customerId,
     selectedGoals,
@@ -42,35 +42,18 @@ export async function syncConsultationCrmArtifacts({
     type,
     selectedTariff,
     totalMonthly,
+    consultation,
   });
+  const legacyLeadId = providedLeadId || customer?.active_lead_id || customer?.lead_id || null;
 
-  let leadId = providedLeadId || customer?.active_lead_id || customer?.lead_id || null;
-
-  if (leadId) {
-    results.push(await safeEntityAction(base44, 'Lead', 'update', leadId, {
-      ...leadPayload,
-      status,
-      last_consultation_id: consultation?.id || null,
-    }));
-  } else {
-    const leadResult = await safeEntityAction(base44, 'Lead', 'create', {
-      ...leadPayload,
-      last_consultation_id: consultation?.id || null,
-    });
-    results.push(leadResult);
-    leadId = leadResult?.data?.id || null;
-  }
-
-  if (leadId && customerId && !customer?.active_lead_id) {
+  if (customerId) {
     results.push(await safeEntityAction(base44, 'Customer', 'update', customerId, {
-      ...customer,
-      active_lead_id: leadId,
-      last_pipeline_status: status,
+      ...customerPipelinePayload,
     }));
   }
 
   results.push(await safeEntityAction(base44, 'ActivityLog', 'create', buildActivityPayload({
-    leadId,
+    leadId: legacyLeadId,
     customerId,
     consultationId: consultation?.id,
     outcome,
@@ -79,7 +62,7 @@ export async function syncConsultationCrmArtifacts({
 
   if (outcome === 'angebot') {
     results.push(await safeEntityAction(base44, 'FollowUpTask', 'create', {
-      lead_id: leadId,
+      lead_id: legacyLeadId,
       customer_id: customerId,
       consultation_id: consultation?.id || null,
       due_at: getNextActionForOutcome(outcome),
@@ -103,8 +86,10 @@ export async function syncConsultationCrmArtifacts({
   }
 
   return {
-    leadId,
+    leadId: null,
+    legacyLeadId,
     status,
+    customerPipelinePayload,
     results,
   };
 }

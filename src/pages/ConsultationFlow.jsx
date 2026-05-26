@@ -155,21 +155,22 @@ export default function ConsultationFlow() {
     const followUpTasks = crmResult.results
       ?.filter(result => result.entityName === 'FollowUpTask' && result.data)
       .map(result => result.data) || [];
-    const leadSnapshot = crmResult.leadId
-      ? { id: crmResult.leadId, status: crmResult.status, next_action_at: followUpTasks[0]?.due_at }
-      : null;
+    const pipelineSnapshot = {
+      status: crmResult.status,
+      next_action_at: followUpTasks[0]?.due_at || crmResult.customerPipelinePayload?.next_action_at,
+    };
     const currentFocus = deriveCurrentFocus({
-      lead: leadSnapshot,
+      lead: pipelineSnapshot,
       followUpTasks,
     });
     const profileStatus = deriveProfileStatus({
-      lead: leadSnapshot,
+      lead: pipelineSnapshot,
       consultation: savedConsultation,
       contractDraft,
     });
 
     await base44.entities.Customer.update(customerId, mergeCustomerContextSnapshot(persistedCustomer, {
-      active_lead_id: crmResult.leadId || persistedCustomer.active_lead_id,
+      ...crmResult.customerPipelinePayload,
       active_consultation_id: savedConsultation.id,
       active_contract_draft_id: contractDraft?.id || persistedCustomer.active_contract_draft_id,
       active_goal_profile_id: goalProfileId || persistedCustomer.active_goal_profile_id,
@@ -180,6 +181,8 @@ export default function ConsultationFlow() {
     }));
 
     queryClient.invalidateQueries({ queryKey: ['consultations-recent'] });
+    queryClient.invalidateQueries({ queryKey: ['customers'] });
+    queryClient.invalidateQueries({ queryKey: ['personen-cockpit', 'customers'] });
     queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
     queryClient.invalidateQueries({ queryKey: ['crm-appointments'] });
 
