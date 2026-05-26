@@ -17,7 +17,7 @@
 
 ---
 
-## B-01 🛑 Rollen-Detail: Studioleitung vs. Admin getrennt oder eins?
+## B-01 ✅ Rollen-Detail: Studioleitung vs. Admin getrennt oder eins?
 
 **Kontext:** Heute kollabieren beide auf den `admin`-Key (`src/lib/advisorAccess.js:1-2`). Charter listet beide getrennt.
 
@@ -27,12 +27,14 @@
 
 **Konsequenz Sprint 1:** Bei (B) kommt eine Layout-Variante mehr dazu (4 statt 3 aktive Layouts) und Route-Guards müssen sauber zwischen beiden trennen.
 
-**Antwort:**
-> _<hier eintragen>_
+**Antwort (Studio-Owner, 2026-05-22):**
+> **Die Studioleitung IST der Admin.** Admin ist der Supervisor. Trainer/Mitarbeiter haben Befugnisse — je nach was sie dürfen. Der Studioleiter kann auch weitere Admins benennen.
+>
+> Implementierung: 1 Rolle `admin`. User-Management-Feature "make admin" für andere Mitarbeiter — gehört nicht in Sprint 1, kommt in Sprint 5.
 
 ---
 
-## B-02 🛑 Welche 4 Rollen aktiviert Sprint 1 wirklich?
+## B-02 ✅ Welche Rollen aktiviert Sprint 1 wirklich?
 
 **Vorschlag aus Sprint-0.5-Briefing:** Studioleitung, Trainer, Berater, Service.
 
@@ -43,12 +45,17 @@
 - (B) Service = Trainer-Welt mit Feature-Flags (sieht z.B. keine Krankmeldung).
 - (C) Service in Sprint 1 weglassen, erst in Sprint 5.
 
-**Antwort:**
-> _<hier eintragen>_
+**Antwort (Studio-Owner, 2026-05-22):**
+> **Trainer = Berater = Service.** Es gibt nur **3 Ebenen**:
+> 1. **Admin / Studioleiter** (oben — alles)
+> 2. **Trainer / Mitarbeiter** (Mitte — eine Rolle, intern via Befugnisse differenziert)
+> 3. **Kunde / Mitglied** (unten — Kiosk/Frontend, MVP-2)
+>
+> Innerhalb der Mitarbeiter-Rolle gibt es **Capabilities** (z.B. "darf beraten", "darf Reha aufnehmen", "darf Verträge anlegen"). Capability-System ist NICHT Sprint 1 — kommt in Sprint 5. In Sprint 1 sehen alle Mitarbeiter alle Mitarbeiter-Items.
 
 ---
 
-## B-03 🛑 Default-Landing pro Rolle final?
+## B-03 ✅ Default-Landing pro Rolle final?
 
 **Vorschlag aus Sprint-0.5-Briefing:**
 
@@ -59,8 +66,15 @@
 
 **Frage:** Berater Default = `/berater/personen` (neues Cockpit) ODER `/berater/leads` (Pipeline) ODER `/berater/heute` (neu, nicht existent)?
 
-**Antwort:**
-> _<hier eintragen>_
+**Antwort (Studio-Owner, 2026-05-22):**
+> **`/berater/heute`** — neue Tages-Page. Tagesfokussierte Sicht mit Terminen + fälligen Follow-ups + neuen Leads in einer aggregierten Übersicht.
+>
+> Konsequenz: Sprint-1-Scope wird um diese eine zusätzliche Composite-Page erweitert (Skeleton OK — füllt sich in späteren Sprints).
+>
+> Default-Landings final:
+> - **Admin** → `/admin/dashboard` (neu, Skeleton)
+> - **Mitarbeiter** → `/berater/heute` (neu, Skeleton mit Tages-Aggregation)
+> - **Kunde** → `/kiosk` (Skeleton, MVP-2)
 
 ---
 
@@ -220,10 +234,30 @@
 
 | # | Frage | Status |
 |---|---|---|
-| B-01 | Studioleitung vs Admin | 🛑 |
-| B-02 | Welche 4 Rollen aktiv? | 🛑 |
-| B-03 | Default-Landing | 🛑 |
+| B-01 | Studioleitung vs Admin | ✅ Admin = Studioleiter (1 Rolle) |
+| B-02 | Welche Rollen aktiv? | ✅ 3 Ebenen: Admin / Mitarbeiter / Kunde |
+| B-03 | Default-Landing | ✅ Admin→/admin/dashboard, Mitarbeiter→/berater/heute, Kunde→/kiosk |
 
-Sobald diese drei beantwortet sind: **Sprint 1 freigeben.**
+**Sprint 1 ist freigegeben.** Sprint-1-Scope wird auf Basis dieser Antworten in `../sprint-1/00-scope.md` aktualisiert.
 
 Die übrigen Fragen (B-04 bis B-13) können parallel zu Sprint 1 geklärt werden.
+
+### Neue Folgefrage aus den Antworten
+
+**B-14 🟧 Capability-System für Mitarbeiter**
+Aus B-02-Antwort folgt: Mitarbeiter-Rolle hat intern Capabilities (z.B. `CAN_CONSULT`, `CAN_REHA_INTAKE`, `CAN_MANAGE_CONTRACTS`, `CAN_SEE_LEADS`).
+- In Sprint 1: alle Mitarbeiter sehen alle Items (kein Capability-Check).
+- In Sprint 5: Capability-System einführen, Admin kann Capabilities pro Mitarbeiter zuweisen.
+
+**Frage an Owner:** Liste der initialen Capabilities? Vorschlag:
+- `CAN_CONSULT` — Beratungen durchführen
+- `CAN_REHA_INTAKE` — Rezepte scannen, Reha-Vorgang anlegen
+- `CAN_MANAGE_LEADS` — Lead-Pipeline bearbeiten
+- `CAN_CREATE_CONTRACTS` — Vertragsentwürfe anlegen
+- `CAN_VIEW_ANALYTICS` — eingeschränkte Analytics (Mitarbeiter-Level)
+- `IS_REHA_SPECIALIST` — Reha-Spezialist (eigene Reha-Sicht)
+
+Antwort kann in Sprint 5 nachgereicht werden.
+
+**Antwort:**
+> _<hier eintragen>_
