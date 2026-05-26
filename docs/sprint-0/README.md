@@ -1,6 +1,6 @@
 # Sprint 0 — AlbGym Nav Produkt- und Systemdefinition
 
-**Status:** Welle 1 + 2 fertig (Stand: 2026-05-22). Welle 3 (Briefing + Entscheidungsfragen) noch offen.
+**Status:** ✅ Abgeschlossen + Sprint 0.5 Übergabe (Stand: 2026-05-22). Welle 2 (Modulkarte/Systemlandkarte) wurde übersprungen — Studio-Owner hat selbst konsolidiert.
 
 ## Zweck
 
@@ -19,10 +19,11 @@ Sprint 0 ist Discovery & Struktur. **Keine Codeänderung, keine UI-Umsetzung.** 
 | 06 | `06-integrationen.md` | Integration | ✅ |
 | 07 | `07-navigation-sitemap.md` | UX Architect | ✅ |
 | 08 | `08-ui-konzept-modi.md` | UI Designer | ✅ |
-| 09 | `09-modulkarte.md` | Software Architect | ⏳ Welle 2 |
-| 10 | `10-systemlandkarte.md` | Software Architect | ⏳ Welle 2 |
-| 11 | `11-sprint0-briefing.md` | Documentation | ⏳ Welle 3 |
-| 12 | `12-entscheidungsfragen.md` | Documentation | ⏳ Welle 3 |
+| 09 | `09-modulkarte.md` | Software Architect | ⏭ Übersprungen (Owner braucht nicht) |
+| 10 | `10-systemlandkarte.md` | Software Architect | ⏭ Übersprungen (Owner braucht nicht) |
+| 11 | `11-sprint0-briefing.md` | Studio-Owner (selbst) | ✅ |
+| 12 | `12-entscheidungsfragen.md` | Documentation | ✅ |
+| — | `../sprint-1/00-scope.md` | Projektleiter | ✅ |
 
 ## Empfohlene Leseroutine für den Studio-Owner
 
@@ -50,8 +51,9 @@ Bereits gebauter Code (`PersonenCockpit`, `GoalProfile`-Lib, `syncReadiness`) **
 - ❌ Keine UI-Umsetzung
 - ❌ Keine Repo-Strukturänderung außer `docs/sprint-0/`
 
-## Nächste Schritte nach Sprint 0
+## Nächste Schritte nach Sprint 0.5
 
-1. Studio-Owner liest `11-sprint0-briefing.md` + `12-entscheidungsfragen.md` (sobald Welle 3 abgeschlossen).
-2. Studio-Owner beantwortet die 8 Blocker.
-3. Sprint 1 kann starten (Rollenmodell + Rollenbasierte Layouts).
+1. **Studio-Owner beantwortet 🛑-Blocker B-01, B-02, B-03** in `12-entscheidungsfragen.md`.
+2. **Sprint-1-Scope formal abnehmen** (`../sprint-1/00-scope.md`).
+3. Sprint 1 startet: Rollenmodell + Rollenbasierte Layouts.
+4. Parallele Tracks A/B/C/D laufen konzeptionell weiter (keine Code-Änderung).
