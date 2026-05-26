@@ -819,6 +819,7 @@ export default function PersonenAkte() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Field label="Formular" value={compact([scan.form_type, scan.form_number, scan.form_version]).join(' ')} />
                       <Field label="AZH" value={scan.azh_sync_status || 'not_started'} />
+                      <Field label="Gueltig bis" value={formatDate(scan.prescription_valid_to || scan.approval_until)} />
                       <Field label="Einheiten" value={scan.prescribed_units ? `${scan.prescribed_units}` : '-'} />
                       <Field label="Dauer" value={scan.duration_months ? `${scan.duration_months} Monate` : '-'} />
                     </div>

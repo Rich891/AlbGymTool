@@ -119,6 +119,27 @@ export function normalizeDate(value = '') {
   return `${fullYear.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
+function addMonthsToIsoDate(value = '', months = 0) {
+  const normalized = normalizeDate(value);
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const monthCount = Number(months);
+  if (!match || !Number.isFinite(monthCount) || monthCount <= 0) return '';
+
+  const [, year, month, day] = match;
+  const originalDay = Number(day);
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1 + monthCount, originalDay));
+
+  if (date.getUTCDate() !== originalDay) {
+    date.setUTCDate(0);
+  }
+
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, '0'),
+    String(date.getUTCDate()).padStart(2, '0'),
+  ].join('-');
+}
+
 export function normalizeGender(value = '') {
   const raw = cleanText(value).toLowerCase();
   if (!raw) return '';
@@ -444,67 +465,115 @@ function resolveApprovalRequired(validation = {}, prescription = {}) {
   return Boolean(prescription.approval_required_hint);
 }
 
+export function inferPrescriptionDurationMonths(prescription = {}) {
+  const explicitDuration = Number(prescription.duration_months);
+  if (Number.isFinite(explicitDuration) && explicitDuration > 0) return explicitDuration;
+
+  const units = Number(prescription.prescribed_units);
+  if (units === 50) return 18;
+  if (units === 120) return 36;
+  return undefined;
+}
+
+export function derivePrescriptionLifecycle(prescription = {}, validation = {}) {
+  const next = { ...prescription };
+  const approvalRequired = resolveApprovalRequired(validation, prescription);
+  const prescriptionDate = normalizeDate(next.prescription_date);
+  const approvalDate = normalizeDate(next.approval_date);
+  const approvalUntil = normalizeDate(next.approval_until);
+  const validFrom = normalizeDate(next.valid_from);
+  const validTo = normalizeDate(next.valid_to);
+  const durationMonths = inferPrescriptionDurationMonths(next);
+
+  if (prescriptionDate) next.prescription_date = prescriptionDate;
+  if (approvalDate) next.approval_date = approvalDate;
+  if (approvalUntil) next.approval_until = approvalUntil;
+  if (validFrom) next.valid_from = validFrom;
+  if (validTo) next.valid_to = validTo;
+  if (durationMonths && !next.duration_months) next.duration_months = durationMonths;
+
+  if (!approvalRequired && prescriptionDate) {
+    if (!next.approval_date) next.approval_date = prescriptionDate;
+    if (!next.valid_from) next.valid_from = prescriptionDate;
+  }
+
+  const lifecycleStart = normalizeDate(
+    next.valid_from ||
+    (approvalRequired ? next.approval_date : next.approval_date || prescriptionDate)
+  );
+  if (durationMonths && lifecycleStart && !next.valid_to) {
+    next.valid_to = addMonthsToIsoDate(lifecycleStart, durationMonths);
+  }
+  if (!approvalRequired && next.valid_to && !next.approval_until) {
+    next.approval_until = next.valid_to;
+  }
+
+  return next;
+}
+
 export function buildRehasportConsultationFromPrescription({ customer, prescription, prescriptionScanId }) {
   const validation = prescription.validation_report || {};
-  const validationStatus = prescription.prescription_validation_status || validation.status;
+  const lifecyclePrescription = derivePrescriptionLifecycle(prescription, validation);
+  const validationStatus = lifecyclePrescription.prescription_validation_status || validation.status;
 
   return compactObject({
     customer_id: customer?.id,
     customer_name: joinCustomerName(customer),
-    birthdate: customer?.birthdate || normalizeDate(prescription.birthdate),
-    gender: customer?.gender || normalizeGender(prescription.gender),
-    address: customer?.address || combineAddress(prescription),
-    email: customer?.email || cleanText(prescription.email).toLowerCase(),
-    phone: customer?.phone || cleanText(prescription.phone),
-    health_insurance: customer?.health_insurance || cleanText(prescription.health_insurance),
-    insurance_number: customer?.insurance_number || normalizeInsuranceNumber(prescription.insurance_number),
-    cost_carrier_number: cleanText(prescription.cost_carrier_number),
-    insured_status: cleanText(prescription.insured_status),
+    birthdate: customer?.birthdate || normalizeDate(lifecyclePrescription.birthdate),
+    gender: customer?.gender || normalizeGender(lifecyclePrescription.gender),
+    address: customer?.address || combineAddress(lifecyclePrescription),
+    email: customer?.email || cleanText(lifecyclePrescription.email).toLowerCase(),
+    phone: customer?.phone || cleanText(lifecyclePrescription.phone),
+    health_insurance: customer?.health_insurance || cleanText(lifecyclePrescription.health_insurance),
+    insurance_number: customer?.insurance_number || normalizeInsuranceNumber(lifecyclePrescription.insurance_number),
+    cost_carrier_number: cleanText(lifecyclePrescription.cost_carrier_number),
+    insured_status: cleanText(lifecyclePrescription.insured_status),
     prescription_scan_id: prescriptionScanId,
     prescription_status: validationStatusToRehaPrescriptionStatus(validationStatus),
-    prescription_date: normalizeDate(prescription.prescription_date),
-    prescription_valid_from: normalizeDate(prescription.valid_from),
-    prescription_valid_to: normalizeDate(prescription.valid_to),
-    form_type: cleanText(prescription.form_type),
-    form_number: cleanText(prescription.form_number),
-    form_version: cleanText(prescription.form_version),
-    practice_site_number: cleanText(prescription.practice_site_number),
-    doctor_number: cleanText(prescription.doctor_number),
-    prescribed_units: Number(prescription.prescribed_units) || undefined,
-    duration_months: Number(prescription.duration_months) || undefined,
-    prescription_frequency: cleanText(prescription.frequency),
-    prescribed_service: cleanText(prescription.prescribed_service),
-    sport_type: cleanText(prescription.sport_type),
-    functional_training_type: cleanText(prescription.functional_training_type),
-    diagnosis_text: cleanText(prescription.diagnosis_text),
-    icd_codes: Array.isArray(prescription.icd_codes) ? prescription.icd_codes.filter(Boolean) : [],
-    impairment_text: cleanText(prescription.impairment_text),
-    rehab_goal: cleanText(prescription.rehab_goal),
-    follow_up_prescription: Boolean(prescription.follow_up_prescription),
-    follow_up_reason: cleanText(prescription.follow_up_reason),
-    prf_number: cleanText(prescription.prf_number),
-    physician_name: cleanText(prescription.physician_name),
-    physician_lanr: cleanText(prescription.physician_lanr),
-    doctor_signature_present: Boolean(prescription.doctor_signature_present),
-    doctor_stamp_present: Boolean(prescription.doctor_stamp_present),
-    patient_signature_present: Boolean(prescription.patient_signature_present),
-    approval_required: resolveApprovalRequired(validation, prescription),
-    approval_present: Boolean(validation.approval_present || prescription.approval_present),
-    approval_date: normalizeDate(prescription.approval_date),
-    approval_until: normalizeDate(prescription.approval_until),
-    approval_reference: cleanText(prescription.approval_reference),
+    prescription_date: normalizeDate(lifecyclePrescription.prescription_date),
+    prescription_valid_from: normalizeDate(lifecyclePrescription.valid_from),
+    prescription_valid_to: normalizeDate(lifecyclePrescription.valid_to),
+    form_type: cleanText(lifecyclePrescription.form_type),
+    form_number: cleanText(lifecyclePrescription.form_number),
+    form_version: cleanText(lifecyclePrescription.form_version),
+    practice_site_number: cleanText(lifecyclePrescription.practice_site_number),
+    doctor_number: cleanText(lifecyclePrescription.doctor_number),
+    prescribed_units: Number(lifecyclePrescription.prescribed_units) || undefined,
+    duration_months: Number(lifecyclePrescription.duration_months) || undefined,
+    prescription_frequency: cleanText(lifecyclePrescription.frequency),
+    prescribed_service: cleanText(lifecyclePrescription.prescribed_service),
+    sport_type: cleanText(lifecyclePrescription.sport_type),
+    functional_training_type: cleanText(lifecyclePrescription.functional_training_type),
+    diagnosis_text: cleanText(lifecyclePrescription.diagnosis_text),
+    icd_codes: Array.isArray(lifecyclePrescription.icd_codes) ? lifecyclePrescription.icd_codes.filter(Boolean) : [],
+    impairment_text: cleanText(lifecyclePrescription.impairment_text),
+    rehab_goal: cleanText(lifecyclePrescription.rehab_goal),
+    follow_up_prescription: Boolean(lifecyclePrescription.follow_up_prescription),
+    follow_up_reason: cleanText(lifecyclePrescription.follow_up_reason),
+    prf_number: cleanText(lifecyclePrescription.prf_number),
+    physician_name: cleanText(lifecyclePrescription.physician_name),
+    physician_lanr: cleanText(lifecyclePrescription.physician_lanr),
+    doctor_signature_present: Boolean(lifecyclePrescription.doctor_signature_present),
+    doctor_stamp_present: Boolean(lifecyclePrescription.doctor_stamp_present),
+    patient_signature_present: Boolean(lifecyclePrescription.patient_signature_present),
+    approval_required: resolveApprovalRequired(validation, lifecyclePrescription),
+    approval_present: Boolean(validation.approval_present || lifecyclePrescription.approval_present),
+    approval_date: normalizeDate(lifecyclePrescription.approval_date),
+    approval_until: normalizeDate(lifecyclePrescription.approval_until),
+    approval_reference: cleanText(lifecyclePrescription.approval_reference),
     prescription_validation_status: validationStatus,
     prescription_validation_score: validation.score,
     prescription_validation_report: validation,
     prescription_missing_items: (validation.issues || []).map(issue => issue.label || issue.message).filter(Boolean),
     status: 'rezept_erfasst',
-    notes: cleanText(prescription.notes),
+    notes: cleanText(lifecyclePrescription.notes),
   });
 }
 
 export function buildPrescriptionScanPayload({ customer, rehasportConsultation, prescription, fileMeta, extraction }) {
   const validation = prescription.validation_report || extraction?.validation_report || {};
-  const validationStatus = prescription.prescription_validation_status || validation.status;
+  const lifecyclePrescription = derivePrescriptionLifecycle(prescription, validation);
+  const validationStatus = lifecyclePrescription.prescription_validation_status || validation.status;
 
   return compactObject({
     customer_id: customer?.id,
@@ -519,39 +588,41 @@ export function buildPrescriptionScanPayload({ customer, rehasportConsultation, 
     extraction_mode: extraction?.url_mode || fileMeta?.extraction_mode,
     extraction_status: extraction?.status || 'manual_review',
     extraction_confidence: extraction?.confidence || 'needs_review',
-    extracted_data: prescription,
+    extracted_data: lifecyclePrescription,
     raw_extraction: extraction?.raw || null,
-    verified_data: prescription,
-    prescription_date: normalizeDate(prescription.prescription_date),
-    health_insurance: cleanText(prescription.health_insurance),
-    insurance_number: normalizeInsuranceNumber(prescription.insurance_number),
-    cost_carrier_number: cleanText(prescription.cost_carrier_number),
-    insured_status: cleanText(prescription.insured_status),
-    form_type: cleanText(prescription.form_type),
-    form_number: cleanText(prescription.form_number),
-    form_version: cleanText(prescription.form_version),
-    practice_site_number: cleanText(prescription.practice_site_number),
-    doctor_number: cleanText(prescription.doctor_number),
-    diagnosis_text: cleanText(prescription.diagnosis_text),
-    icd_codes: Array.isArray(prescription.icd_codes) ? prescription.icd_codes.filter(Boolean) : [],
-    impairment_text: cleanText(prescription.impairment_text),
-    rehab_goal: cleanText(prescription.rehab_goal),
-    prescribed_units: Number(prescription.prescribed_units) || undefined,
-    duration_months: Number(prescription.duration_months) || undefined,
-    prescribed_service: cleanText(prescription.prescribed_service),
-    sport_type: cleanText(prescription.sport_type),
-    functional_training_type: cleanText(prescription.functional_training_type),
-    follow_up_prescription: Boolean(prescription.follow_up_prescription),
-    follow_up_reason: cleanText(prescription.follow_up_reason),
-    prf_number: cleanText(prescription.prf_number),
-    doctor_signature_present: Boolean(prescription.doctor_signature_present),
-    doctor_stamp_present: Boolean(prescription.doctor_stamp_present),
-    patient_signature_present: Boolean(prescription.patient_signature_present),
-    approval_required: resolveApprovalRequired(validation, prescription),
-    approval_present: Boolean(validation.approval_present || prescription.approval_present),
-    approval_date: normalizeDate(prescription.approval_date),
-    approval_until: normalizeDate(prescription.approval_until),
-    approval_reference: cleanText(prescription.approval_reference),
+    verified_data: lifecyclePrescription,
+    prescription_date: normalizeDate(lifecyclePrescription.prescription_date),
+    prescription_valid_from: normalizeDate(lifecyclePrescription.valid_from),
+    prescription_valid_to: normalizeDate(lifecyclePrescription.valid_to),
+    health_insurance: cleanText(lifecyclePrescription.health_insurance),
+    insurance_number: normalizeInsuranceNumber(lifecyclePrescription.insurance_number),
+    cost_carrier_number: cleanText(lifecyclePrescription.cost_carrier_number),
+    insured_status: cleanText(lifecyclePrescription.insured_status),
+    form_type: cleanText(lifecyclePrescription.form_type),
+    form_number: cleanText(lifecyclePrescription.form_number),
+    form_version: cleanText(lifecyclePrescription.form_version),
+    practice_site_number: cleanText(lifecyclePrescription.practice_site_number),
+    doctor_number: cleanText(lifecyclePrescription.doctor_number),
+    diagnosis_text: cleanText(lifecyclePrescription.diagnosis_text),
+    icd_codes: Array.isArray(lifecyclePrescription.icd_codes) ? lifecyclePrescription.icd_codes.filter(Boolean) : [],
+    impairment_text: cleanText(lifecyclePrescription.impairment_text),
+    rehab_goal: cleanText(lifecyclePrescription.rehab_goal),
+    prescribed_units: Number(lifecyclePrescription.prescribed_units) || undefined,
+    duration_months: Number(lifecyclePrescription.duration_months) || undefined,
+    prescribed_service: cleanText(lifecyclePrescription.prescribed_service),
+    sport_type: cleanText(lifecyclePrescription.sport_type),
+    functional_training_type: cleanText(lifecyclePrescription.functional_training_type),
+    follow_up_prescription: Boolean(lifecyclePrescription.follow_up_prescription),
+    follow_up_reason: cleanText(lifecyclePrescription.follow_up_reason),
+    prf_number: cleanText(lifecyclePrescription.prf_number),
+    doctor_signature_present: Boolean(lifecyclePrescription.doctor_signature_present),
+    doctor_stamp_present: Boolean(lifecyclePrescription.doctor_stamp_present),
+    patient_signature_present: Boolean(lifecyclePrescription.patient_signature_present),
+    approval_required: resolveApprovalRequired(validation, lifecyclePrescription),
+    approval_present: Boolean(validation.approval_present || lifecyclePrescription.approval_present),
+    approval_date: normalizeDate(lifecyclePrescription.approval_date),
+    approval_until: normalizeDate(lifecyclePrescription.approval_until),
+    approval_reference: cleanText(lifecyclePrescription.approval_reference),
     prescription_validation_status: validationStatus,
     prescription_validation_score: validation.score,
     prescription_validation_report: validation,
@@ -602,6 +673,21 @@ export async function findMatchingCustomers(base44, customerDraft) {
       birthdate: customerDraft.birthdate,
     });
   }
+  if (customerDraft.first_name && customerDraft.last_name && customerDraft.postal_code && customerDraft.city) {
+    queries.push({
+      first_name: customerDraft.first_name,
+      last_name: customerDraft.last_name,
+      postal_code: customerDraft.postal_code,
+      city: customerDraft.city,
+    });
+  }
+  if (customerDraft.first_name && customerDraft.last_name && customerDraft.street) {
+    queries.push({
+      first_name: customerDraft.first_name,
+      last_name: customerDraft.last_name,
+      street: customerDraft.street,
+    });
+  }
 
   for (const query of queries) {
     const matches = await safeFilterEntity(base44, 'Customer', query, '-created_date', 5);
@@ -618,17 +704,34 @@ export async function upsertUnifiedCustomer(base44, customerDraft, { existingCus
 
   if (existingCustomerId) {
     const updated = await updateEntity(base44, 'Customer', existingCustomerId, customerDraft);
-    return { customer: updated, created: false, matchedBy: 'selected_customer' };
+    return {
+      customer: {
+        ...customerDraft,
+        ...updated,
+        id: updated?.id || existingCustomerId,
+      },
+      created: false,
+      matchedBy: 'selected_customer',
+    };
   }
 
   const matches = await findMatchingCustomers(base44, customerDraft);
   const existing = matches[0];
 
   if (existing?.id) {
-    const updated = await updateEntity(base44, 'Customer', existing.id, mergeCustomerData(existing, customerDraft));
-    return { customer: updated, created: false, matchedBy: 'identity_match' };
+    const merged = mergeCustomerData(existing, customerDraft);
+    const updated = await updateEntity(base44, 'Customer', existing.id, merged);
+    return {
+      customer: {
+        ...merged,
+        ...updated,
+        id: updated?.id || existing.id,
+      },
+      created: false,
+      matchedBy: 'identity_match',
+    };
   }
 
   const created = await createEntity(base44, 'Customer', customerDraft);
-  return { customer: created, created: true, matchedBy: 'new_customer' };
+  return { customer: { ...customerDraft, ...created }, created: true, matchedBy: 'new_customer' };
 }

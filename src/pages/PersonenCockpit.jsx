@@ -368,6 +368,41 @@ export default function PersonenCockpit() {
     }
   };
 
+  const handleScanFromNewPerson = async () => {
+    const hasDraftData = Object.values(newPersonForm).some(value => String(value || '').trim() !== '');
+
+    if (!hasDraftData) {
+      setCreateDialogOpen(false);
+      navigate('/berater/rezepte');
+      return;
+    }
+
+    if (!newPersonForm.first_name.trim() || !newPersonForm.last_name.trim()) {
+      toast.error('Vorname und Nachname sind Pflicht, wenn die Akte vor dem Scan angelegt werden soll.');
+      return;
+    }
+
+    setCreatingPerson(true);
+    try {
+      const payload = buildUnifiedCustomerPayload(newPersonForm, {
+        source: 'manual',
+        sourceSystem: 'personen_cockpit',
+      });
+      const created = await createEntity(base44, 'Customer', payload);
+      await queryClient.invalidateQueries({ queryKey: ['personen-cockpit', 'customers'] });
+      await queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setCreateDialogOpen(false);
+      setNewPersonForm(EMPTY_NEW_PERSON_FORM);
+      toast.success('Personenakte wurde angelegt. Der Rezeptscan wird mit dieser Akte verknuepft.');
+      navigate(`/berater/rezepte?customerId=${created.id}`);
+    } catch (error) {
+      console.error('Person create before scan failed', error);
+      toast.error('Personenakte konnte vor dem Scan nicht angelegt werden.');
+    } finally {
+      setCreatingPerson(false);
+    }
+  };
+
   if (customersError) {
     return (
       <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-8 text-center space-y-4">
@@ -445,10 +480,7 @@ export default function PersonenCockpit() {
           onOpenChange={setCreateDialogOpen}
           onChange={handleNewPersonChange}
           onCreate={handleCreatePerson}
-          onScan={() => {
-            setCreateDialogOpen(false);
-            navigate('/berater/rezepte');
-          }}
+          onScan={handleScanFromNewPerson}
         />
       </div>
     </TooltipProvider>

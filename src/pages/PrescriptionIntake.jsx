@@ -19,6 +19,7 @@ import {
   buildCustomerPayloadFromPrescription,
   buildPrescriptionScanPayload,
   buildRehasportConsultationFromPrescription,
+  derivePrescriptionLifecycle,
   upsertUnifiedCustomer,
 } from '@/lib/customerDataModel';
 import {
@@ -50,6 +51,17 @@ function mergeFilledPrescriptionForm(previous, incoming = {}) {
 
   return next;
 }
+
+const LIFECYCLE_TRIGGER_FIELDS = new Set([
+  'health_insurance',
+  'prescription_date',
+  'prescribed_units',
+  'duration_months',
+  'approval_date',
+  'approval_until',
+  'valid_from',
+  'valid_to',
+]);
 
 export default function PrescriptionIntake() {
   const queryClient = useQueryClient();
@@ -138,7 +150,15 @@ export default function PrescriptionIntake() {
 
   const canSave = !!file && !!form.patient_first_name?.trim() && !!form.patient_last_name?.trim();
 
-  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const mergeAndDeriveForm = (previous, incoming = {}) => {
+    const merged = mergeFilledPrescriptionForm(previous, incoming);
+    return derivePrescriptionLifecycle(merged, evaluatePrescription(merged, healthInsurances));
+  };
+  const set = (field, value) => setForm(prev => {
+    const next = { ...prev, [field]: value };
+    if (!LIFECYCLE_TRIGGER_FIELDS.has(field)) return next;
+    return derivePrescriptionLifecycle(next, evaluatePrescription(next, healthInsurances));
+  });
   const issuesFor = (field) => prescriptionReview.field_issues?.[field] || [];
   const inputFor = (field) => `${inputCls} ${fieldStateClass(issuesFor(field))}`;
 
@@ -200,7 +220,7 @@ export default function PrescriptionIntake() {
           ...quickResult.extraction,
           stage: 'quick_profile',
         });
-        setForm(prev => mergeFilledPrescriptionForm(prev, quickResult.form));
+        setForm(prev => mergeAndDeriveForm(prev, quickResult.form));
 
         if (quickResult.extraction.status === 'extracted') {
           setScanPhase('Basisdaten uebernommen - Vollanalyse laeuft');
@@ -227,7 +247,7 @@ export default function PrescriptionIntake() {
         ...result.extraction,
         stage: quickResult ? 'full_after_quick_profile' : 'full',
       });
-      setForm(prev => mergeFilledPrescriptionForm(prev, result.form));
+      setForm(prev => mergeAndDeriveForm(prev, result.form));
       setScanPhase('Rezeptpruefung aktualisiert');
       if (result.extraction.status === 'extracted') {
         toast.success('Rezept wurde ausgelesen. Bitte die Daten pruefen.');
@@ -276,26 +296,35 @@ export default function PrescriptionIntake() {
         confidence: 'manual_entry',
       };
 
+      const derivedForm = derivePrescriptionLifecycle(form, prescriptionReview);
+      const finalReview = evaluatePrescription(derivedForm, healthInsurances);
       const reviewedPrescription = {
-        ...form,
-        validation_report: prescriptionReview,
-        prescription_validation_status: prescriptionReview.status,
+        ...derivedForm,
+        validation_report: finalReview,
+        prescription_validation_status: finalReview.status,
       };
       const profilePayload = buildCustomerPayloadFromPrescription(reviewedPrescription);
       currentExtraction = {
         ...currentExtraction,
-        validation_report: prescriptionReview,
+        validation_report: finalReview,
       };
 
+      const targetCustomerId = selectedCustomerId || customerIdFromUrl || undefined;
       const upsert = await upsertUnifiedCustomer(base44, profilePayload, {
-        existingCustomerId: selectedCustomerId || undefined,
+        existingCustomerId: targetCustomerId,
       });
+      const savedCustomerId = upsert.customer?.id || targetCustomerId;
+      const savedCustomer = {
+        ...profilePayload,
+        ...upsert.customer,
+        id: savedCustomerId,
+      };
 
       const prescriptionScan = await createEntity(
         base44,
         'PrescriptionScan',
         buildPrescriptionScanPayload({
-          customer: upsert.customer,
+          customer: savedCustomer,
           prescription: reviewedPrescription,
           fileMeta: currentFileMeta,
           extraction: currentExtraction,
@@ -306,7 +335,7 @@ export default function PrescriptionIntake() {
         base44,
         'RehasportConsultation',
         buildRehasportConsultationFromPrescription({
-          customer: upsert.customer,
+          customer: savedCustomer,
           prescription: reviewedPrescription,
           prescriptionScanId: prescriptionScan.id,
         })
@@ -316,7 +345,7 @@ export default function PrescriptionIntake() {
         rehasport_consultation_id: rehaRecord.id,
       });
 
-      await updateEntity(base44, 'Customer', upsert.customer.id, {
+      await updateEntity(base44, 'Customer', savedCustomerId, {
         ...profilePayload,
         last_prescription_scan_id: prescriptionScan.id,
         last_rehasport_consultation_id: rehaRecord.id,
@@ -329,14 +358,14 @@ export default function PrescriptionIntake() {
 
       try {
         await createEntity(base44, 'ActivityLog', {
-          customer_id: upsert.customer.id,
+          customer_id: savedCustomerId,
           rehasport_consultation_id: rehaRecord.id,
           prescription_scan_id: prescriptionScan.id,
           type: 'prescription.scan_saved',
           actor: 'advisor',
           occurred_at: new Date().toISOString(),
           notes: upsert.created ? 'Kunde aus Rezeptscan angelegt' : 'Kunde aus Rezeptscan aktualisiert',
-          outcome: prescriptionReview.status,
+          outcome: finalReview.status,
         });
       } catch (activityError) {
         console.warn('ActivityLog for prescription skipped', activityError?.message || activityError);
@@ -357,13 +386,13 @@ export default function PrescriptionIntake() {
       queryClient.invalidateQueries({ queryKey: ['rehasport-consultations'] });
       queryClient.invalidateQueries({ queryKey: ['prescription-scans'] });
       queryClient.invalidateQueries({ queryKey: ['personen-cockpit', 'customers'] });
-      queryClient.invalidateQueries({ queryKey: ['personenakte', 'customer', upsert.customer.id] });
-      queryClient.invalidateQueries({ queryKey: ['personenakte', 'prescription-scans', upsert.customer.id] });
-      queryClient.invalidateQueries({ queryKey: ['personenakte', 'reha-cases', upsert.customer.id] });
-      queryClient.invalidateQueries({ queryKey: ['personenakte', 'activities', upsert.customer.id] });
+      queryClient.invalidateQueries({ queryKey: ['personenakte', 'customer', savedCustomerId] });
+      queryClient.invalidateQueries({ queryKey: ['personenakte', 'prescription-scans', savedCustomerId] });
+      queryClient.invalidateQueries({ queryKey: ['personenakte', 'reha-cases', savedCustomerId] });
+      queryClient.invalidateQueries({ queryKey: ['personenakte', 'activities', savedCustomerId] });
 
-      if (upsert.customer?.id) {
-        navigate(`/berater/personen/${upsert.customer.id}?tab=profile`);
+      if (savedCustomerId) {
+        navigate(`/berater/personen/${savedCustomerId}?tab=profile`, { replace: true });
       }
     } catch (error) {
       console.error('Prescription save failed', error);

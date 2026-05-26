@@ -86,6 +86,16 @@
       "format": "date",
       "description": "Ausstellungsdatum"
     },
+    "prescription_valid_from": {
+      "type": "string",
+      "format": "date",
+      "description": "Rezept gueltig ab"
+    },
+    "prescription_valid_to": {
+      "type": "string",
+      "format": "date",
+      "description": "Rezept gueltig bis"
+    },
     "health_insurance": {
       "type": "string",
       "description": "Krankenkasse"

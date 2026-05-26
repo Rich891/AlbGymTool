@@ -7,11 +7,14 @@ import {
   calculateDataQualityScore,
   calculateMissingRequiredFields,
   CURRENT_FOCUS_TYPES,
+  derivePrescriptionLifecycle,
   deriveCurrentFocus,
   deriveProfileStatus,
+  inferPrescriptionDurationMonths,
   normalizeInsuranceNumber,
   PROFILE_STATUSES,
   splitFullName,
+  upsertUnifiedCustomer,
 } from '@/lib/customerDataModel';
 
 describe('deriveProfileStatus', () => {
@@ -260,5 +263,91 @@ describe('prescription data mapping', () => {
 
     expect(scan.approval_required).toBe(false);
     expect(reha.approval_required).toBe(false);
+  });
+
+  it('derives approval and validity dates for prescriptions without approval requirement', () => {
+    const lifecycle = derivePrescriptionLifecycle({
+      prescription_date: '2026-01-09',
+      prescribed_units: 50,
+      approval_required_hint: true,
+    }, {
+      approval_required: false,
+    });
+
+    expect(lifecycle.duration_months).toBe(18);
+    expect(lifecycle.approval_date).toBe('2026-01-09');
+    expect(lifecycle.valid_from).toBe('2026-01-09');
+    expect(lifecycle.valid_to).toBe('2027-07-09');
+    expect(lifecycle.approval_until).toBe('2027-07-09');
+  });
+
+  it('infers the standard duration for 120 unit prescriptions', () => {
+    expect(inferPrescriptionDurationMonths({ prescribed_units: 120 })).toBe(36);
+  });
+
+  it('does not invent validity dates for approval-required prescriptions without approval date', () => {
+    const lifecycle = derivePrescriptionLifecycle({
+      prescription_date: '2026-01-09',
+      prescribed_units: 50,
+    }, {
+      approval_required: true,
+    });
+
+    expect(lifecycle.valid_to).toBeUndefined();
+    expect(lifecycle.approval_date).toBeUndefined();
+  });
+
+  it('writes derived validity dates into scan and reha records', () => {
+    const derivedPrescription = derivePrescriptionLifecycle(prescription, {
+      approval_required: false,
+    });
+    const customer = buildCustomerPayloadFromPrescription(derivedPrescription);
+    const scan = buildPrescriptionScanPayload({
+      customer,
+      prescription: derivedPrescription,
+      fileMeta: { file_name: 'Bader Armin.pdf', storage_mode: 'private' },
+      extraction: { status: 'extracted', confidence: 'review_required' },
+    });
+    const reha = buildRehasportConsultationFromPrescription({
+      customer,
+      prescription: derivedPrescription,
+      prescriptionScanId: 'scan-1',
+    });
+
+    expect(scan.prescription_valid_from).toBe('2026-01-09');
+    expect(scan.prescription_valid_to).toBe('2027-07-09');
+    expect(scan.approval_date).toBe('2026-01-09');
+    expect(reha.prescription_valid_from).toBe('2026-01-09');
+    expect(reha.prescription_valid_to).toBe('2027-07-09');
+    expect(reha.approval_date).toBe('2026-01-09');
+  });
+});
+
+describe('upsertUnifiedCustomer', () => {
+  it('keeps the selected customer id even if the update response is sparse', async () => {
+    const updates = [];
+    const base44 = {
+      entities: {
+        Customer: {
+          update: async (id, payload) => {
+            updates.push({ id, payload });
+            return {};
+          },
+        },
+      },
+    };
+
+    const result = await upsertUnifiedCustomer(base44, {
+      first_name: 'Armin',
+      last_name: 'Bader',
+      birthdate: '1960-04-12',
+    }, {
+      existingCustomerId: 'customer-1',
+    });
+
+    expect(result.customer.id).toBe('customer-1');
+    expect(result.created).toBe(false);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].id).toBe('customer-1');
   });
 });

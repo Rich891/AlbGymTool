@@ -85,6 +85,11 @@ stehen haeufig auf Rueckseiten oder separaten Bewilligungsseiten und enthalten G
 Genehmigungsnummer, Stempel oder Unterschrift. Deutsche Datumswerte kommen oft als
 TT.MM.JJ vor: Geburtsdaten duerfen nicht in der Zukunft liegen; Rezeptdaten aus
 2024/2025/2026 sollen als 20xx interpretiert werden.
+Wenn laut lokaler Kassenregel keine Genehmigung erforderlich ist, wird spaeter im
+Programm das Ausstellungsdatum als Genehmigungsdatum/Gueltig-ab verwendet. Bei
+klaren Standardverordnungen gilt: 50 Einheiten entsprechen 18 Monaten, 120
+Einheiten entsprechen 36 Monaten. Falls diese Werte erkennbar sind, liefere sie
+mit; das Programm berechnet fehlende Gueltig-bis-Daten zusaetzlich deterministisch.
 `.trim();
 
 export const PRESCRIPTION_EXTRACTION_SCHEMA = {
@@ -243,6 +248,8 @@ export const PRESCRIPTION_QUICK_EXTRACTION_SCHEMA = {
       type: 'object',
       properties: {
         prescription_date: { type: 'string', description: 'Ausstellungsdatum im Format YYYY-MM-DD' },
+        valid_from: { type: 'string', description: 'Gueltig ab, falls im Dokument erkennbar' },
+        valid_to: { type: 'string', description: 'Gueltig bis, falls im Dokument erkennbar' },
         prescribed_service: { type: 'string', description: 'Verordnete Leistung, z.B. Rehabilitationssport' },
         sport_type: { type: 'string', description: 'Art bei Rehabilitationssport, falls angekreuzt' },
         prescribed_units: { type: 'number', description: 'Anzahl verordneter Einheiten' },
