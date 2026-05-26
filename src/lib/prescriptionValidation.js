@@ -175,9 +175,20 @@ function clean(value) {
 function normalize(value) {
   return clean(value)
     .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');
+}
+
+function looseInsuranceKey(value) {
+  return normalize(value)
+    .replace(/ae/g, 'a')
+    .replace(/oe/g, 'o')
+    .replace(/ue/g, 'u');
 }
 
 function isFilled(value) {
@@ -222,20 +233,44 @@ function addIssue(issues, issue) {
 
 export function matchHealthInsurance(name, healthInsurances = []) {
   const needle = normalize(name);
+  const looseNeedle = looseInsuranceKey(name);
   if (!needle) return null;
 
   return healthInsurances.find(item => {
     const candidates = [
       item?.name,
       ...(Array.isArray(item?.aliases) ? item.aliases : []),
-    ].map(normalize).filter(Boolean);
+    ].filter(Boolean);
 
-    return candidates.some(candidate => (
-      candidate === needle ||
-      candidate.includes(needle) ||
-      needle.includes(candidate)
-    ));
+    return candidates.some(candidate => {
+      const normalizedCandidate = normalize(candidate);
+      const looseCandidate = looseInsuranceKey(candidate);
+      return (
+        normalizedCandidate === needle ||
+        normalizedCandidate.includes(needle) ||
+        needle.includes(normalizedCandidate) ||
+        looseCandidate === looseNeedle ||
+        looseCandidate.includes(looseNeedle) ||
+        looseNeedle.includes(looseCandidate)
+      );
+    });
   }) || null;
+}
+
+function getFallbackInsurancePolicy(name) {
+  const key = looseInsuranceKey(name);
+  if (!key) return null;
+
+  if (key.includes('aok')) {
+    return {
+      id: 'fallback-aok',
+      name: 'AOK',
+      approval_required: false,
+      fallback: true,
+    };
+  }
+
+  return null;
 }
 
 export function buildFieldIssueMap(issues = []) {
@@ -412,8 +447,12 @@ export function evaluatePrescription(form = {}, healthInsurances = [], options =
   }
 
   const insuranceMatch = matchHealthInsurance(form.health_insurance, healthInsurances);
-  const approvalRequired = Boolean(insuranceMatch?.approval_required || form.approval_required_hint);
-  if (form.health_insurance && !insuranceMatch && healthInsurances.length > 0) {
+  const insuranceFallback = insuranceMatch ? null : getFallbackInsurancePolicy(form.health_insurance);
+  const insurancePolicy = insuranceMatch || insuranceFallback;
+  const approvalRequired = insurancePolicy
+    ? Boolean(insurancePolicy.approval_required)
+    : Boolean(form.approval_required_hint);
+  if (form.health_insurance && !insurancePolicy && healthInsurances.length > 0) {
     addIssue(issues, {
       code: 'insurance_not_in_database',
       fields: ['health_insurance'],
@@ -465,8 +504,8 @@ export function evaluatePrescription(form = {}, healthInsurances = [], options =
     field_issues: fieldIssues,
     error_count: errorCount,
     warning_count: warningCount,
-    matched_health_insurance_id: insuranceMatch?.id || '',
-    matched_health_insurance_name: insuranceMatch?.name || '',
+    matched_health_insurance_id: insurancePolicy?.id || '',
+    matched_health_insurance_name: insurancePolicy?.name || '',
     approval_required: approvalRequired,
     approval_present: Boolean(form.approval_present),
     checked_at: new Date().toISOString(),

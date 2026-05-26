@@ -213,6 +213,59 @@ export const PRESCRIPTION_EXTRACTION_SCHEMA = {
   },
 };
 
+export const PRESCRIPTION_QUICK_EXTRACTION_SCHEMA = {
+  type: 'object',
+  description: 'Schnellauslesung fuer Formular 56: zuerst nur die Profil- und Basis-Rezeptdaten erfassen, damit die Kundenakte sofort vorbefuellt werden kann.',
+  properties: {
+    patient: {
+      type: 'object',
+      properties: {
+        first_name: { type: 'string', description: 'Vorname der versicherten Person' },
+        last_name: { type: 'string', description: 'Nachname der versicherten Person' },
+        birthdate: { type: 'string', description: 'Geburtsdatum im Format YYYY-MM-DD' },
+        gender: { type: 'string', description: 'Geschlecht, falls erkennbar' },
+        street: { type: 'string', description: 'Strasse und Hausnummer' },
+        postal_code: { type: 'string', description: 'Postleitzahl' },
+        city: { type: 'string', description: 'Ort' },
+        address: { type: 'string', description: 'Vollstaendige Adresse, falls nicht sauber trennbar' },
+      },
+    },
+    insurance: {
+      type: 'object',
+      properties: {
+        health_insurance: { type: 'string', description: 'Name der Krankenkasse' },
+        insurance_number: { type: 'string', description: 'Krankenversichertennummer' },
+        cost_carrier_number: { type: 'string', description: 'Kostentraegernummer / IK' },
+        insured_status: { type: 'string', description: 'Versichertenstatus' },
+      },
+    },
+    prescription: {
+      type: 'object',
+      properties: {
+        prescription_date: { type: 'string', description: 'Ausstellungsdatum im Format YYYY-MM-DD' },
+        prescribed_service: { type: 'string', description: 'Verordnete Leistung, z.B. Rehabilitationssport' },
+        sport_type: { type: 'string', description: 'Art bei Rehabilitationssport, falls angekreuzt' },
+        prescribed_units: { type: 'number', description: 'Anzahl verordneter Einheiten' },
+        duration_months: { type: 'number', description: 'Dauer in Monaten' },
+        frequency: { type: 'string', description: 'Trainingsfrequenz' },
+      },
+    },
+    validation: {
+      type: 'object',
+      properties: {
+        doctor_signature_present: { type: 'boolean', description: 'Arztunterschrift sichtbar' },
+        doctor_stamp_present: { type: 'boolean', description: 'Arztstempel sichtbar' },
+        approval_present: { type: 'boolean', description: 'Genehmigung sichtbar' },
+        approval_required_hint: { type: 'boolean', description: 'Dokument deutet Genehmigungspflicht an' },
+      },
+    },
+    confidence_notes: {
+      type: 'string',
+      description: 'Kurzer Hinweis, wenn die Schnellauslesung unsicher ist.',
+    },
+  },
+};
+
 function valueFrom(...values) {
   return values.find(value => value !== undefined && value !== null && String(value).trim() !== '') || '';
 }
@@ -394,6 +447,20 @@ export async function extractPrescriptionData(base44, extractionUrl, options = {
   });
 
   return buildExtractionResult(raw, options);
+}
+
+export async function extractPrescriptionQuickData(base44, extractionUrl, options = {}) {
+  if (!extractionUrl) throw new Error('Keine Datei-URL fuer die Rezeptauslesung vorhanden.');
+
+  const raw = await base44.integrations.Core.ExtractDataFromUploadedFile({
+    file_url: extractionUrl,
+    json_schema: PRESCRIPTION_QUICK_EXTRACTION_SCHEMA,
+  });
+
+  return buildExtractionResult(raw, {
+    urlMode: options.urlMode || 'quick_profile',
+    retryMode: options.retryMode || 'quick_profile',
+  });
 }
 
 export async function invokePrescriptionVision(base44, fileUrl, options = {}) {

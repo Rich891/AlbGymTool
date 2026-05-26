@@ -437,6 +437,13 @@ export function buildCustomerPayloadFromPrescription(prescription = {}) {
   });
 }
 
+function resolveApprovalRequired(validation = {}, prescription = {}) {
+  if (typeof validation.approval_required === 'boolean') {
+    return validation.approval_required;
+  }
+  return Boolean(prescription.approval_required_hint);
+}
+
 export function buildRehasportConsultationFromPrescription({ customer, prescription, prescriptionScanId }) {
   const validation = prescription.validation_report || {};
   const validationStatus = prescription.prescription_validation_status || validation.status;
@@ -481,7 +488,7 @@ export function buildRehasportConsultationFromPrescription({ customer, prescript
     doctor_signature_present: Boolean(prescription.doctor_signature_present),
     doctor_stamp_present: Boolean(prescription.doctor_stamp_present),
     patient_signature_present: Boolean(prescription.patient_signature_present),
-    approval_required: Boolean(validation.approval_required || prescription.approval_required_hint),
+    approval_required: resolveApprovalRequired(validation, prescription),
     approval_present: Boolean(validation.approval_present || prescription.approval_present),
     approval_date: normalizeDate(prescription.approval_date),
     approval_until: normalizeDate(prescription.approval_until),
@@ -540,7 +547,7 @@ export function buildPrescriptionScanPayload({ customer, rehasportConsultation, 
     doctor_signature_present: Boolean(prescription.doctor_signature_present),
     doctor_stamp_present: Boolean(prescription.doctor_stamp_present),
     patient_signature_present: Boolean(prescription.patient_signature_present),
-    approval_required: Boolean(validation.approval_required || prescription.approval_required_hint),
+    approval_required: resolveApprovalRequired(validation, prescription),
     approval_present: Boolean(validation.approval_present || prescription.approval_present),
     approval_date: normalizeDate(prescription.approval_date),
     approval_until: normalizeDate(prescription.approval_until),

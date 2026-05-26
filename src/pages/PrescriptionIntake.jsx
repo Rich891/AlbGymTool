@@ -25,12 +25,31 @@ import {
   EMPTY_PRESCRIPTION_FORM,
   createExtractionUrl,
   extractPrescriptionDataWithRetry,
+  extractPrescriptionQuickData,
   uploadPrescriptionFile,
 } from '@/lib/prescriptionExtraction';
 import {
   evaluatePrescription,
   getWorstFieldSeverity,
 } from '@/lib/prescriptionValidation';
+
+function hasMergeableValue(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'boolean') return value === true;
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function mergeFilledPrescriptionForm(previous, incoming = {}) {
+  const next = { ...previous };
+
+  for (const [field, value] of Object.entries(incoming)) {
+    if (hasMergeableValue(value)) {
+      next[field] = value;
+    }
+  }
+
+  return next;
+}
 
 export default function PrescriptionIntake() {
   const queryClient = useQueryClient();
@@ -70,12 +89,9 @@ export default function PrescriptionIntake() {
 
   useEffect(() => {
     if (!customerIdFromUrl || appliedCustomerIdParam === customerIdFromUrl) return;
-    const exists = customers.some(customer => customer.id === customerIdFromUrl);
-    if (exists) {
-      setSelectedCustomerId(customerIdFromUrl);
-      setAppliedCustomerIdParam(customerIdFromUrl);
-    }
-  }, [customerIdFromUrl, customers, appliedCustomerIdParam]);
+    setSelectedCustomerId(customerIdFromUrl);
+    setAppliedCustomerIdParam(customerIdFromUrl);
+  }, [customerIdFromUrl, appliedCustomerIdParam]);
 
   useEffect(() => {
     if (!file || !file.type?.startsWith('image/')) {
@@ -171,7 +187,35 @@ export default function PrescriptionIntake() {
         setExtractionUrl(nextExtractionUrl || '');
       }
 
-      setScanPhase('Formular-56-Analyse laeuft');
+      let quickResult = null;
+      try {
+        setScanPhase('Basisdaten werden schnell uebernommen');
+        quickResult = await extractPrescriptionQuickData(base44, nextExtractionUrl, {
+          urlMode: 'quick_profile',
+        });
+
+        if (quickResult.fileMeta) setFileMeta(quickResult.fileMeta);
+        if (quickResult.extractionUrl) setExtractionUrl(quickResult.extractionUrl);
+        setExtraction({
+          ...quickResult.extraction,
+          stage: 'quick_profile',
+        });
+        setForm(prev => mergeFilledPrescriptionForm(prev, quickResult.form));
+
+        if (quickResult.extraction.status === 'extracted') {
+          setScanPhase('Basisdaten uebernommen - Vollanalyse laeuft');
+          toast.success('Basisdaten wurden uebernommen. Vollanalyse laeuft weiter.');
+        } else {
+          setScanPhase('Schnellauslesung ohne Treffer - Vollanalyse laeuft');
+        }
+      } catch (quickError) {
+        console.warn('Quick prescription extraction skipped', quickError?.message || quickError);
+        setScanPhase('Schnellauslesung fehlgeschlagen - Vollanalyse laeuft');
+      }
+
+      setScanPhase(quickResult?.extraction?.status === 'extracted'
+        ? 'Basisdaten uebernommen - vollstaendige Formular-56-Analyse laeuft'
+        : 'Formular-56-Analyse laeuft');
       const result = await extractPrescriptionDataWithRetry(base44, {
         extractionUrl: nextExtractionUrl,
         file,
@@ -179,8 +223,11 @@ export default function PrescriptionIntake() {
       });
       if (result.fileMeta) setFileMeta(result.fileMeta);
       if (result.extractionUrl) setExtractionUrl(result.extractionUrl);
-      setExtraction(result.extraction);
-      setForm(prev => ({ ...prev, ...result.form }));
+      setExtraction({
+        ...result.extraction,
+        stage: quickResult ? 'full_after_quick_profile' : 'full',
+      });
+      setForm(prev => mergeFilledPrescriptionForm(prev, result.form));
       setScanPhase('Rezeptpruefung aktualisiert');
       if (result.extraction.status === 'extracted') {
         toast.success('Rezept wurde ausgelesen. Bitte die Daten pruefen.');
@@ -234,12 +281,13 @@ export default function PrescriptionIntake() {
         validation_report: prescriptionReview,
         prescription_validation_status: prescriptionReview.status,
       };
+      const profilePayload = buildCustomerPayloadFromPrescription(reviewedPrescription);
       currentExtraction = {
         ...currentExtraction,
         validation_report: prescriptionReview,
       };
 
-      const upsert = await upsertUnifiedCustomer(base44, customerDraft, {
+      const upsert = await upsertUnifiedCustomer(base44, profilePayload, {
         existingCustomerId: selectedCustomerId || undefined,
       });
 
@@ -269,15 +317,13 @@ export default function PrescriptionIntake() {
       });
 
       await updateEntity(base44, 'Customer', upsert.customer.id, {
+        ...profilePayload,
         last_prescription_scan_id: prescriptionScan.id,
         last_rehasport_consultation_id: rehaRecord.id,
         active_reha_case_id: rehaRecord.id,
         profile_status: 'reha_aktiv',
         consent_health: true,
         consent_prescription_scan: true,
-        health_insurance: customerDraft.health_insurance,
-        insurance_number: customerDraft.insurance_number,
-        cost_carrier_number: customerDraft.cost_carrier_number,
         azh_sync_status: 'not_started',
       });
 
@@ -317,7 +363,7 @@ export default function PrescriptionIntake() {
       queryClient.invalidateQueries({ queryKey: ['personenakte', 'activities', upsert.customer.id] });
 
       if (upsert.customer?.id) {
-        navigate(`/berater/personen/${upsert.customer.id}?tab=reha`);
+        navigate(`/berater/personen/${upsert.customer.id}?tab=profile`);
       }
     } catch (error) {
       console.error('Prescription save failed', error);

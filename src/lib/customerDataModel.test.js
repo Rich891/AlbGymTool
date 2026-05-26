@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
+  buildCustomerPayloadFromPrescription,
+  buildPrescriptionScanPayload,
+  buildRehasportConsultationFromPrescription,
   buildCustomerSummary,
   calculateDataQualityScore,
   calculateMissingRequiredFields,
@@ -195,5 +198,67 @@ describe('buildCustomerSummary', () => {
     );
     expect(summary.active_goal_headline).toBeDefined();
     expect(summary.active_goal_headline.headline).toContain('Ziel');
+  });
+});
+
+describe('prescription data mapping', () => {
+  const prescription = {
+    patient_first_name: 'Armin',
+    patient_last_name: 'Bader',
+    birthdate: '1960-04-12',
+    gender: 'maennlich',
+    street: 'Hauptstrasse 1',
+    postal_code: '72458',
+    city: 'Albstadt',
+    health_insurance: 'AOK Baden-Wuerttemberg',
+    insurance_number: 'A123456789',
+    cost_carrier_number: '108018007',
+    insured_status: '1',
+    prescription_date: '2026-01-09',
+    prescribed_service: 'Rehabilitationssport',
+    prescribed_units: 50,
+    duration_months: 18,
+    approval_required_hint: true,
+    approval_present: false,
+    validation_report: {
+      status: 'valid',
+      score: 100,
+      issues: [],
+      approval_required: false,
+      approval_present: false,
+    },
+    prescription_validation_status: 'valid',
+  };
+
+  it('copies OCR profile fields into the unified customer payload', () => {
+    const customer = buildCustomerPayloadFromPrescription(prescription);
+
+    expect(customer.first_name).toBe('Armin');
+    expect(customer.last_name).toBe('Bader');
+    expect(customer.birthdate).toBe('1960-04-12');
+    expect(customer.street).toBe('Hauptstrasse 1');
+    expect(customer.postal_code).toBe('72458');
+    expect(customer.city).toBe('Albstadt');
+    expect(customer.health_insurance).toBe('AOK Baden-Wuerttemberg');
+    expect(customer.insurance_number).toBe('A 123 456 789');
+    expect(customer.cost_carrier_number).toBe('108018007');
+  });
+
+  it('stores approval requirement from the validation report, not from OCR hints', () => {
+    const customer = buildCustomerPayloadFromPrescription(prescription);
+    const scan = buildPrescriptionScanPayload({
+      customer,
+      prescription,
+      fileMeta: { file_name: 'Bader Armin.pdf', storage_mode: 'private' },
+      extraction: { status: 'extracted', confidence: 'review_required' },
+    });
+    const reha = buildRehasportConsultationFromPrescription({
+      customer,
+      prescription,
+      prescriptionScanId: 'scan-1',
+    });
+
+    expect(scan.approval_required).toBe(false);
+    expect(reha.approval_required).toBe(false);
   });
 });

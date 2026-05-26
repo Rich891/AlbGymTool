@@ -38,6 +38,14 @@ describe('matchHealthInsurance', () => {
 
     expect(match.id).toBe('aok');
   });
+
+  it('matches umlaut spelling against ue spelling', () => {
+    const match = matchHealthInsurance('AOK Baden-Württemberg', [
+      { id: 'aok', name: 'AOK Baden-Wuerttemberg', aliases: [] },
+    ]);
+
+    expect(match.id).toBe('aok');
+  });
 });
 
 describe('evaluatePrescription', () => {
@@ -58,6 +66,33 @@ describe('evaluatePrescription', () => {
 
     expect(review.status).toBe(PRESCRIPTION_VALIDATION_STATUS.INCOMPLETE);
     expect(review.issues.some(issue => issue.code === 'approval_missing')).toBe(true);
+  });
+
+  it('lets the local insurance database override OCR approval hints', () => {
+    const review = evaluatePrescription({
+      ...completePrescription,
+      approval_required_hint: true,
+      approval_present: false,
+    }, [
+      { id: 'aok', name: 'AOK Baden-Wuerttemberg', approval_required: false },
+    ], { today: new Date('2026-02-01') });
+
+    expect(review.approval_required).toBe(false);
+    expect(review.issues.some(issue => issue.code === 'approval_missing')).toBe(false);
+    expect(review.status).toBe(PRESCRIPTION_VALIDATION_STATUS.VALID);
+  });
+
+  it('uses a safe AOK fallback when the local database is not loaded yet', () => {
+    const review = evaluatePrescription({
+      ...completePrescription,
+      health_insurance: 'AOK Baden-Württemberg',
+      approval_required_hint: true,
+      approval_present: false,
+    }, [], { today: new Date('2026-02-01') });
+
+    expect(review.matched_health_insurance_name).toBe('AOK');
+    expect(review.approval_required).toBe(false);
+    expect(review.issues.some(issue => issue.code === 'approval_missing')).toBe(false);
   });
 
   it('marks missing OCR fields on their input fields', () => {
