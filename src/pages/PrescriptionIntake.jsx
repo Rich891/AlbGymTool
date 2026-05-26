@@ -27,6 +27,10 @@ import {
   extractPrescriptionDataWithRetry,
   uploadPrescriptionFile,
 } from '@/lib/prescriptionExtraction';
+import {
+  evaluatePrescription,
+  getWorstFieldSeverity,
+} from '@/lib/prescriptionValidation';
 
 export default function PrescriptionIntake() {
   const queryClient = useQueryClient();
@@ -42,6 +46,7 @@ export default function PrescriptionIntake() {
   const [form, setForm] = useState(EMPTY_PRESCRIPTION_FORM);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [appliedCustomerIdParam, setAppliedCustomerIdParam] = useState('');
+  const [scanPhase, setScanPhase] = useState('Bereit');
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -84,6 +89,18 @@ export default function PrescriptionIntake() {
   }, [file]);
 
   const customerDraft = useMemo(() => buildCustomerPayloadFromPrescription(form), [form]);
+  const prescriptionReview = useMemo(
+    () => evaluatePrescription(form, healthInsurances),
+    [form, healthInsurances],
+  );
+  const hasScanContext = Boolean(
+    file ||
+    extraction ||
+    form.patient_first_name ||
+    form.patient_last_name ||
+    form.health_insurance ||
+    form.prescription_date
+  );
 
   const candidateCustomers = useMemo(() => {
     const insuranceNumber = customerDraft.insurance_number?.replace(/\s/g, '').toLowerCase();
@@ -106,6 +123,8 @@ export default function PrescriptionIntake() {
   const canSave = !!file && !!form.patient_first_name?.trim() && !!form.patient_last_name?.trim();
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const issuesFor = (field) => prescriptionReview.field_issues?.[field] || [];
+  const inputFor = (field) => `${inputCls} ${fieldStateClass(issuesFor(field))}`;
 
   const handleFileChange = (event) => {
     const nextFile = event.target.files?.[0];
@@ -115,6 +134,7 @@ export default function PrescriptionIntake() {
     setExtractionUrl('');
     setExtraction(null);
     setScanError('');
+    setScanPhase('Datei bereit - Rezept auslesen starten');
   };
 
   const ensureFileUploaded = async () => {
@@ -140,15 +160,18 @@ export default function PrescriptionIntake() {
 
     setExtracting(true);
     try {
+      setScanPhase('Datei wird hochgeladen');
       const upload = await ensureFileUploaded();
       if (!upload) return null;
 
+      setScanPhase('OCR liest Patient, Kasse und Rezeptdaten');
       let nextExtractionUrl = upload.extractionUrl;
       if (!nextExtractionUrl) {
         nextExtractionUrl = await createExtractionUrl(base44, upload.fileMeta);
         setExtractionUrl(nextExtractionUrl || '');
       }
 
+      setScanPhase('Formular-56-Analyse laeuft');
       const result = await extractPrescriptionDataWithRetry(base44, {
         extractionUrl: nextExtractionUrl,
         file,
@@ -158,6 +181,7 @@ export default function PrescriptionIntake() {
       if (result.extractionUrl) setExtractionUrl(result.extractionUrl);
       setExtraction(result.extraction);
       setForm(prev => ({ ...prev, ...result.form }));
+      setScanPhase('Rezeptpruefung aktualisiert');
       if (result.extraction.status === 'extracted') {
         toast.success('Rezept wurde ausgelesen. Bitte die Daten pruefen.');
       } else {
@@ -168,6 +192,7 @@ export default function PrescriptionIntake() {
       console.error('Prescription extraction failed', error);
       const message = error?.message || 'Automatische Rezeptauslesung fehlgeschlagen.';
       setScanError(message);
+      setScanPhase('Manuelle Pruefung noetig');
       setExtraction({
         raw: { error: message },
         status: 'failed',
@@ -188,6 +213,7 @@ export default function PrescriptionIntake() {
 
     setSaving(true);
     try {
+      setScanPhase('Kundenprofil und Rezept werden gespeichert');
       let currentFileMeta = fileMeta;
       let currentExtraction = extraction;
 
@@ -203,6 +229,16 @@ export default function PrescriptionIntake() {
         confidence: 'manual_entry',
       };
 
+      const reviewedPrescription = {
+        ...form,
+        validation_report: prescriptionReview,
+        prescription_validation_status: prescriptionReview.status,
+      };
+      currentExtraction = {
+        ...currentExtraction,
+        validation_report: prescriptionReview,
+      };
+
       const upsert = await upsertUnifiedCustomer(base44, customerDraft, {
         existingCustomerId: selectedCustomerId || undefined,
       });
@@ -212,7 +248,7 @@ export default function PrescriptionIntake() {
         'PrescriptionScan',
         buildPrescriptionScanPayload({
           customer: upsert.customer,
-          prescription: form,
+          prescription: reviewedPrescription,
           fileMeta: currentFileMeta,
           extraction: currentExtraction,
         })
@@ -223,7 +259,7 @@ export default function PrescriptionIntake() {
         'RehasportConsultation',
         buildRehasportConsultationFromPrescription({
           customer: upsert.customer,
-          prescription: form,
+          prescription: reviewedPrescription,
           prescriptionScanId: prescriptionScan.id,
         })
       );
@@ -235,6 +271,10 @@ export default function PrescriptionIntake() {
       await updateEntity(base44, 'Customer', upsert.customer.id, {
         last_prescription_scan_id: prescriptionScan.id,
         last_rehasport_consultation_id: rehaRecord.id,
+        active_reha_case_id: rehaRecord.id,
+        profile_status: 'reha_aktiv',
+        consent_health: true,
+        consent_prescription_scan: true,
         health_insurance: customerDraft.health_insurance,
         insurance_number: customerDraft.insurance_number,
         cost_carrier_number: customerDraft.cost_carrier_number,
@@ -250,6 +290,7 @@ export default function PrescriptionIntake() {
           actor: 'advisor',
           occurred_at: new Date().toISOString(),
           notes: upsert.created ? 'Kunde aus Rezeptscan angelegt' : 'Kunde aus Rezeptscan aktualisiert',
+          outcome: prescriptionReview.status,
         });
       } catch (activityError) {
         console.warn('ActivityLog for prescription skipped', activityError?.message || activityError);
@@ -264,6 +305,7 @@ export default function PrescriptionIntake() {
       setScanError('');
       setForm(EMPTY_PRESCRIPTION_FORM);
       setSelectedCustomerId('');
+      setScanPhase('Gespeichert');
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customers-unified-prescription'] });
       queryClient.invalidateQueries({ queryKey: ['rehasport-consultations'] });
@@ -295,7 +337,7 @@ export default function PrescriptionIntake() {
             Rezept einlesen, Daten pruefen, zentrale Kundendatei anlegen oder aktualisieren und den Scan revisionsfaehig speichern.
           </p>
           <p className="text-xs text-muted-foreground mt-2 max-w-3xl">
-            Automatisches Auslesen nutzt Base44 Upload, Formular-56-OCR und einen Vision-Retry fuer schwierige Scans. Wenn die Erkennung scheitert, bleibt der manuelle Speicherweg offen.
+            Automatisches Auslesen fuellt die Kundenprofil-Felder, bewertet die Rezeptgueltigkeit und markiert fehlende oder unsichere Felder direkt im Formular.
           </p>
         </div>
 
@@ -358,7 +400,8 @@ export default function PrescriptionIntake() {
             </div>
           )}
 
-          <StatusPanel fileMeta={fileMeta} extraction={extraction} scanError={scanError} />
+          <ReviewPanel review={prescriptionReview} phase={scanPhase} extracting={extracting} hasScanContext={hasScanContext} />
+          <StatusPanel fileMeta={fileMeta} extraction={extraction} scanError={scanError} review={prescriptionReview} hasScanContext={hasScanContext} />
           <CandidatePanel
             candidates={candidateCustomers}
             selectedCustomerId={selectedCustomerId}
@@ -373,39 +416,39 @@ export default function PrescriptionIntake() {
               <h2 className="text-lg font-black text-foreground uppercase">Kundendaten</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Vorname *">
-                <input value={form.patient_first_name} onChange={event => set('patient_first_name', event.target.value)} className={inputCls} />
+              <Field label="Vorname *" issues={issuesFor('patient_first_name')}>
+                <input value={form.patient_first_name} onChange={event => set('patient_first_name', event.target.value)} className={inputFor('patient_first_name')} />
               </Field>
-              <Field label="Nachname *">
-                <input value={form.patient_last_name} onChange={event => set('patient_last_name', event.target.value)} className={inputCls} />
+              <Field label="Nachname *" issues={issuesFor('patient_last_name')}>
+                <input value={form.patient_last_name} onChange={event => set('patient_last_name', event.target.value)} className={inputFor('patient_last_name')} />
               </Field>
-              <Field label="Geburtsdatum">
-                <input type="date" value={form.birthdate} onChange={event => set('birthdate', event.target.value)} className={inputCls} />
+              <Field label="Geburtsdatum" issues={issuesFor('birthdate')}>
+                <input type="date" value={form.birthdate} onChange={event => set('birthdate', event.target.value)} className={inputFor('birthdate')} />
               </Field>
               <Field label="Geschlecht">
-                <select value={form.gender} onChange={event => set('gender', event.target.value)} className={inputCls}>
+                <select value={form.gender} onChange={event => set('gender', event.target.value)} className={inputFor('gender')}>
                   <option value="">-</option>
                   <option value={'m\u00e4nnlich'}>Maennlich</option>
                   <option value="weiblich">Weiblich</option>
                   <option value="divers">Divers</option>
                 </select>
               </Field>
-              <Field label="Strasse">
-                <input value={form.street} onChange={event => set('street', event.target.value)} className={inputCls} />
+              <Field label="Strasse" issues={issuesFor('street')}>
+                <input value={form.street} onChange={event => set('street', event.target.value)} className={inputFor('street')} />
               </Field>
               <div className="grid grid-cols-[120px_1fr] gap-3">
-                <Field label="PLZ">
-                  <input value={form.postal_code} onChange={event => set('postal_code', event.target.value)} className={inputCls} />
+                <Field label="PLZ" issues={issuesFor('postal_code')}>
+                  <input value={form.postal_code} onChange={event => set('postal_code', event.target.value)} className={inputFor('postal_code')} />
                 </Field>
-                <Field label="Ort">
-                  <input value={form.city} onChange={event => set('city', event.target.value)} className={inputCls} />
+                <Field label="Ort" issues={issuesFor('city')}>
+                  <input value={form.city} onChange={event => set('city', event.target.value)} className={inputFor('city')} />
                 </Field>
               </div>
               <Field label="Telefon">
-                <input value={form.phone} onChange={event => set('phone', event.target.value)} className={inputCls} />
+                <input value={form.phone} onChange={event => set('phone', event.target.value)} className={inputFor('phone')} />
               </Field>
               <Field label="E-Mail">
-                <input type="email" value={form.email} onChange={event => set('email', event.target.value)} className={inputCls} />
+                <input type="email" value={form.email} onChange={event => set('email', event.target.value)} className={inputFor('email')} />
               </Field>
             </div>
           </div>
@@ -416,73 +459,73 @@ export default function PrescriptionIntake() {
               <h2 className="text-lg font-black text-foreground uppercase">Kasse & Rezept</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Krankenkasse">
+              <Field label="Krankenkasse" issues={issuesFor('health_insurance')}>
                 <input
                   list="health-insurance-options"
                   value={form.health_insurance}
                   onChange={event => set('health_insurance', event.target.value)}
-                  className={inputCls}
+                  className={inputFor('health_insurance')}
                 />
                 <datalist id="health-insurance-options">
                   {healthInsurances.map(item => <option key={item.id} value={item.name} />)}
                 </datalist>
               </Field>
-              <Field label="Versichertennummer">
-                <input value={form.insurance_number} onChange={event => set('insurance_number', event.target.value)} className={inputCls} />
+              <Field label="Versichertennummer" issues={issuesFor('insurance_number')}>
+                <input value={form.insurance_number} onChange={event => set('insurance_number', event.target.value)} className={inputFor('insurance_number')} />
               </Field>
               <Field label="Kostentraegernummer">
-                <input value={form.cost_carrier_number} onChange={event => set('cost_carrier_number', event.target.value)} className={inputCls} />
+                <input value={form.cost_carrier_number} onChange={event => set('cost_carrier_number', event.target.value)} className={inputFor('cost_carrier_number')} />
               </Field>
               <Field label="Status">
-                <input value={form.insured_status} onChange={event => set('insured_status', event.target.value)} className={inputCls} />
+                <input value={form.insured_status} onChange={event => set('insured_status', event.target.value)} className={inputFor('insured_status')} />
               </Field>
-              <Field label="Ausstellungsdatum">
-                <input type="date" value={form.prescription_date} onChange={event => set('prescription_date', event.target.value)} className={inputCls} />
+              <Field label="Ausstellungsdatum" issues={issuesFor('prescription_date')}>
+                <input type="date" value={form.prescription_date} onChange={event => set('prescription_date', event.target.value)} className={inputFor('prescription_date')} />
               </Field>
               <Field label="Gueltig ab">
-                <input type="date" value={form.valid_from} onChange={event => set('valid_from', event.target.value)} className={inputCls} />
+                <input type="date" value={form.valid_from} onChange={event => set('valid_from', event.target.value)} className={inputFor('valid_from')} />
               </Field>
-              <Field label="Gueltig bis">
-                <input type="date" value={form.valid_to} onChange={event => set('valid_to', event.target.value)} className={inputCls} />
+              <Field label="Gueltig bis" issues={issuesFor('valid_to')}>
+                <input type="date" value={form.valid_to} onChange={event => set('valid_to', event.target.value)} className={inputFor('valid_to')} />
               </Field>
               <Field label="Formular">
-                <input value={form.form_type} onChange={event => set('form_type', event.target.value)} className={inputCls} />
+                <input value={form.form_type} onChange={event => set('form_type', event.target.value)} className={inputFor('form_type')} />
               </Field>
               <Field label="Muster">
-                <input value={form.form_number} onChange={event => set('form_number', event.target.value)} className={inputCls} />
+                <input value={form.form_number} onChange={event => set('form_number', event.target.value)} className={inputFor('form_number')} />
               </Field>
               <Field label="Version">
-                <input value={form.form_version} onChange={event => set('form_version', event.target.value)} className={inputCls} />
+                <input value={form.form_version} onChange={event => set('form_version', event.target.value)} className={inputFor('form_version')} />
               </Field>
-              <Field label="BSNR">
-                <input value={form.practice_site_number} onChange={event => set('practice_site_number', event.target.value)} className={inputCls} />
+              <Field label="BSNR" issues={issuesFor('practice_site_number')}>
+                <input value={form.practice_site_number} onChange={event => set('practice_site_number', event.target.value)} className={inputFor('practice_site_number')} />
               </Field>
-              <Field label="Arzt-Nr.">
-                <input value={form.doctor_number} onChange={event => set('doctor_number', event.target.value)} className={inputCls} />
+              <Field label="Arzt-Nr." issues={issuesFor('doctor_number')}>
+                <input value={form.doctor_number} onChange={event => set('doctor_number', event.target.value)} className={inputFor('doctor_number')} />
               </Field>
-              <Field label="Leistung">
-                <input value={form.prescribed_service} onChange={event => set('prescribed_service', event.target.value)} className={inputCls} />
+              <Field label="Leistung" issues={issuesFor('prescribed_service')}>
+                <input value={form.prescribed_service} onChange={event => set('prescribed_service', event.target.value)} className={inputFor('prescribed_service')} />
               </Field>
-              <Field label="Rehasportart">
-                <input value={form.sport_type} onChange={event => set('sport_type', event.target.value)} className={inputCls} />
+              <Field label="Rehasportart" issues={issuesFor('sport_type')}>
+                <input value={form.sport_type} onChange={event => set('sport_type', event.target.value)} className={inputFor('sport_type')} />
               </Field>
-              <Field label="Einheiten">
-                <input type="number" value={form.prescribed_units} onChange={event => set('prescribed_units', event.target.value)} className={inputCls} />
+              <Field label="Einheiten" issues={issuesFor('prescribed_units')}>
+                <input type="number" value={form.prescribed_units} onChange={event => set('prescribed_units', event.target.value)} className={inputFor('prescribed_units')} />
               </Field>
-              <Field label="Dauer Monate">
-                <input type="number" value={form.duration_months} onChange={event => set('duration_months', event.target.value)} className={inputCls} />
+              <Field label="Dauer Monate" issues={issuesFor('duration_months')}>
+                <input type="number" value={form.duration_months} onChange={event => set('duration_months', event.target.value)} className={inputFor('duration_months')} />
               </Field>
-              <Field label="Frequenz">
-                <input value={form.frequency} onChange={event => set('frequency', event.target.value)} className={inputCls} />
+              <Field label="Frequenz" issues={issuesFor('frequency')}>
+                <input value={form.frequency} onChange={event => set('frequency', event.target.value)} className={inputFor('frequency')} />
               </Field>
               <Field label="PRF.NR">
-                <input value={form.prf_number} onChange={event => set('prf_number', event.target.value)} className={inputCls} />
+                <input value={form.prf_number} onChange={event => set('prf_number', event.target.value)} className={inputFor('prf_number')} />
               </Field>
-              <Field label="ICD-Codes">
+              <Field label="ICD-Codes" issues={issuesFor('icd_codes')}>
                 <input
                   value={(form.icd_codes || []).join(', ')}
                   onChange={event => set('icd_codes', event.target.value.split(',').map(item => item.trim()).filter(Boolean))}
-                  className={inputCls}
+                  className={inputFor('icd_codes')}
                 />
               </Field>
               <label className="flex items-center gap-3 h-11 px-3 rounded-xl border border-border bg-background text-sm font-bold text-foreground">
@@ -494,35 +537,68 @@ export default function PrescriptionIntake() {
                 />
                 Folgeverordnung
               </label>
+              <CheckField
+                label="Arztunterschrift erkannt"
+                checked={!!form.doctor_signature_present}
+                onChange={value => set('doctor_signature_present', value)}
+                issues={issuesFor('doctor_signature_present')}
+              />
+              <CheckField
+                label="Arztstempel erkannt"
+                checked={!!form.doctor_stamp_present}
+                onChange={value => set('doctor_stamp_present', value)}
+                issues={issuesFor('doctor_stamp_present')}
+              />
+              <CheckField
+                label="Patientenunterschrift"
+                checked={!!form.patient_signature_present}
+                onChange={value => set('patient_signature_present', value)}
+                issues={issuesFor('patient_signature_present')}
+              />
+              <CheckField
+                label="Genehmigung vorhanden"
+                checked={!!form.approval_present}
+                onChange={value => set('approval_present', value)}
+                issues={issuesFor('approval_present')}
+              />
+              <Field label="Genehmigungsdatum" issues={issuesFor('approval_date')}>
+                <input type="date" value={form.approval_date} onChange={event => set('approval_date', event.target.value)} className={inputFor('approval_date')} />
+              </Field>
+              <Field label="Genehmigt bis" issues={issuesFor('approval_until')}>
+                <input type="date" value={form.approval_until} onChange={event => set('approval_until', event.target.value)} className={inputFor('approval_until')} />
+              </Field>
+              <Field label="Genehmigungsnummer">
+                <input value={form.approval_reference} onChange={event => set('approval_reference', event.target.value)} className={inputFor('approval_reference')} />
+              </Field>
               <div className="md:col-span-2">
-                <Field label="Diagnose / Indikation">
-                  <textarea value={form.diagnosis_text} onChange={event => set('diagnosis_text', event.target.value)} className={`${inputCls} min-h-24 py-3`} />
+                <Field label="Diagnose / Indikation" issues={issuesFor('diagnosis_text')}>
+                  <textarea value={form.diagnosis_text} onChange={event => set('diagnosis_text', event.target.value)} className={`${inputFor('diagnosis_text')} min-h-24 py-3`} />
                 </Field>
               </div>
               <div className="md:col-span-2">
                 <Field label="Schaedigung / Funktionsstoerung">
-                  <textarea value={form.impairment_text} onChange={event => set('impairment_text', event.target.value)} className={`${inputCls} min-h-20 py-3`} />
+                  <textarea value={form.impairment_text} onChange={event => set('impairment_text', event.target.value)} className={`${inputFor('impairment_text')} min-h-20 py-3`} />
                 </Field>
               </div>
               <div className="md:col-span-2">
-                <Field label="Rehabilitationsziel">
-                  <textarea value={form.rehab_goal} onChange={event => set('rehab_goal', event.target.value)} className={`${inputCls} min-h-20 py-3`} />
+                <Field label="Rehabilitationsziel" issues={issuesFor('rehab_goal')}>
+                  <textarea value={form.rehab_goal} onChange={event => set('rehab_goal', event.target.value)} className={`${inputFor('rehab_goal')} min-h-20 py-3`} />
                 </Field>
               </div>
               <div className="md:col-span-2">
                 <Field label="Begruendung Folgeverordnung">
-                  <textarea value={form.follow_up_reason} onChange={event => set('follow_up_reason', event.target.value)} className={`${inputCls} min-h-20 py-3`} />
+                  <textarea value={form.follow_up_reason} onChange={event => set('follow_up_reason', event.target.value)} className={`${inputFor('follow_up_reason')} min-h-20 py-3`} />
                 </Field>
               </div>
-              <Field label="Arzt / Praxis">
-                <input value={form.physician_name} onChange={event => set('physician_name', event.target.value)} className={inputCls} />
+              <Field label="Arzt / Praxis" issues={issuesFor('physician_name')}>
+                <input value={form.physician_name} onChange={event => set('physician_name', event.target.value)} className={inputFor('physician_name')} />
               </Field>
               <Field label="LANR">
-                <input value={form.physician_lanr} onChange={event => set('physician_lanr', event.target.value)} className={inputCls} />
+                <input value={form.physician_lanr} onChange={event => set('physician_lanr', event.target.value)} className={inputFor('physician_lanr')} />
               </Field>
               <div className="md:col-span-2">
                 <Field label="Pruefhinweise">
-                  <textarea value={form.notes} onChange={event => set('notes', event.target.value)} className={`${inputCls} min-h-20 py-3`} />
+                  <textarea value={form.notes} onChange={event => set('notes', event.target.value)} className={`${inputFor('notes')} min-h-20 py-3`} />
                 </Field>
               </div>
             </div>
@@ -537,16 +613,131 @@ export default function PrescriptionIntake() {
 
 const inputCls = 'w-full h-11 px-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary text-sm';
 
-function Field({ label, children }) {
+function fieldStateClass(issues = []) {
+  const state = getWorstFieldSeverity(issues);
+  if (state === 'error') return 'border-rose-500 bg-rose-500/5 focus:ring-rose-500';
+  if (state === 'warning') return 'border-amber-500 bg-amber-500/5 focus:ring-amber-500';
+  return '';
+}
+
+function Field({ label, children, issues = [] }) {
   return (
     <label className="block">
-      <span className="text-xs font-black uppercase tracking-widest text-muted-foreground block mb-2">{label}</span>
+      <span className="text-xs font-black uppercase tracking-widest text-muted-foreground block mb-2">
+        {label}
+      </span>
       {children}
+      <FieldIssues issues={issues} />
     </label>
   );
 }
 
-function StatusPanel({ fileMeta, extraction, scanError }) {
+function CheckField({ label, checked, onChange, issues = [] }) {
+  const stateClass = fieldStateClass(issues);
+  return (
+    <label className={`block rounded-xl border bg-background px-3 py-2.5 text-sm font-bold text-foreground ${stateClass || 'border-border'}`}>
+      <span className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={event => onChange(event.target.checked)}
+          className="h-4 w-4 accent-primary"
+        />
+        {label}
+      </span>
+      <FieldIssues issues={issues} />
+    </label>
+  );
+}
+
+function FieldIssues({ issues = [] }) {
+  if (!issues.length) return null;
+  const issue = issues[0];
+  const cls = issue.severity === 'error' ? 'text-rose-600' : 'text-amber-600';
+  return (
+    <p className={`mt-1 text-xs font-medium ${cls}`}>
+      {issue.message}
+    </p>
+  );
+}
+
+function ReviewPanel({ review, phase, extracting, hasScanContext }) {
+  if (!hasScanContext) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-background px-3 py-3">
+          <div className="flex items-start gap-3">
+            <ScanLine className="w-5 h-5 mt-0.5 text-muted-foreground" />
+            <div>
+              <p className="font-black text-foreground">Rezept bereit zum Scan</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Nach dem Upload werden Kundenprofil, Rezeptdaten und Gueltigkeit automatisch geprueft.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const colorClass = {
+    green: 'border-primary/30 bg-primary/10 text-primary',
+    amber: 'border-amber-500/30 bg-amber-500/10 text-amber-700',
+    red: 'border-rose-500/30 bg-rose-500/10 text-rose-700',
+  }[review.status_color] || 'border-border bg-card text-muted-foreground';
+  const Icon = review.status_color === 'green' ? CheckCircle2 : AlertTriangle;
+  const topIssues = review.issues.slice(0, 5);
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+      <div className={`rounded-xl border px-3 py-3 ${colorClass}`}>
+        <div className="flex items-start gap-3">
+          <Icon className={`w-5 h-5 mt-0.5 ${extracting ? 'animate-pulse' : ''}`} />
+          <div className="min-w-0">
+            <p className="font-black text-foreground">{review.status_label}</p>
+            <p className="text-sm mt-1">{phase}</p>
+          </div>
+          <div className="ml-auto text-right">
+            <p className="text-xs font-bold uppercase tracking-widest">Score</p>
+            <p className="text-lg font-black">{review.score}</p>
+          </div>
+        </div>
+      </div>
+
+      {review.matched_health_insurance_name && (
+        <p className="text-xs text-muted-foreground">
+          Kasse erkannt: <span className="font-bold text-foreground">{review.matched_health_insurance_name}</span>
+          {review.approval_required ? ' - Genehmigung erforderlich' : ' - keine Genehmigungspflicht hinterlegt'}
+        </p>
+      )}
+
+      {topIssues.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Was zu pruefen ist</p>
+          {topIssues.map(issue => (
+            <div
+              key={`${issue.code}-${issue.fields?.join('-')}`}
+              className={`rounded-xl border px-3 py-2 text-sm ${
+                issue.severity === 'error'
+                  ? 'border-rose-500/20 bg-rose-500/10'
+                  : 'border-amber-500/20 bg-amber-500/10'
+              }`}
+            >
+              <p className="font-bold text-foreground">{issue.label}</p>
+              <p className="text-muted-foreground mt-0.5">{issue.message}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-bold text-foreground">
+          Keine offenen Pruefpunkte erkannt.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusPanel({ fileMeta, extraction, scanError, review, hasScanContext }) {
   const extractionLabel = extraction?.status === 'extracted'
     ? `Daten ausgelesen${extraction.retry_mode ? ' (Retry)' : ''}`
     : extraction?.status === 'failed'
@@ -566,6 +757,13 @@ function StatusPanel({ fileMeta, extraction, scanError }) {
         label={extractionLabel}
         warning={extraction?.status === 'failed'}
       />
+      {hasScanContext && (
+        <StatusLine
+          ok={review.status === 'valid'}
+          label={`Rezeptpruefung: ${review.status_label}`}
+          warning={review.status !== 'valid'}
+        />
+      )}
       <StatusLine ok={false} label="AZH-Sync spaeter: not_started" neutral />
       {scanError && (
         <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-700">

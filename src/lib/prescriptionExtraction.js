@@ -38,6 +38,14 @@ export const EMPTY_PRESCRIPTION_FORM = {
   physician_name: '',
   physician_lanr: '',
   prf_number: '',
+  doctor_signature_present: false,
+  doctor_stamp_present: false,
+  patient_signature_present: false,
+  approval_required_hint: false,
+  approval_present: false,
+  approval_date: '',
+  approval_until: '',
+  approval_reference: '',
   document_kind: '',
   contains_multiple_prescriptions: false,
   prescription_count: '',
@@ -71,9 +79,12 @@ in confidence_notes.
 Wichtige Feldpositionen auf Formular 56: Patient/Kasse links oben, Versichertennummer,
 Kostentraegerkennung, Status, BSNR, Arzt-Nr. und Datum rechts oben; Diagnose/ICD,
 Schaedigung und Ziel im Mittelteil; Rehasport/Funktionstraining, Art, Einheiten,
-Dauer und Folgeverordnung im unteren Teil. Deutsche Datumswerte kommen oft als TT.MM.JJ
-vor: Geburtsdaten duerfen nicht in der Zukunft liegen; Rezeptdaten aus 2024/2025/2026
-sollen als 20xx interpretiert werden.
+Dauer und Folgeverordnung im unteren Teil. Arztstempel und Arztunterschrift sind meist
+unten/rechts oder im unteren Formularbereich sichtbar. Bewilligungen der Krankenkasse
+stehen haeufig auf Rueckseiten oder separaten Bewilligungsseiten und enthalten Gueltigkeit,
+Genehmigungsnummer, Stempel oder Unterschrift. Deutsche Datumswerte kommen oft als
+TT.MM.JJ vor: Geburtsdaten duerfen nicht in der Zukunft liegen; Rezeptdaten aus
+2024/2025/2026 sollen als 20xx interpretiert werden.
 `.trim();
 
 export const PRESCRIPTION_EXTRACTION_SCHEMA = {
@@ -181,6 +192,20 @@ export const PRESCRIPTION_EXTRACTION_SCHEMA = {
         lanr: { type: 'string', description: 'LANR, falls vorhanden' },
       },
     },
+    validation: {
+      type: 'object',
+      properties: {
+        doctor_signature_present: { type: 'boolean', description: 'True, wenn eine Arztunterschrift im richtigen Formularbereich sichtbar ist.' },
+        doctor_stamp_present: { type: 'boolean', description: 'True, wenn ein Arzt-/Praxisstempel sichtbar ist.' },
+        patient_signature_present: { type: 'boolean', description: 'True, wenn eine Patienten-/Versichertenunterschrift sichtbar ist, falls vorhanden.' },
+        approval_required_hint: { type: 'boolean', description: 'True, wenn Rezept oder Kassenblatt erkennen lassen, dass eine Genehmigung erforderlich ist.' },
+        approval_present: { type: 'boolean', description: 'True, wenn eine Krankenkassen-Genehmigung/Bewilligung sichtbar ist.' },
+        approval_date: { type: 'string', description: 'Genehmigungsdatum im Format YYYY-MM-DD, falls sichtbar.' },
+        approval_until: { type: 'string', description: 'Genehmigt/gueltig bis im Format YYYY-MM-DD, falls sichtbar.' },
+        approval_reference: { type: 'string', description: 'Genehmigungsnummer, Aktenzeichen oder Hinweis der Krankenkasse.' },
+        visual_quality_notes: { type: 'string', description: 'Hinweise zu schlechter Lesbarkeit, abgeschnittenen Feldern, Stempeln oder Unterschriften.' },
+      },
+    },
     confidence_notes: {
       type: 'string',
       description: 'Kurzer Hinweis, welche Felder unsicher oder schlecht lesbar sind',
@@ -216,6 +241,7 @@ export function normalizePrescriptionExtraction(result = {}) {
   const prescription = source.prescription || {};
   const provider = source.provider || {};
   const physician = source.physician || {};
+  const validation = source.validation || {};
   const rehabilitationSportChecked = normalizeBoolean(
     valueFrom(prescription.rehabilitation_sport_checked, source.rehabilitation_sport_checked)
   );
@@ -265,6 +291,14 @@ export function normalizePrescriptionExtraction(result = {}) {
     physician_name: valueFrom(provider.physician_name, physician.name, source.physician_name),
     physician_lanr: valueFrom(physician.lanr, provider.lanr, source.physician_lanr),
     prf_number: valueFrom(document.prf_number, source.prf_number),
+    doctor_signature_present: normalizeBoolean(valueFrom(validation.doctor_signature_present, source.doctor_signature_present)),
+    doctor_stamp_present: normalizeBoolean(valueFrom(validation.doctor_stamp_present, source.doctor_stamp_present)),
+    patient_signature_present: normalizeBoolean(valueFrom(validation.patient_signature_present, source.patient_signature_present)),
+    approval_required_hint: normalizeBoolean(valueFrom(validation.approval_required_hint, source.approval_required_hint)),
+    approval_present: normalizeBoolean(valueFrom(validation.approval_present, source.approval_present)),
+    approval_date: normalizeDate(valueFrom(validation.approval_date, source.approval_date)),
+    approval_until: normalizeDate(valueFrom(validation.approval_until, source.approval_until)),
+    approval_reference: valueFrom(validation.approval_reference, source.approval_reference),
     document_kind: valueFrom(document.document_kind, source.document_kind),
     contains_multiple_prescriptions: normalizeBoolean(valueFrom(document.contains_multiple_prescriptions, source.contains_multiple_prescriptions)),
     prescription_count: valueFrom(document.prescription_count, source.prescription_count),
@@ -272,8 +306,8 @@ export function normalizePrescriptionExtraction(result = {}) {
     page_roles: Array.isArray(document.page_roles) ? document.page_roles : [],
     page_count: valueFrom(document.page_count, source.page_count),
     blank_pages_detected: valueFrom(document.blank_pages_detected, source.blank_pages_detected),
-    scan_warning: valueFrom(document.scan_warning, source.scan_warning),
-    notes: valueFrom(source.confidence_notes, source.notes),
+    scan_warning: valueFrom(document.scan_warning, validation.visual_quality_notes, source.scan_warning),
+    notes: valueFrom(source.confidence_notes, validation.visual_quality_notes, source.notes),
   };
 }
 

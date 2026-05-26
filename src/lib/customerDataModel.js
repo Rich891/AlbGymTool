@@ -1,5 +1,9 @@
 import { createEntity, safeFilterEntity, updateEntity } from '@/lib/entityGateway';
 import { deriveGoalProfileSummary } from '@/lib/goalProfileModel';
+import {
+  validationStatusToPrescriptionStatus,
+  validationStatusToRehaPrescriptionStatus,
+} from '@/lib/prescriptionValidation';
 
 const EMPTY_VALUES = new Set([undefined, null, '']);
 
@@ -434,6 +438,9 @@ export function buildCustomerPayloadFromPrescription(prescription = {}) {
 }
 
 export function buildRehasportConsultationFromPrescription({ customer, prescription, prescriptionScanId }) {
+  const validation = prescription.validation_report || {};
+  const validationStatus = prescription.prescription_validation_status || validation.status;
+
   return compactObject({
     customer_id: customer?.id,
     customer_name: joinCustomerName(customer),
@@ -447,7 +454,7 @@ export function buildRehasportConsultationFromPrescription({ customer, prescript
     cost_carrier_number: cleanText(prescription.cost_carrier_number),
     insured_status: cleanText(prescription.insured_status),
     prescription_scan_id: prescriptionScanId,
-    prescription_status: 'scan_saved',
+    prescription_status: validationStatusToRehaPrescriptionStatus(validationStatus),
     prescription_date: normalizeDate(prescription.prescription_date),
     prescription_valid_from: normalizeDate(prescription.valid_from),
     prescription_valid_to: normalizeDate(prescription.valid_to),
@@ -471,12 +478,27 @@ export function buildRehasportConsultationFromPrescription({ customer, prescript
     prf_number: cleanText(prescription.prf_number),
     physician_name: cleanText(prescription.physician_name),
     physician_lanr: cleanText(prescription.physician_lanr),
+    doctor_signature_present: Boolean(prescription.doctor_signature_present),
+    doctor_stamp_present: Boolean(prescription.doctor_stamp_present),
+    patient_signature_present: Boolean(prescription.patient_signature_present),
+    approval_required: Boolean(validation.approval_required || prescription.approval_required_hint),
+    approval_present: Boolean(validation.approval_present || prescription.approval_present),
+    approval_date: normalizeDate(prescription.approval_date),
+    approval_until: normalizeDate(prescription.approval_until),
+    approval_reference: cleanText(prescription.approval_reference),
+    prescription_validation_status: validationStatus,
+    prescription_validation_score: validation.score,
+    prescription_validation_report: validation,
+    prescription_missing_items: (validation.issues || []).map(issue => issue.label || issue.message).filter(Boolean),
     status: 'rezept_erfasst',
     notes: cleanText(prescription.notes),
   });
 }
 
 export function buildPrescriptionScanPayload({ customer, rehasportConsultation, prescription, fileMeta, extraction }) {
+  const validation = prescription.validation_report || extraction?.validation_report || {};
+  const validationStatus = prescription.prescription_validation_status || validation.status;
+
   return compactObject({
     customer_id: customer?.id,
     rehasport_consultation_id: rehasportConsultation?.id,
@@ -515,8 +537,20 @@ export function buildPrescriptionScanPayload({ customer, rehasportConsultation, 
     follow_up_prescription: Boolean(prescription.follow_up_prescription),
     follow_up_reason: cleanText(prescription.follow_up_reason),
     prf_number: cleanText(prescription.prf_number),
+    doctor_signature_present: Boolean(prescription.doctor_signature_present),
+    doctor_stamp_present: Boolean(prescription.doctor_stamp_present),
+    patient_signature_present: Boolean(prescription.patient_signature_present),
+    approval_required: Boolean(validation.approval_required || prescription.approval_required_hint),
+    approval_present: Boolean(validation.approval_present || prescription.approval_present),
+    approval_date: normalizeDate(prescription.approval_date),
+    approval_until: normalizeDate(prescription.approval_until),
+    approval_reference: cleanText(prescription.approval_reference),
+    prescription_validation_status: validationStatus,
+    prescription_validation_score: validation.score,
+    prescription_validation_report: validation,
+    prescription_missing_items: (validation.issues || []).map(issue => issue.label || issue.message).filter(Boolean),
     azh_sync_status: 'not_started',
-    status: 'verified',
+    status: validationStatusToPrescriptionStatus(validationStatus),
   });
 }
 

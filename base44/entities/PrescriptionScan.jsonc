@@ -173,6 +173,64 @@
       "type": "string",
       "description": "PRF.NR / Pruefnummer"
     },
+    "doctor_signature_present": {
+      "type": "boolean",
+      "description": "Arztunterschrift erkannt"
+    },
+    "doctor_stamp_present": {
+      "type": "boolean",
+      "description": "Arzt-/Praxisstempel erkannt"
+    },
+    "patient_signature_present": {
+      "type": "boolean",
+      "description": "Patienten-/Versichertenunterschrift erkannt"
+    },
+    "approval_required": {
+      "type": "boolean",
+      "description": "Genehmigung laut Kasse oder Dokument erforderlich"
+    },
+    "approval_present": {
+      "type": "boolean",
+      "description": "Krankenkassen-Genehmigung erkannt"
+    },
+    "approval_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Genehmigungsdatum"
+    },
+    "approval_until": {
+      "type": "string",
+      "format": "date",
+      "description": "Genehmigt bis"
+    },
+    "approval_reference": {
+      "type": "string",
+      "description": "Genehmigungsnummer / Aktenzeichen"
+    },
+    "prescription_validation_status": {
+      "type": "string",
+      "enum": [
+        "valid",
+        "needs_review",
+        "incomplete"
+      ],
+      "description": "Fachlicher Pruefstatus des Rezepts"
+    },
+    "prescription_validation_score": {
+      "type": "number",
+      "description": "Pruefscore 0-100"
+    },
+    "prescription_validation_report": {
+      "type": "object",
+      "description": "Vollstaendige Rezeptanalyse mit Issues und Feldmarkierungen"
+    },
+    "prescription_missing_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Kurzliste fehlender oder unsicherer Punkte"
+    },
     "azh_sync_status": {
       "type": "string",
       "enum": [
@@ -189,6 +247,7 @@
       "type": "string",
       "enum": [
         "draft",
+        "manual_review",
         "verified",
         "archived"
       ],
