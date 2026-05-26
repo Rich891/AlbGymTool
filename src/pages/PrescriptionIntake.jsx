@@ -275,7 +275,7 @@ export default function PrescriptionIntake() {
       queryClient.invalidateQueries({ queryKey: ['personenakte', 'activities', upsert.customer.id] });
 
       if (upsert.customer?.id) {
-        navigate(`/berater/personen/${upsert.customer.id}?tab=rezepte`);
+        navigate(`/berater/personen/${upsert.customer.id}?tab=reha`);
       }
     } catch (error) {
       console.error('Prescription save failed', error);
