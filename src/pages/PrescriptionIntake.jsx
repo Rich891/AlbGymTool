@@ -20,6 +20,7 @@ import {
   buildPrescriptionScanPayload,
   buildRehasportConsultationFromPrescription,
   derivePrescriptionLifecycle,
+  mergeCustomerContextSnapshot,
   upsertUnifiedCustomer,
 } from '@/lib/customerDataModel';
 import {
@@ -357,6 +358,7 @@ export default function PrescriptionIntake() {
         });
 
         await updateEntity(base44, 'Customer', savedCustomerId, {
+          ...mergeCustomerContextSnapshot(savedCustomer, profilePayload),
           last_prescription_scan_id: prescriptionScan.id,
           last_rehasport_consultation_id: rehaRecord.id,
           active_reha_case_id: rehaRecord.id,

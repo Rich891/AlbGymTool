@@ -5,6 +5,7 @@ import {
   getNextActionForOutcome,
   mapOutcomeToPipelineStatus,
 } from '@/lib/crmModel';
+import { mergeCustomerContextSnapshot } from '@/lib/customerDataModel';
 
 async function safeEntityAction(base44, entityName, action, ...args) {
   try {
@@ -48,7 +49,7 @@ export async function syncConsultationCrmArtifacts({
 
   if (customerId) {
     results.push(await safeEntityAction(base44, 'Customer', 'update', customerId, {
-      ...customerPipelinePayload,
+      ...mergeCustomerContextSnapshot(customer, customerPipelinePayload),
     }));
   }
 

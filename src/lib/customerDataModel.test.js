@@ -372,4 +372,43 @@ describe('upsertUnifiedCustomer', () => {
     expect(updates).toHaveLength(1);
     expect(updates[0].id).toBe('customer-1');
   });
+
+  it('preserves existing customer fields when updating a selected customer from a prescription', async () => {
+    const updates = [];
+    const base44 = {
+      entities: {
+        Customer: {
+          get: async () => ({
+            id: 'customer-1',
+            first_name: 'Gisela',
+            last_name: 'Daucher',
+            active_contract_draft_id: 'contract-1',
+            notes: 'Bestandsnotiz',
+            source_systems: ['manual'],
+          }),
+          update: async (id, payload) => {
+            updates.push({ id, payload });
+            return {};
+          },
+        },
+      },
+    };
+
+    const result = await upsertUnifiedCustomer(base44, {
+      first_name: 'Gisela',
+      last_name: 'Daucher',
+      prescription_status: 'verified',
+      prescription_date: '2026-01-09',
+      health_insurance: 'AOK Baden-Wuerttemberg',
+      source_systems: ['prescription_intake'],
+    }, {
+      existingCustomerId: 'customer-1',
+    });
+
+    expect(result.customer.id).toBe('customer-1');
+    expect(updates[0].payload.notes).toBe('Bestandsnotiz');
+    expect(updates[0].payload.active_contract_draft_id).toBe('contract-1');
+    expect(updates[0].payload.prescription_status).toBe('verified');
+    expect(updates[0].payload.source_systems).toEqual(['manual', 'prescription_intake']);
+  });
 });

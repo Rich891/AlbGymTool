@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -39,6 +39,7 @@ export default function ConsultationFlow() {
   const [selectedGoals, setSelectedGoals] = useState([]);
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [selectedTariff, setSelectedTariff] = useState(null);
+  const customerIdFromUrl = searchParams.get('customer') || searchParams.get('customerId') || '';
 
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
@@ -52,6 +53,21 @@ export default function ConsultationFlow() {
     queryKey: ['rules'],
     queryFn: () => base44.entities.RecommendationRule.list('-priority', 100),
   });
+  const { data: linkedCustomer } = useQuery({
+    queryKey: ['consultation-linked-customer', customerIdFromUrl],
+    queryFn: () => base44.entities.Customer.get(customerIdFromUrl),
+    enabled: Boolean(customerIdFromUrl),
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (!linkedCustomer?.id) return;
+    setCustomer(prev => {
+      if (prev?.id && prev.id !== linkedCustomer.id) return prev;
+      return { ...linkedCustomer, ...prev, id: linkedCustomer.id };
+    });
+    setStep(prev => (prev === 0 ? 1 : prev));
+  }, [linkedCustomer]);
 
   const totalMonthly = (selectedTariff?.monthly_price || 0) +
     selectedAddons.reduce((sum, addon) => sum + (addon.price_monthly || 0), 0);

@@ -3,7 +3,7 @@ import { X, Check, Loader2, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { buildUnifiedCustomerPayload, upsertUnifiedCustomer } from '@/lib/customerDataModel';
+import { buildUnifiedCustomerPayload, mergeCustomerContextSnapshot, upsertUnifiedCustomer } from '@/lib/customerDataModel';
 import { updateEntity } from '@/lib/entityGateway';
 
 const EMPTY = {
@@ -52,9 +52,9 @@ export default function NewCustomerModal({ onClose, onCreated }) {
         ...form,
         customer_id: customer.id,
       });
-      await updateEntity(base44, 'Customer', customer.id, {
+      await updateEntity(base44, 'Customer', customer.id, mergeCustomerContextSnapshot(customer, {
         last_rehasport_consultation_id: record.id,
-      });
+      }));
       qc.invalidateQueries({ queryKey: ['customers'] });
       qc.invalidateQueries({ queryKey: ['rehasport-consultations'] });
       onCreated(record);

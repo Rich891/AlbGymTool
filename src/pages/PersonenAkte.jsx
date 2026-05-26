@@ -32,6 +32,7 @@ import {
   calculateDataQualityScore,
   calculateMissingRequiredFields,
   joinCustomerName,
+  mergeCustomerContextSnapshot,
   PROFILE_STATUSES,
 } from '@/lib/customerDataModel';
 import { summarizeSyncBadges } from '@/lib/syncReadiness';
@@ -614,7 +615,7 @@ export default function PersonenAkte() {
     if (!customer?.id) return;
     setSaving(true);
     try {
-      await updateEntity(base44, 'Customer', customer.id, buildSavePayload(form));
+      await updateEntity(base44, 'Customer', customer.id, mergeCustomerContextSnapshot(customer, buildSavePayload(form)));
       await queryClient.invalidateQueries({ queryKey: ['personenakte', 'customer', id] });
       await queryClient.invalidateQueries({ queryKey: ['personen-cockpit', 'customers'] });
       await queryClient.invalidateQueries({ queryKey: ['customers'] });

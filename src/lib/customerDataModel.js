@@ -743,6 +743,17 @@ function stripEntityMetadata(record = {}) {
   return rest;
 }
 
+async function safeGetEntity(base44, entityName, id) {
+  try {
+    const entity = base44?.entities?.[entityName];
+    if (!entity?.get || !id) return null;
+    return await entity.get(id);
+  } catch (error) {
+    console.warn(`${entityName}.get skipped`, error?.message || error);
+    return null;
+  }
+}
+
 function mergeCustomerData(existing = {}, incoming = {}) {
   const merged = {
     ...stripEntityMetadata(existing),
@@ -802,10 +813,12 @@ export async function upsertUnifiedCustomer(base44, customerDraft, { existingCus
   }
 
   if (existingCustomerId) {
-    const updated = await updateEntity(base44, 'Customer', existingCustomerId, customerDraft);
+    const existing = await safeGetEntity(base44, 'Customer', existingCustomerId);
+    const merged = mergeCustomerData(existing || {}, customerDraft);
+    const updated = await updateEntity(base44, 'Customer', existingCustomerId, merged);
     return {
       customer: {
-        ...customerDraft,
+        ...merged,
         ...updated,
         id: updated?.id || existingCustomerId,
       },

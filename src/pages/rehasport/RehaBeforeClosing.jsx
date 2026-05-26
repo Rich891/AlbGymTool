@@ -3,7 +3,7 @@ import { ChevronLeft, AlertCircle, Loader2, FlaskConical, CheckCircle2, XCircle,
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { buildUnifiedCustomerPayload, upsertUnifiedCustomer } from '@/lib/customerDataModel';
+import { buildUnifiedCustomerPayload, mergeCustomerContextSnapshot, upsertUnifiedCustomer } from '@/lib/customerDataModel';
 import { updateEntity } from '@/lib/entityGateway';
 
 // --- IBAN Validation (Mod97, no external lib needed) ---
@@ -185,10 +185,10 @@ export default function RehaBeforeClosing({ profile, update, onNext, onBack, tes
         subsidy_active: profile.subsidyActive || false,
         status: 'angebot_erstellt',
       });
-      await updateEntity(base44, 'Customer', customer.id, {
+      await updateEntity(base44, 'Customer', customer.id, mergeCustomerContextSnapshot(customer, {
         last_rehasport_consultation_id: rehaRecord.id,
         customer_status: 'active',
-      });
+      }));
       update({ ...formData });
       setShowConsent(false);
       onNext();
