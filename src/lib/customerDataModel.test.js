@@ -16,6 +16,7 @@ import {
   splitFullName,
   upsertUnifiedCustomer,
 } from '@/lib/customerDataModel';
+import { splitCustomerNotes } from '@/lib/customerPersistenceCompat';
 
 describe('deriveProfileStatus', () => {
   it('returns LOST when lead is lost', () => {
@@ -427,7 +428,8 @@ describe('upsertUnifiedCustomer', () => {
     });
 
     expect(result.customer.id).toBe('customer-1');
-    expect(updates[0].payload.notes).toBe('Bestandsnotiz');
+    expect(splitCustomerNotes(updates[0].payload.notes).humanNotes).toBe('Bestandsnotiz');
+    expect(splitCustomerNotes(updates[0].payload.notes).snapshot.prescription_status).toBe('verified');
     expect(updates[0].payload.active_contract_draft_id).toBe('contract-1');
     expect(updates[0].payload.prescription_status).toBe('verified');
     expect(updates[0].payload.source_systems).toEqual(['manual', 'prescription_intake']);

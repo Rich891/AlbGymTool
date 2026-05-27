@@ -35,6 +35,7 @@ import {
   mergeCustomerContextSnapshot,
   PROFILE_STATUSES,
 } from '@/lib/customerDataModel';
+import { hydrateCustomerRecord } from '@/lib/customerPersistenceCompat';
 import { summarizeSyncBadges } from '@/lib/syncReadiness';
 import { formatDateTime } from '@/lib/crmModel';
 
@@ -397,7 +398,8 @@ async function safeGetEntity(base44Client, entityName, id) {
   try {
     const entity = base44Client?.entities?.[entityName];
     if (!entity?.get || !id) return null;
-    return await entity.get(id);
+    const result = await entity.get(id);
+    return entityName === 'Customer' ? hydrateCustomerRecord(result) : result;
   } catch (error) {
     console.warn(`${entityName}.get skipped`, error?.message || error);
     return null;
@@ -717,6 +719,29 @@ export default function PersonenAkte() {
   const customerName = joinCustomerName(customer) || 'Unbenannte Person';
   const currentPrescription = mergePrescriptionSources(customer, sortedScans[0], activeReha);
   const customerHasPrescription = hasCustomerPrescription(currentPrescription);
+  const displayedScans = sortedScans.length > 0
+    ? sortedScans
+    : customerHasPrescription
+      ? [{
+          id: 'customer-prescription-snapshot',
+          file_name: currentPrescription.prescription_file_name || 'Rezeptscan in Kundenakte',
+          file_url: currentPrescription.prescription_file_url,
+          file_uri: currentPrescription.prescription_file_uri,
+          extraction_status: currentPrescription.prescription_extraction_status || 'in_kundenakte',
+          extraction_confidence: currentPrescription.prescription_extraction_confidence,
+          health_insurance: currentPrescription.health_insurance,
+          prescription_date: currentPrescription.prescription_date,
+          prescription_valid_to: currentPrescription.prescription_valid_to,
+          approval_until: currentPrescription.approval_until,
+          form_type: currentPrescription.form_type,
+          form_number: currentPrescription.form_number,
+          form_version: currentPrescription.form_version,
+          prescribed_units: currentPrescription.prescribed_units,
+          duration_months: currentPrescription.duration_months,
+          status: currentPrescription.prescription_status,
+          azh_sync_status: currentPrescription.azh_sync_status,
+        }]
+      : [];
   const dataQuality = summary?.data_quality_score ?? calculateDataQualityScore(customer);
   const missingFields = summary?.missing_required_fields || calculateMissingRequiredFields(customer);
   const nextAction = buildNextAction({
@@ -1011,7 +1036,7 @@ export default function PersonenAkte() {
               </ListCard>
 
               <ListCard title="Rezeptscans" icon={ScanLine} empty="Noch kein Rezeptscan gespeichert.">
-                {sortedScans.map(scan => (
+                {displayedScans.map(scan => (
                   <RecordPanel
                     key={scan.id}
                     icon={FileText}

@@ -24,6 +24,10 @@ import {
   upsertUnifiedCustomer,
 } from '@/lib/customerDataModel';
 import {
+  getMissingCustomerPersistenceFields,
+  hydrateCustomerRecord,
+} from '@/lib/customerPersistenceCompat';
+import {
   EMPTY_PRESCRIPTION_FORM,
   createExtractionUrl,
   extractPrescriptionDataWithRetry,
@@ -120,6 +124,27 @@ const LIFECYCLE_TRIGGER_FIELDS = new Set([
   'valid_from',
   'valid_to',
 ]);
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function verifyCustomerPersistence(base44Client, customerId, expectedPayload) {
+  const entity = base44Client?.entities?.Customer;
+  if (!entity?.get || !customerId) {
+    return hydrateCustomerRecord({ ...expectedPayload, id: customerId });
+  }
+
+  let latest = null;
+  let missingFields = [];
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    latest = hydrateCustomerRecord(await entity.get(customerId));
+    missingFields = getMissingCustomerPersistenceFields(expectedPayload, latest);
+    if (missingFields.length === 0) return latest;
+    await delay(250);
+  }
+
+  throw new Error(`Kundenakte wurde nicht vollstaendig gespeichert. Fehlende Felder: ${missingFields.join(', ')}`);
+}
 
 export default function PrescriptionIntake() {
   const queryClient = useQueryClient();
@@ -387,11 +412,15 @@ export default function PrescriptionIntake() {
       if (!savedCustomerId) {
         throw new Error('Kundenakte wurde gespeichert, aber Base44 hat keine Customer-ID zurueckgegeben.');
       }
-      const savedCustomer = {
+      let savedCustomer = {
         ...profilePayload,
         ...upsert.customer,
         id: savedCustomerId,
       };
+      savedCustomer = await verifyCustomerPersistence(base44, savedCustomerId, {
+        ...profilePayload,
+        id: savedCustomerId,
+      });
 
       let prescriptionScan = null;
       let rehaRecord = null;
@@ -432,6 +461,7 @@ export default function PrescriptionIntake() {
         };
 
         await updateEntity(base44, 'Customer', savedCustomerId, finalCustomerSnapshot);
+        finalCustomerSnapshot = await verifyCustomerPersistence(base44, savedCustomerId, finalCustomerSnapshot);
 
         try {
           await createEntity(base44, 'ActivityLog', {
@@ -480,7 +510,7 @@ export default function PrescriptionIntake() {
       navigate(`/berater/personen/${savedCustomerId}?tab=profile`, { replace: true });
     } catch (error) {
       console.error('Prescription save failed', error);
-      toast.error('Rezept konnte nicht gespeichert werden. Sind Customer, PrescriptionScan und RehasportConsultation in Base44 angelegt?');
+      toast.error(error?.message || 'Rezept konnte nicht gespeichert werden. Sind Customer, PrescriptionScan und RehasportConsultation in Base44 angelegt?');
     } finally {
       setSaving(false);
     }

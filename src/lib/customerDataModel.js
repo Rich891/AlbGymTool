@@ -1,4 +1,5 @@
 import { createEntity, safeFilterEntity, updateEntity } from '@/lib/entityGateway';
+import { hydrateCustomerRecord } from '@/lib/customerPersistenceCompat';
 import { deriveGoalProfileSummary } from '@/lib/goalProfileModel';
 import {
   validationStatusToPrescriptionStatus,
@@ -771,7 +772,8 @@ async function safeGetEntity(base44, entityName, id) {
   try {
     const entity = base44?.entities?.[entityName];
     if (!entity?.get || !id) return null;
-    return await entity.get(id);
+    const result = await entity.get(id);
+    return entityName === 'Customer' ? hydrateCustomerRecord(result) : result;
   } catch (error) {
     console.warn(`${entityName}.get skipped`, error?.message || error);
     return null;
@@ -779,10 +781,12 @@ async function safeGetEntity(base44, entityName, id) {
 }
 
 function mergeCustomerData(existing = {}, incoming = {}) {
+  const hydratedExisting = hydrateCustomerRecord(existing || {});
+  const hydratedIncoming = hydrateCustomerRecord(incoming || {});
   const merged = {
-    ...stripEntityMetadata(existing),
-    ...compactObject(incoming),
-    source_systems: unique([...(existing.source_systems || []), ...(incoming.source_systems || [])]),
+    ...stripEntityMetadata(hydratedExisting),
+    ...compactObject(hydratedIncoming),
+    source_systems: unique([...(hydratedExisting.source_systems || []), ...(hydratedIncoming.source_systems || [])]),
   };
   merged.data_quality_score = calculateDataQualityScore(merged);
   return merged;
@@ -849,12 +853,13 @@ export async function upsertUnifiedCustomer(base44, customerDraft, { existingCus
     const existing = await safeGetEntity(base44, 'Customer', existingCustomerId);
     const merged = mergeCustomerData(existing || {}, customerDraft);
     const updated = await updateEntity(base44, 'Customer', existingCustomerId, merged);
+    const hydratedUpdated = hydrateCustomerRecord(updated);
     return {
-      customer: {
+      customer: hydrateCustomerRecord({
         ...merged,
-        ...updated,
-        id: updated?.id || existingCustomerId,
-      },
+        ...hydratedUpdated,
+        id: hydratedUpdated?.id || existingCustomerId,
+      }),
       created: false,
       matchedBy: 'selected_customer',
     };
@@ -866,17 +871,18 @@ export async function upsertUnifiedCustomer(base44, customerDraft, { existingCus
   if (existing?.id) {
     const merged = mergeCustomerData(existing, customerDraft);
     const updated = await updateEntity(base44, 'Customer', existing.id, merged);
+    const hydratedUpdated = hydrateCustomerRecord(updated);
     return {
-      customer: {
+      customer: hydrateCustomerRecord({
         ...merged,
-        ...updated,
-        id: updated?.id || existing.id,
-      },
+        ...hydratedUpdated,
+        id: hydratedUpdated?.id || existing.id,
+      }),
       created: false,
       matchedBy: 'identity_match',
     };
   }
 
   const created = await createEntity(base44, 'Customer', customerDraft);
-  return { customer: { ...customerDraft, ...created }, created: true, matchedBy: 'new_customer' };
+  return { customer: hydrateCustomerRecord({ ...customerDraft, ...created }), created: true, matchedBy: 'new_customer' };
 }
