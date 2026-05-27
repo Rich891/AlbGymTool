@@ -53,6 +53,63 @@ function mergeFilledPrescriptionForm(previous, incoming = {}) {
   return next;
 }
 
+function normalizeMatchText(value = '') {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function normalizeInsuranceMatch(value = '') {
+  return String(value || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
+function scoreCustomerMatch(customer = {}, draft = {}) {
+  let score = 0;
+  const customerInsurance = normalizeInsuranceMatch(customer.insurance_number);
+  const draftInsurance = normalizeInsuranceMatch(draft.insurance_number);
+  const customerEmail = String(customer.email || '').toLowerCase();
+  const draftEmail = String(draft.email || '').toLowerCase();
+  const customerFirst = normalizeMatchText(customer.first_name);
+  const customerLast = normalizeMatchText(customer.last_name);
+  const draftFirst = normalizeMatchText(draft.first_name);
+  const draftLast = normalizeMatchText(draft.last_name);
+
+  if (draftInsurance && customerInsurance === draftInsurance) score += 100;
+  if (draftEmail && customerEmail === draftEmail) score += 90;
+  if (draftFirst && customerFirst === draftFirst) score += 20;
+  if (draftLast && customerLast === draftLast) score += 30;
+  if (draft.birthdate && customer.birthdate === draft.birthdate) score += 40;
+  if (draft.postal_code && customer.postal_code === draft.postal_code) score += 12;
+  if (draft.city && normalizeMatchText(customer.city) === normalizeMatchText(draft.city)) score += 10;
+  if (draft.street && normalizeMatchText(customer.street) === normalizeMatchText(draft.street)) score += 15;
+  return score;
+}
+
+function customerToPrescriptionSeed(customer = {}) {
+  return {
+    patient_first_name: customer.first_name || '',
+    patient_last_name: customer.last_name || '',
+    birthdate: customer.birthdate || '',
+    gender: customer.gender || '',
+    street: customer.street || '',
+    postal_code: customer.postal_code || '',
+    city: customer.city || '',
+    address: customer.address || '',
+    phone: customer.phone || '',
+    email: customer.email || '',
+    health_insurance: customer.health_insurance || '',
+    insurance_number: customer.insurance_number || '',
+    cost_carrier_number: customer.cost_carrier_number || '',
+    insured_status: customer.insured_status || '',
+  };
+}
+
 const LIFECYCLE_TRIGGER_FIELDS = new Set([
   'health_insurance',
   'prescription_date',
@@ -131,30 +188,39 @@ export default function PrescriptionIntake() {
     form.prescription_date
   );
 
-  const candidateCustomers = useMemo(() => {
-    const insuranceNumber = customerDraft.insurance_number?.replace(/\s/g, '').toLowerCase();
-    const email = customerDraft.email?.toLowerCase();
-    const nameBirthdate = `${customerDraft.first_name}|${customerDraft.last_name}|${customerDraft.birthdate}`.toLowerCase();
-
-    return customers.filter(customer => {
-      const customerInsurance = customer.insurance_number?.replace(/\s/g, '').toLowerCase();
-      const customerEmail = customer.email?.toLowerCase();
-      const customerNameBirthdate = `${customer.first_name}|${customer.last_name}|${customer.birthdate}`.toLowerCase();
-
-      return (
-        (insuranceNumber && customerInsurance === insuranceNumber) ||
-        (email && customerEmail === email) ||
-        (customerDraft.birthdate && customerNameBirthdate === nameBirthdate)
-      );
-    }).slice(0, 5);
-  }, [customerDraft, customers]);
-
   const canSave = !!file && !!form.patient_first_name?.trim() && !!form.patient_last_name?.trim();
 
   const mergeAndDeriveForm = (previous, incoming = {}) => {
     const merged = mergeFilledPrescriptionForm(previous, incoming);
     return derivePrescriptionLifecycle(merged, evaluatePrescription(merged, healthInsurances));
   };
+
+  const candidateCustomers = useMemo(() => {
+    return customers
+      .map(customer => ({
+        ...customer,
+        __matchScore: scoreCustomerMatch(customer, customerDraft),
+      }))
+      .filter(customer => customer.__matchScore >= 45)
+      .sort((a, b) => b.__matchScore - a.__matchScore)
+      .slice(0, 5);
+  }, [customerDraft, customers]);
+
+  const selectedCustomer = useMemo(() => (
+    customers.find(customer => customer.id === (selectedCustomerId || customerIdFromUrl)) || null
+  ), [customers, selectedCustomerId, customerIdFromUrl]);
+
+  useEffect(() => {
+    if (selectedCustomerId || customerIdFromUrl || candidateCustomers.length !== 1) return;
+    if (candidateCustomers[0].__matchScore < 70) return;
+    setSelectedCustomerId(candidateCustomers[0].id);
+  }, [candidateCustomers, selectedCustomerId, customerIdFromUrl]);
+
+  useEffect(() => {
+    if (!selectedCustomer?.id) return;
+    setForm(prev => mergeAndDeriveForm(customerToPrescriptionSeed(selectedCustomer), prev));
+  }, [selectedCustomer, healthInsurances]);
+
   const set = (field, value) => setForm(prev => {
     const next = { ...prev, [field]: value };
     if (!LIFECYCLE_TRIGGER_FIELDS.has(field)) return next;
@@ -330,6 +396,7 @@ export default function PrescriptionIntake() {
       let prescriptionScan = null;
       let rehaRecord = null;
       let archiveWarning = '';
+      let finalCustomerSnapshot = savedCustomer;
       try {
         setScanPhase('Kundenakte gespeichert - Rezeptarchiv wird verknuepft');
         prescriptionScan = await createEntity(
@@ -357,12 +424,14 @@ export default function PrescriptionIntake() {
           rehasport_consultation_id: rehaRecord.id,
         });
 
-        await updateEntity(base44, 'Customer', savedCustomerId, {
+        finalCustomerSnapshot = {
           ...mergeCustomerContextSnapshot(savedCustomer, profilePayload),
           last_prescription_scan_id: prescriptionScan.id,
           last_rehasport_consultation_id: rehaRecord.id,
           active_reha_case_id: rehaRecord.id,
-        });
+        };
+
+        await updateEntity(base44, 'Customer', savedCustomerId, finalCustomerSnapshot);
 
         try {
           await createEntity(base44, 'ActivityLog', {
@@ -397,6 +466,7 @@ export default function PrescriptionIntake() {
       setForm(EMPTY_PRESCRIPTION_FORM);
       setSelectedCustomerId('');
       setScanPhase('Gespeichert');
+      queryClient.setQueryData(['personenakte', 'customer', savedCustomerId], finalCustomerSnapshot);
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customers-unified-prescription'] });
       queryClient.invalidateQueries({ queryKey: ['rehasport-consultations'] });
@@ -493,6 +563,7 @@ export default function PrescriptionIntake() {
           <StatusPanel fileMeta={fileMeta} extraction={extraction} scanError={scanError} review={prescriptionReview} hasScanContext={hasScanContext} />
           <CandidatePanel
             candidates={candidateCustomers}
+            selectedCustomer={selectedCustomer}
             selectedCustomerId={selectedCustomerId}
             onSelect={setSelectedCustomerId}
           />
@@ -873,7 +944,17 @@ function StatusLine({ ok, label, neutral = false, warning = false }) {
   );
 }
 
-function CandidatePanel({ candidates, selectedCustomerId, onSelect }) {
+function CandidatePanel({ candidates, selectedCustomer, selectedCustomerId, onSelect }) {
+  if (selectedCustomer?.id && !candidates.some(customer => customer.id === selectedCustomer.id)) {
+    return (
+      <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm">
+        <p className="text-xs font-black uppercase tracking-widest text-primary mb-2">Aktualisiert diese Akte</p>
+        <p className="font-bold text-foreground">{selectedCustomer.first_name} {selectedCustomer.last_name}</p>
+        <p className="text-xs text-muted-foreground mt-1">{selectedCustomer.birthdate || 'Geburtsdatum offen'} - {selectedCustomer.health_insurance || 'Kasse offen'}</p>
+      </div>
+    );
+  }
+
   if (candidates.length === 0) {
     return (
       <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
@@ -901,7 +982,7 @@ function CandidatePanel({ candidates, selectedCustomerId, onSelect }) {
             className={`w-full text-left rounded-xl border px-3 py-2 text-sm ${selectedCustomerId === customer.id ? 'border-primary bg-primary/10' : 'border-border hover:bg-secondary'}`}
           >
             <span className="font-bold text-foreground">{customer.first_name} {customer.last_name}</span>
-            <span className="block text-xs text-muted-foreground">{customer.birthdate || 'Geburtsdatum offen'} - {customer.health_insurance || 'Kasse offen'}</span>
+            <span className="block text-xs text-muted-foreground">{customer.birthdate || 'Geburtsdatum offen'} - {customer.health_insurance || 'Kasse offen'} - Treffer {customer.__matchScore}</span>
           </button>
         ))}
       </div>

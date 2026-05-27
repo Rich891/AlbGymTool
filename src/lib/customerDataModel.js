@@ -6,6 +6,12 @@ import {
 } from '@/lib/prescriptionValidation';
 
 const EMPTY_VALUES = new Set([undefined, null, '']);
+const PRESCRIPTION_SCAN_EXTRACTION_MODES = new Set([
+  'private_signed_url',
+  'public_url',
+  'public_retry',
+  'llm_vision',
+]);
 
 export const PROFILE_STATUSES = {
   LEAD: 'lead',
@@ -70,6 +76,23 @@ function unique(items) {
 
 function compactArray(items) {
   return unique((items || []).map(cleanText).filter(Boolean));
+}
+
+function parsePositiveNumber(value) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value > 0 ? value : undefined;
+  }
+  const text = cleanText(value);
+  if (!text) return undefined;
+  const match = text.replace(',', '.').match(/\d+(\.\d+)?/);
+  if (!match) return undefined;
+  const number = Number(match[0]);
+  return Number.isFinite(number) && number > 0 ? number : undefined;
+}
+
+function normalizePrescriptionScanExtractionMode(value) {
+  const mode = cleanText(value);
+  return PRESCRIPTION_SCAN_EXTRACTION_MODES.has(mode) ? mode : undefined;
 }
 
 export function splitFullName(fullName = '') {
@@ -286,15 +309,14 @@ export function deriveCurrentFocus({ lead, rehaCase, syncJobs = [], followUpTask
 }
 
 export function mergeCustomerContextSnapshot(existing = {}, incoming = {}) {
-  return compactObject({
+  const merged = compactObject({
     ...stripEntityMetadata(existing),
     ...compactObject(incoming),
     source_systems: unique([...(existing.source_systems || []), ...(incoming.source_systems || [])]),
-    missing_required_fields: compactArray([
-      ...(existing.missing_required_fields || []),
-      ...(incoming.missing_required_fields || []),
-    ]),
   });
+  merged.missing_required_fields = incoming.missing_required_fields || calculateMissingRequiredFields(merged);
+  merged.data_quality_score = calculateDataQualityScore(merged);
+  return merged;
 }
 
 export function buildCustomerSummary(customer = {}, contexts = {}) {
@@ -437,10 +459,10 @@ export function buildUnifiedCustomerPayload(input = {}, { source = 'manual', sou
     pain_points: Array.isArray(input.pain_points) ? compactArray(input.pain_points) : [],
     assigned_advisor: cleanText(input.assigned_advisor),
     recommended_tariff: cleanText(input.recommended_tariff),
-    expected_monthly_value: Number(input.expected_monthly_value) || undefined,
+    expected_monthly_value: parsePositiveNumber(input.expected_monthly_value),
     consultation_type: cleanText(input.consultation_type),
     last_consultation_id: input.last_consultation_id,
-    lead_score: Number(input.lead_score) || undefined,
+    lead_score: parsePositiveNumber(input.lead_score),
     advisor_note: cleanText(input.advisor_note),
     themisoft_customer_id: input.themisoft_customer_id,
     themisoft_sync_status: input.themisoft_sync_status || SYNC_STATUSES.NOT_STARTED,
@@ -520,8 +542,8 @@ export function buildCustomerPayloadFromPrescription(prescription = {}, { fileMe
     form_version: cleanText(lifecyclePrescription.form_version),
     practice_site_number: cleanText(lifecyclePrescription.practice_site_number),
     doctor_number: cleanText(lifecyclePrescription.doctor_number),
-    prescribed_units: Number(lifecyclePrescription.prescribed_units) || undefined,
-    duration_months: Number(lifecyclePrescription.duration_months) || undefined,
+    prescribed_units: parsePositiveNumber(lifecyclePrescription.prescribed_units),
+    duration_months: parsePositiveNumber(lifecyclePrescription.duration_months),
     prescription_frequency: cleanText(lifecyclePrescription.frequency),
     prescribed_service: cleanText(lifecyclePrescription.prescribed_service),
     sport_type: cleanText(lifecyclePrescription.sport_type),
@@ -565,10 +587,10 @@ function resolveApprovalRequired(validation = {}, prescription = {}) {
 }
 
 export function inferPrescriptionDurationMonths(prescription = {}) {
-  const explicitDuration = Number(prescription.duration_months);
-  if (Number.isFinite(explicitDuration) && explicitDuration > 0) return explicitDuration;
+  const explicitDuration = parsePositiveNumber(prescription.duration_months);
+  if (explicitDuration) return explicitDuration;
 
-  const units = Number(prescription.prescribed_units);
+  const units = parsePositiveNumber(prescription.prescribed_units);
   if (units === 50) return 18;
   if (units === 120) return 36;
   return undefined;
@@ -589,6 +611,8 @@ export function derivePrescriptionLifecycle(prescription = {}, validation = {}) 
   if (approvalUntil) next.approval_until = approvalUntil;
   if (validFrom) next.valid_from = validFrom;
   if (validTo) next.valid_to = validTo;
+  const parsedUnits = parsePositiveNumber(next.prescribed_units);
+  if (parsedUnits) next.prescribed_units = parsedUnits;
   if (durationMonths && !next.duration_months) next.duration_months = durationMonths;
 
   if (!approvalRequired && prescriptionDate) {
@@ -637,8 +661,8 @@ export function buildRehasportConsultationFromPrescription({ customer, prescript
     form_version: cleanText(lifecyclePrescription.form_version),
     practice_site_number: cleanText(lifecyclePrescription.practice_site_number),
     doctor_number: cleanText(lifecyclePrescription.doctor_number),
-    prescribed_units: Number(lifecyclePrescription.prescribed_units) || undefined,
-    duration_months: Number(lifecyclePrescription.duration_months) || undefined,
+    prescribed_units: parsePositiveNumber(lifecyclePrescription.prescribed_units),
+    duration_months: parsePositiveNumber(lifecyclePrescription.duration_months),
     prescription_frequency: cleanText(lifecyclePrescription.frequency),
     prescribed_service: cleanText(lifecyclePrescription.prescribed_service),
     sport_type: cleanText(lifecyclePrescription.sport_type),
@@ -684,7 +708,7 @@ export function buildPrescriptionScanPayload({ customer, rehasportConsultation, 
     file_uri: fileMeta?.file_uri,
     file_url: fileMeta?.file_url,
     storage_mode: fileMeta?.storage_mode || 'private',
-    extraction_mode: extraction?.url_mode || fileMeta?.extraction_mode,
+    extraction_mode: normalizePrescriptionScanExtractionMode(extraction?.url_mode || fileMeta?.extraction_mode),
     extraction_status: extraction?.status || 'manual_review',
     extraction_confidence: extraction?.confidence || 'needs_review',
     extracted_data: lifecyclePrescription,
@@ -706,8 +730,8 @@ export function buildPrescriptionScanPayload({ customer, rehasportConsultation, 
     icd_codes: Array.isArray(lifecyclePrescription.icd_codes) ? lifecyclePrescription.icd_codes.filter(Boolean) : [],
     impairment_text: cleanText(lifecyclePrescription.impairment_text),
     rehab_goal: cleanText(lifecyclePrescription.rehab_goal),
-    prescribed_units: Number(lifecyclePrescription.prescribed_units) || undefined,
-    duration_months: Number(lifecyclePrescription.duration_months) || undefined,
+    prescribed_units: parsePositiveNumber(lifecyclePrescription.prescribed_units),
+    duration_months: parsePositiveNumber(lifecyclePrescription.duration_months),
     prescribed_service: cleanText(lifecyclePrescription.prescribed_service),
     sport_type: cleanText(lifecyclePrescription.sport_type),
     functional_training_type: cleanText(lifecyclePrescription.functional_training_type),
@@ -798,10 +822,19 @@ export async function findMatchingCustomers(base44, customerDraft) {
       street: customerDraft.street,
     });
   }
+  if (customerDraft.first_name && customerDraft.last_name) {
+    queries.push({
+      first_name: customerDraft.first_name,
+      last_name: customerDraft.last_name,
+    });
+  }
 
-  for (const query of queries) {
+  for (let index = 0; index < queries.length; index += 1) {
+    const query = queries[index];
     const matches = await safeFilterEntity(base44, 'Customer', query, '-created_date', 5);
-    if (matches.length > 0) return matches;
+    const isNameOnlyQuery = Object.keys(query).length === 2 && query.first_name && query.last_name;
+    if (matches.length > 0 && !isNameOnlyQuery) return matches;
+    if (isNameOnlyQuery && matches.length === 1) return matches;
   }
 
   return [];

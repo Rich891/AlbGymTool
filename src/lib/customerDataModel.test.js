@@ -307,6 +307,27 @@ describe('prescription data mapping', () => {
     expect(inferPrescriptionDurationMonths({ prescribed_units: 120 })).toBe(36);
   });
 
+  it('infers validity when OCR returns units as text', () => {
+    const lifecycle = derivePrescriptionLifecycle({
+      prescription_date: '09.01.2026',
+      prescribed_units: '50 Einheiten',
+    }, {
+      approval_required: false,
+    });
+    const customer = buildCustomerPayloadFromPrescription({
+      ...lifecycle,
+      patient_first_name: 'Gisela',
+      patient_last_name: 'Daucher',
+      validation_report: { status: 'valid', score: 100, issues: [], approval_required: false },
+    });
+
+    expect(lifecycle.prescribed_units).toBe(50);
+    expect(lifecycle.duration_months).toBe(18);
+    expect(lifecycle.valid_to).toBe('2027-07-09');
+    expect(customer.prescribed_units).toBe(50);
+    expect(customer.prescription_valid_to).toBe('2027-07-09');
+  });
+
   it('does not invent validity dates for approval-required prescriptions without approval date', () => {
     const lifecycle = derivePrescriptionLifecycle({
       prescription_date: '2026-01-09',

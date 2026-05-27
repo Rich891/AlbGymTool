@@ -310,6 +310,57 @@ function hasCustomerPrescription(customer = {}) {
   );
 }
 
+function firstAvailableValue(...values) {
+  for (const value of values) {
+    if (Array.isArray(value) && value.length > 0) return value;
+    if (typeof value === 'boolean') return value;
+    if (value !== undefined && value !== null && String(value).trim() !== '') return value;
+  }
+  return undefined;
+}
+
+function mergePrescriptionSources(customer = {}, latestScan = null, activeReha = null) {
+  const source = {};
+  const fields = [
+    'prescription_status',
+    'prescription_date',
+    'prescription_valid_from',
+    'prescription_valid_to',
+    'prescribed_service',
+    'sport_type',
+    'functional_training_type',
+    'prescribed_units',
+    'duration_months',
+    'prescription_frequency',
+    'health_insurance',
+    'insurance_number',
+    'diagnosis_text',
+    'icd_codes',
+    'impairment_text',
+    'rehab_goal',
+    'approval_required',
+    'approval_present',
+    'approval_date',
+    'approval_until',
+    'approval_reference',
+    'doctor_signature_present',
+    'doctor_stamp_present',
+    'patient_signature_present',
+    'prescription_validation_score',
+    'prescription_missing_items',
+  ];
+
+  for (const field of fields) {
+    source[field] = firstAvailableValue(customer[field], latestScan?.[field], activeReha?.[field]);
+  }
+
+  source.prescription_file_url = firstAvailableValue(customer.prescription_file_url, latestScan?.file_url);
+  source.prescription_file_uri = firstAvailableValue(customer.prescription_file_uri, latestScan?.file_uri);
+  source.prescription_file_name = firstAvailableValue(customer.prescription_file_name, latestScan?.file_name);
+  source.last_prescription_scan_id = firstAvailableValue(customer.last_prescription_scan_id, latestScan?.id);
+  return { ...customer, ...source };
+}
+
 function customerToForm(customer = {}) {
   return Object.keys(EMPTY_CUSTOMER_FORM).reduce((acc, key) => {
     const defaultValue = EMPTY_CUSTOMER_FORM[key];
@@ -664,21 +715,22 @@ export default function PersonenAkte() {
   }
 
   const customerName = joinCustomerName(customer) || 'Unbenannte Person';
-  const customerHasPrescription = hasCustomerPrescription(customer);
+  const currentPrescription = mergePrescriptionSources(customer, sortedScans[0], activeReha);
+  const customerHasPrescription = hasCustomerPrescription(currentPrescription);
   const dataQuality = summary?.data_quality_score ?? calculateDataQualityScore(customer);
   const missingFields = summary?.missing_required_fields || calculateMissingRequiredFields(customer);
   const nextAction = buildNextAction({
     missingFields,
     scans: sortedScans,
     appointments: sortedAppointments,
-    customer,
+    customer: currentPrescription,
   });
   const workflowSteps = buildWorkflowSteps({
     missingFields,
     scans: sortedScans,
     activeReha,
     appointments: sortedAppointments,
-    customer,
+    customer: currentPrescription,
   });
 
   const startEditProfile = () => {
@@ -780,6 +832,12 @@ export default function PersonenAkte() {
           </TabsList>
 
           <TabsContent value="profile" className="space-y-5">
+            <CustomerFileOverview
+              customer={customer}
+              prescription={currentPrescription}
+              dataQuality={dataQuality}
+              missingFields={missingFields}
+            />
             <ProfileEditor
               customer={customer}
               form={form}
@@ -879,39 +937,45 @@ export default function PersonenAkte() {
                 </CardHeader>
                 <CardContent className="space-y-5">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Field label="Status" value={customer.prescription_status || '-'} />
-                    <Field label="Ausgestellt" value={formatDate(customer.prescription_date)} />
-                    <Field label="Gueltig ab" value={formatDate(customer.prescription_valid_from)} />
-                    <Field label="Gueltig bis" value={formatDate(customer.prescription_valid_to)} />
-                    <Field label="Leistung" value={customer.prescribed_service} />
-                    <Field label="Art" value={customer.sport_type || customer.functional_training_type} />
-                    <Field label="Einheiten" value={customer.prescribed_units ? `${customer.prescribed_units}` : '-'} />
-                    <Field label="Dauer" value={customer.duration_months ? `${customer.duration_months} Monate` : '-'} />
+                    <Field label="Status" value={currentPrescription.prescription_status || '-'} />
+                    <Field label="Ausgestellt" value={formatDate(currentPrescription.prescription_date)} />
+                    <Field label="Gueltig ab" value={formatDate(currentPrescription.prescription_valid_from)} />
+                    <Field label="Gueltig bis" value={formatDate(currentPrescription.prescription_valid_to)} />
+                    <Field label="Leistung" value={currentPrescription.prescribed_service} />
+                    <Field label="Art" value={currentPrescription.sport_type || currentPrescription.functional_training_type} />
+                    <Field label="Einheiten" value={currentPrescription.prescribed_units ? `${currentPrescription.prescribed_units}` : '-'} />
+                    <Field label="Dauer" value={currentPrescription.duration_months ? `${currentPrescription.duration_months} Monate` : '-'} />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Field label="Krankenkasse" value={customer.health_insurance} />
-                    <Field label="Versichertennummer" value={customer.insurance_number} />
-                    <Field label="Genehmigung" value={customer.approval_required ? (customer.approval_present ? 'Vorhanden' : 'Erforderlich, fehlt') : 'Nicht erforderlich'} />
-                    <Field label="Arztunterschrift" value={customer.doctor_signature_present ? 'Ja' : 'Offen'} />
-                    <Field label="Arztstempel" value={customer.doctor_stamp_present ? 'Ja' : 'Offen'} />
-                    <Field label="Pruefscore" value={customer.prescription_validation_score !== undefined ? `${customer.prescription_validation_score}` : '-'} />
+                    <Field label="Krankenkasse" value={currentPrescription.health_insurance} />
+                    <Field label="Versichertennummer" value={currentPrescription.insurance_number} />
+                    <Field label="Genehmigung" value={currentPrescription.approval_required ? (currentPrescription.approval_present ? 'Vorhanden' : 'Erforderlich, fehlt') : 'Nicht erforderlich'} />
+                    <Field label="Arztunterschrift" value={currentPrescription.doctor_signature_present ? 'Ja' : 'Offen'} />
+                    <Field label="Arztstempel" value={currentPrescription.doctor_stamp_present ? 'Ja' : 'Offen'} />
+                    <Field label="Pruefscore" value={currentPrescription.prescription_validation_score !== undefined ? `${currentPrescription.prescription_validation_score}` : '-'} />
                   </div>
 
-                  {(customer.diagnosis_text || customer.rehab_goal || customer.impairment_text) && (
+                  {(currentPrescription.diagnosis_text || currentPrescription.rehab_goal || currentPrescription.impairment_text) && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Field label="Diagnose" value={customer.diagnosis_text} />
-                      <Field label="Schaedigung" value={customer.impairment_text} />
-                      <Field label="Reha-Ziel" value={customer.rehab_goal} />
+                      <Field label="Diagnose" value={currentPrescription.diagnosis_text} />
+                      <Field label="Schaedigung" value={currentPrescription.impairment_text} />
+                      <Field label="Reha-Ziel" value={currentPrescription.rehab_goal} />
                     </div>
                   )}
 
-                  {customer.prescription_missing_items?.length > 0 && (
+                  {currentPrescription.prescription_missing_items?.length > 0 && (
                     <div>
                       <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Offene Pruefpunkte</p>
-                      <ChipList items={customer.prescription_missing_items} />
+                      <ChipList items={currentPrescription.prescription_missing_items} />
                     </div>
                   )}
+
+                  <StoredFileButton
+                    fileUrl={currentPrescription.prescription_file_url}
+                    fileUri={currentPrescription.prescription_file_uri}
+                    label="Gespeicherten Rezeptscan oeffnen"
+                  />
                 </CardContent>
               </Card>
             )}
@@ -963,11 +1027,7 @@ export default function PersonenAkte() {
                       <Field label="Dauer" value={scan.duration_months ? `${scan.duration_months} Monate` : '-'} />
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {scan.file_url && (
-                        <Button asChild variant="outline" size="sm">
-                          <a href={scan.file_url} target="_blank" rel="noreferrer">Scan oeffnen</a>
-                        </Button>
-                      )}
+                      <StoredFileButton fileUrl={scan.file_url} fileUri={scan.file_uri} label="Scan oeffnen" />
                       <Badge variant="outline">OCR: {scan.extraction_confidence || '-'}</Badge>
                       <Badge variant="outline">Status: {scan.status || '-'}</Badge>
                     </div>
@@ -1123,6 +1183,77 @@ function NextActionCard({ action, customerId, onEditProfile, onSelectTab }) {
   );
 }
 
+function CustomerFileOverview({ customer, prescription, dataQuality, missingFields }) {
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <UserRound className="w-5 h-5 text-primary" /> Allgemeine Akte
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Geburtsdatum" value={formatDate(customer.birthdate)} />
+            <Field label="Telefon" value={customer.phone} />
+            <Field label="E-Mail" value={customer.email} />
+            <Field label="Adresse" value={buildAddress(customer)} />
+            <Field label="Krankenkasse" value={customer.health_insurance} />
+            <Field label="Versichertennummer" value={customer.insurance_number} />
+          </div>
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Datenstand</p>
+              <p className="text-sm font-black text-foreground">{Math.round(dataQuality || 0)}%</p>
+            </div>
+            <Progress value={Math.max(0, Math.min(100, dataQuality || 0))} />
+            {missingFields.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">Offen: {missingFields.join(', ')}</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <HeartPulse className="w-5 h-5 text-primary" /> Rehasport & Rezept
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Rezeptstatus" value={prescription.prescription_status} />
+            <Field label="Ausgestellt" value={formatDate(prescription.prescription_date)} />
+            <Field label="Gueltig bis" value={formatDate(prescription.prescription_valid_to)} />
+            <Field label="Einheiten" value={prescription.prescribed_units ? `${prescription.prescribed_units}` : '-'} />
+            <Field label="Dauer" value={prescription.duration_months ? `${prescription.duration_months} Monate` : '-'} />
+            <Field label="Genehmigung" value={prescription.approval_required ? (prescription.approval_present ? 'Vorhanden' : 'Fehlt') : 'Nicht erforderlich'} />
+          </div>
+          <StoredFileButton
+            fileUrl={prescription.prescription_file_url}
+            fileUri={prescription.prescription_file_uri}
+            label="Rezeptscan oeffnen"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ShieldCheck className="w-5 h-5 text-primary" /> Gesundheit
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field label="Diagnose / Indikation" value={prescription.diagnosis_text} />
+          <Field label="Schaedigung" value={prescription.impairment_text || customer.restrictions} />
+          <Field label="Reha-Ziel" value={prescription.rehab_goal || customer.training_goal} />
+          <Field label="Gesundheitsdaten" value={customer.consent_health ? 'Einwilligung vorhanden' : 'Einwilligung offen'} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function ProfileEditor({ customer, form, editing, saving, onChange, onEdit, onCancel, onSave }) {
   return (
     <Card>
@@ -1204,6 +1335,39 @@ function Field({ label, value }) {
         {value || '-'}
       </p>
     </div>
+  );
+}
+
+function StoredFileButton({ fileUrl, fileUri, label }) {
+  const [opening, setOpening] = useState(false);
+  if (!fileUrl && !fileUri) return null;
+
+  const handleOpen = async () => {
+    setOpening(true);
+    try {
+      let targetUrl = fileUrl;
+      if (!targetUrl && fileUri) {
+        const signed = await base44.integrations.Core.CreateFileSignedUrl({
+          file_uri: fileUri,
+          expires_in: 900,
+        });
+        targetUrl = signed?.signed_url;
+      }
+      if (!targetUrl) throw new Error('Keine Datei-URL verfuegbar.');
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Open prescription file failed', error);
+      toast.error('Rezeptdatei konnte nicht geoeffnet werden.');
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  return (
+    <Button type="button" variant="outline" size="sm" onClick={handleOpen} disabled={opening}>
+      {opening ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
+      {label}
+    </Button>
   );
 }
 
