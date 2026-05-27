@@ -816,15 +816,11 @@ export default function PersonenAkte() {
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4 mt-6">
-            <div className="rounded-xl border border-border bg-background p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Kundenprofil</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Field label="Krankenkasse" value={customer.health_insurance} />
-                <Field label="Versichertennummer" value={customer.insurance_number} />
-                <Field label="Adresse" value={buildAddress(customer)} />
-              </div>
-            </div>
-
+            <CustomerHeaderStatus
+              prescription={currentPrescription}
+              dataQuality={dataQuality}
+              missingFields={missingFields}
+            />
             <NextActionCard
               action={nextAction}
               customerId={customer.id}
@@ -857,25 +853,29 @@ export default function PersonenAkte() {
           </TabsList>
 
           <TabsContent value="profile" className="space-y-5">
-            <CustomerFileOverview
-              customer={customer}
-              prescription={currentPrescription}
-              dataQuality={dataQuality}
-              missingFields={missingFields}
-            />
-            <ProfileEditor
-              customer={customer}
-              form={form}
-              editing={editing}
-              saving={saving}
-              onChange={handleFormChange}
-              onEdit={() => setEditing(true)}
-              onCancel={() => {
-                setEditing(false);
-                setForm(customerToForm(customer));
-              }}
-              onSave={handleSaveCustomer}
-            />
+            {editing ? (
+              <ProfileEditor
+                customer={customer}
+                form={form}
+                editing={editing}
+                saving={saving}
+                onChange={handleFormChange}
+                onEdit={() => setEditing(true)}
+                onCancel={() => {
+                  setEditing(false);
+                  setForm(customerToForm(customer));
+                }}
+                onSave={handleSaveCustomer}
+              />
+            ) : (
+              <CustomerFileOverview
+                customer={customer}
+                prescription={currentPrescription}
+                dataQuality={dataQuality}
+                missingFields={missingFields}
+                onEdit={startEditProfile}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="aufnahme" className="space-y-5">
@@ -1208,73 +1208,218 @@ function NextActionCard({ action, customerId, onEditProfile, onSelectTab }) {
   );
 }
 
-function CustomerFileOverview({ customer, prescription, dataQuality, missingFields }) {
+function CustomerHeaderStatus({ prescription, dataQuality, missingFields }) {
+  const quality = Math.round(dataQuality || 0);
+  const hasPrescription = hasCustomerPrescription(prescription);
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <UserRound className="w-5 h-5 text-primary" /> Allgemeine Akte
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Geburtsdatum" value={formatDate(customer.birthdate)} />
-            <Field label="Telefon" value={customer.phone} />
-            <Field label="E-Mail" value={customer.email} />
-            <Field label="Adresse" value={buildAddress(customer)} />
-            <Field label="Krankenkasse" value={customer.health_insurance} />
-            <Field label="Versichertennummer" value={customer.insurance_number} />
+    <div className="rounded-xl border border-border bg-background p-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Kartei</p>
+            <p className="text-sm font-black text-foreground">{quality}%</p>
           </div>
-          <div>
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Datenstand</p>
-              <p className="text-sm font-black text-foreground">{Math.round(dataQuality || 0)}%</p>
-            </div>
-            <Progress value={Math.max(0, Math.min(100, dataQuality || 0))} />
-            {missingFields.length > 0 && (
-              <p className="text-xs text-muted-foreground mt-2">Offen: {missingFields.join(', ')}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          <Progress value={Math.max(0, Math.min(100, quality))} />
+          <p className="text-xs text-muted-foreground mt-2">
+            {missingFields.length > 0 ? `${missingFields.length} offene Pflichtfelder` : 'Basisdaten vollstaendig'}
+          </p>
+        </div>
+        <Field
+          label="Rezept"
+          value={hasPrescription
+            ? compact([
+                prescription.prescription_status,
+                prescription.prescription_valid_to ? `bis ${formatDate(prescription.prescription_valid_to)}` : '',
+              ]).join(' | ')
+            : 'Noch kein Rezept'}
+        />
+        <Field
+          label="Reha-Aufnahme"
+          value={hasPrescription
+            ? (missingFields.length > 0 ? 'Profil pruefen' : 'Bereit fuer Termin')
+            : 'Rezept erfassen'}
+        />
+      </div>
+    </div>
+  );
+}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <HeartPulse className="w-5 h-5 text-primary" /> Rehasport & Rezept
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Rezeptstatus" value={prescription.prescription_status} />
-            <Field label="Ausgestellt" value={formatDate(prescription.prescription_date)} />
-            <Field label="Gueltig bis" value={formatDate(prescription.prescription_valid_to)} />
-            <Field label="Einheiten" value={prescription.prescribed_units ? `${prescription.prescribed_units}` : '-'} />
-            <Field label="Dauer" value={prescription.duration_months ? `${prescription.duration_months} Monate` : '-'} />
-            <Field label="Genehmigung" value={prescription.approval_required ? (prescription.approval_present ? 'Vorhanden' : 'Fehlt') : 'Nicht erforderlich'} />
-          </div>
-          <StoredFileButton
-            fileUrl={prescription.prescription_file_url}
-            fileUri={prescription.prescription_file_uri}
-            label="Rezeptscan oeffnen"
-          />
-        </CardContent>
-      </Card>
+function CustomerFileOverview({ customer, prescription, dataQuality, missingFields, onEdit }) {
+  const quality = Math.round(dataQuality || 0);
+  const hasPrescription = hasCustomerPrescription(prescription);
+  const missingPrescriptionItems = prescription.prescription_missing_items || [];
+  const hasMedicalData = Boolean(
+    prescription.diagnosis_text ||
+    prescription.impairment_text ||
+    prescription.rehab_goal ||
+    customer.restrictions ||
+    customer.complaints ||
+    customer.training_goal
+  );
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <ShieldCheck className="w-5 h-5 text-primary" /> Gesundheit
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Field label="Diagnose / Indikation" value={prescription.diagnosis_text} />
-          <Field label="Schaedigung" value={prescription.impairment_text || customer.restrictions} />
-          <Field label="Reha-Ziel" value={prescription.rehab_goal || customer.training_goal} />
-          <Field label="Gesundheitsdaten" value={customer.consent_health ? 'Einwilligung vorhanden' : 'Einwilligung offen'} />
-        </CardContent>
-      </Card>
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-black text-foreground">Kundenakte</h2>
+          <p className="text-sm text-muted-foreground mt-1">Stammdaten, Versicherung, Reha-Status und medizinische Angaben.</p>
+        </div>
+        <Button variant="outline" onClick={onEdit}>
+          <IdCard className="w-4 h-4 mr-2" /> Bearbeiten
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-5">
+        <div className="space-y-5">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <UserRound className="w-5 h-5 text-primary" /> Stammdaten & Kontakt
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="Geburtsdatum" value={formatDate(customer.birthdate)} />
+              <Field label="Geschlecht" value={customer.gender} />
+              <Field label="Telefon" value={customer.phone} />
+              <Field label="E-Mail" value={customer.email} />
+              <Field label="Adresse" value={buildAddress(customer)} />
+              <Field label="Kundenstatus" value={labelForStatus(customer.profile_status || customer.customer_status)} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <HeartPulse className="w-5 h-5 text-primary" /> Aktueller Reha-Fall
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {hasPrescription ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                    <Field label="Status" value={prescription.prescription_status} />
+                    <Field label="Ausgestellt" value={formatDate(prescription.prescription_date)} />
+                    <Field label="Gueltig bis" value={formatDate(prescription.prescription_valid_to)} />
+                    <Field label="Einheiten" value={prescription.prescribed_units} />
+                    <Field label="Leistung" value={prescription.prescribed_service} />
+                    <Field label="Art" value={prescription.sport_type || prescription.functional_training_type} />
+                    <Field label="Dauer" value={prescription.duration_months ? `${prescription.duration_months} Monate` : ''} />
+                    <Field label="Genehmigung" value={prescription.approval_required ? (prescription.approval_present ? 'Vorhanden' : 'Fehlt') : 'Nicht erforderlich'} />
+                  </div>
+                  <StoredFileButton
+                    fileUrl={prescription.prescription_file_url}
+                    fileUri={prescription.prescription_file_uri}
+                    label="Rezeptscan oeffnen"
+                  />
+                </>
+              ) : (
+                <EmptyPanel
+                  icon={ScanLine}
+                  title="Kein Rezept in dieser Akte"
+                  action={<Button asChild><Link to={`/berater/rezepte?customerId=${customer.id}`}><ScanLine className="w-4 h-4 mr-2" /> Rezept scannen</Link></Button>}
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ShieldCheck className="w-5 h-5 text-primary" /> Gesundheit & Reha-Ziel
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {hasMedicalData ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <Field label="Diagnose / Indikation" value={prescription.diagnosis_text || customer.complaints} />
+                  <Field label="Schaedigung" value={prescription.impairment_text || customer.restrictions} />
+                  <Field label="Reha-Ziel" value={prescription.rehab_goal || customer.training_goal} />
+                </div>
+              ) : (
+                <EmptyPanel icon={ShieldCheck} title="Keine Gesundheitsangaben hinterlegt" />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-5">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <CheckCircle2 className="w-5 h-5 text-primary" /> Kartei-Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between gap-4 mb-2">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Vollstaendigkeit</p>
+                  <p className="text-sm font-black text-foreground">{quality}%</p>
+                </div>
+                <Progress value={Math.max(0, Math.min(100, quality))} />
+              </div>
+              {missingFields.length > 0 ? (
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Offen</p>
+                  <ChipList items={missingFields} />
+                </div>
+              ) : (
+                <Badge variant="outline" className="border-primary/30 text-primary">Basisprofil vollstaendig</Badge>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <IdCard className="w-5 h-5 text-primary" /> Versicherung
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Field label="Krankenkasse" value={customer.health_insurance || prescription.health_insurance} />
+              <Field label="Versichertennummer" value={customer.insurance_number || prescription.insurance_number} />
+              <Field label="Kostentraeger" value={customer.cost_carrier_number || prescription.cost_carrier_number} />
+              <Field label="Versichertenstatus" value={customer.insured_status || prescription.insured_status} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="w-5 h-5 text-primary" /> Rezeptpruefung
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Pruefstatus" value={prescription.prescription_validation_status || prescription.prescription_status} />
+                <Field label="Score" value={prescription.prescription_validation_score !== undefined ? `${prescription.prescription_validation_score}` : ''} />
+                <Field label="Arztunterschrift" value={prescription.doctor_signature_present ? 'Ja' : 'Offen'} />
+                <Field label="Arztstempel" value={prescription.doctor_stamp_present ? 'Ja' : 'Offen'} />
+              </div>
+              {missingPrescriptionItems.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Pruefpunkte</p>
+                  <ChipList items={missingPrescriptionItems} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ClipboardList className="w-5 h-5 text-primary" /> Aufnahme & Notizen
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Field label="Kontaktquelle" value={customer.lead_source || customer.customer_source} />
+              <Field label="Hauptziel" value={customer.primary_goal || customer.training_goal} />
+              <Field label="Beraternotiz" value={customer.advisor_note || customer.notes} />
+              <Field label="Gesundheitsdaten" value={customer.consent_health ? 'Einwilligung vorhanden' : 'Einwilligung offen'} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1285,10 +1430,10 @@ function ProfileEditor({ customer, form, editing, saving, onChange, onEdit, onCa
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <IdCard className="w-5 h-5 text-primary" /> Kundenprofil
+            <IdCard className="w-5 h-5 text-primary" /> Kundenakte bearbeiten
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Diese Felder sind die zentrale Grundlage fuer Rezeptscan, Reha, Termine und spaetere Syncs.
+            Aenderungen werden in der zentralen Kundendatei gespeichert.
           </p>
         </div>
         <div className="flex gap-2">
@@ -1351,13 +1496,19 @@ function ProfileSection({ section, customer, form, editing, onChange }) {
 }
 
 function Field({ label, value }) {
+  const isEmpty = value === undefined
+    || value === null
+    || (Array.isArray(value) && value.length === 0)
+    || (!Array.isArray(value) && String(value).trim() === '');
+  const display = Array.isArray(value) ? value.join(', ') : value;
+
   return (
     <div className="min-w-0">
       <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
         {label}
       </p>
       <p className="text-sm font-medium text-foreground break-words">
-        {value || '-'}
+        {isEmpty ? '-' : display}
       </p>
     </div>
   );
